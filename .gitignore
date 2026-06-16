@@ -1,13 +1,10 @@
-!src/
 node_modules/
-client/node_modules/
-client/dist/
-client/release/
-client/android/
-client/desktop-api/
 .env
 *.exe
 *.nupkg
 *.dmg
 *.asar
 *.apk
+client/release/
+client/android/
+client/dist/
