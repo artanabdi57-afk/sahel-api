@@ -22,6 +22,67 @@ import { getCurrentShop } from "../lib/auth";
 import { useLanguage } from "../lib/i18n";
 
 const palette = ["#5b3ff2", "#2f7df6", "#14c6a4", "#ffb84d", "#ff6b6b", "#8b5cf6"];
+const DASHBOARD_CACHE_KEY = "sahel_dashboard_cache_v1";
+const DASHBOARD_CACHE_TTL = 60 * 1000;
+
+const emptyDashboardState = {
+  loading: true,
+  error: "",
+  refreshing: false,
+  products: [],
+  currentProfit: null,
+  previousProfit: null,
+  credits: null,
+  creditList: [],
+  daily: [],
+  topProducts: [],
+  recentSales: [],
+  todaySales: []
+};
+
+function readDashboardCache() {
+  if (typeof window === "undefined") return null;
+
+  try {
+    const cached = JSON.parse(localStorage.getItem(DASHBOARD_CACHE_KEY) || "null");
+    if (!cached?.data || !cached?.savedAt) return null;
+
+    return {
+      data: cached.data,
+      stale: Date.now() - cached.savedAt > DASHBOARD_CACHE_TTL
+    };
+  } catch (error) {
+    return null;
+  }
+}
+
+function writeDashboardCache(data) {
+  if (typeof window === "undefined") return;
+
+  try {
+    localStorage.setItem(
+      DASHBOARD_CACHE_KEY,
+      JSON.stringify({
+        savedAt: Date.now(),
+        data
+      })
+    );
+  } catch (error) {
+    // If storage is full or blocked, the live API data still renders normally.
+  }
+}
+
+function initialDashboardState() {
+  const cached = readDashboardCache();
+  if (!cached?.data) return emptyDashboardState;
+
+  return {
+    ...emptyDashboardState,
+    ...cached.data,
+    loading: false,
+    refreshing: cached.stale
+  };
+}
 
 function previousMonth(value) {
   const [year, month] = value.split("-").map(Number);
@@ -424,23 +485,19 @@ export default function Dashboard() {
   const [showNotifications, setShowNotifications] = useState(false);
   const [showTodaySales, setShowTodaySales] = useState(false);
   const [selectedSale, setSelectedSale] = useState(null);
-  const [state, setState] = useState({
-    loading: true,
-    error: "",
-    products: [],
-    currentProfit: null,
-    previousProfit: null,
-    credits: null,
-    creditList: [],
-    daily: [],
-    topProducts: [],
-    recentSales: [],
-    todaySales: []
-  });
+  const [state, setState] = useState(initialDashboardState);
 
   useEffect(() => {
-    async function load() {
+    let active = true;
+
+    async function load(background = false) {
       try {
+        if (!background) {
+          setState((current) => ({ ...current, loading: true, error: "" }));
+        } else {
+          setState((current) => ({ ...current, refreshing: true, error: "" }));
+        }
+
         const currentMonth = monthISO();
         const lastMonth = previousMonth(currentMonth);
         const today = todayISO();
@@ -469,9 +526,10 @@ export default function Dashboard() {
           safeRequest(`/sales?from=${today}T00:00:00.000Z&to=${today}T23:59:59.999Z&limit=100`, [])
         ]);
 
-        setState({
+        const nextState = {
           loading: false,
           error: "",
+          refreshing: false,
           products,
           currentProfit,
           previousProfit,
@@ -481,13 +539,37 @@ export default function Dashboard() {
           topProducts,
           recentSales,
           todaySales
-        });
+        };
+
+        writeDashboardCache(nextState);
+
+        if (active) {
+          setState(nextState);
+        }
       } catch (error) {
-        setState((current) => ({ ...current, loading: false, error: error.message }));
+        if (active) {
+          setState((current) => ({
+            ...current,
+            loading: false,
+            refreshing: false,
+            error: current.products.length || current.daily.length ? "" : error.message
+          }));
+        }
       }
     }
 
-    load();
+    const cached = readDashboardCache();
+    if (cached?.data && !cached.stale) {
+      return () => {
+        active = false;
+      };
+    }
+
+    load(Boolean(cached?.data));
+
+    return () => {
+      active = false;
+    };
   }, []);
 
   const metrics = useMemo(() => {
@@ -533,7 +615,7 @@ export default function Dashboard() {
     ];
   }, [state, t]);
 
-  if (state.loading) return <LoadingState />;
+  if (state.loading) return <LoadingState variant="dashboard" />;
   if (state.error) return <ErrorState message={state.error} />;
 
   const searchQuery = searchTerm.trim().toLowerCase();

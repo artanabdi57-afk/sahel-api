@@ -15,14 +15,30 @@ const isCapacitorApp =
 const mobileApiBaseUrl = "http://10.255.1.169:3000/api";
 const usableSavedApiBaseUrl = isCapacitorApp && savedApiBaseUrl === "/api" ? null : savedApiBaseUrl;
 
-const API_BASE_URL =
+function normalizeApiBaseUrl(value) {
+  if (!value) return value;
+  const trimmed = String(value).replace(/\/+$/, "");
+
+  if (trimmed === "/api" || trimmed.endsWith("/api")) {
+    return trimmed;
+  }
+
+  if (/^https?:\/\//i.test(trimmed)) {
+    return `${trimmed}/api`;
+  }
+
+  return trimmed;
+}
+
+const API_BASE_URL = normalizeApiBaseUrl(
   import.meta.env.VITE_API_BASE_URL ||
-  queryApiBaseUrl ||
-  (isCapacitorApp ? mobileApiBaseUrl : null) ||
-  usableSavedApiBaseUrl ||
-  (typeof window !== "undefined" && window.location.hostname === "127.0.0.1" && window.location.port !== "5173"
-    ? "http://localhost:3000/api"
-    : "/api");
+    queryApiBaseUrl ||
+    (isCapacitorApp ? mobileApiBaseUrl : null) ||
+    usableSavedApiBaseUrl ||
+    (typeof window !== "undefined" && window.location.hostname === "127.0.0.1" && window.location.port !== "5173"
+      ? "http://localhost:3000/api"
+      : "/api")
+);
 
 export async function apiRequest(path, options = {}) {
   const token = getToken();

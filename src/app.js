@@ -22,6 +22,10 @@ const allowedOrigins = [
   'http://127.0.0.1:5173',
   'https://sahel-api.vercel.app',
   'https://sahel-lrd7c2oc5-sahel-s-projects21.vercel.app',
+  ...(process.env.FRONTEND_ORIGINS || "")
+    .split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean)
 ];
 
 const isLocalOrigin = (origin) => {
@@ -36,9 +40,10 @@ const isLocalOrigin = (origin) => {
 
 const isVercelOrigin = (origin) => {
   if (!origin) return false;
+
   try {
     const { hostname } = new URL(origin);
-    return hostname.endsWith('.vercel.app');
+    return hostname === "vercel.app" || hostname.endsWith(".vercel.app");
   } catch (error) {
     return false;
   }
@@ -53,7 +58,7 @@ app.use(
       return callback(new Error("Not allowed by CORS"));
     },
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"]
+    allowedHeaders: ["Content-Type", "Authorization", "x-owner-code"]
   })
 );
 
