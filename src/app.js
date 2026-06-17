@@ -1,9 +1,7 @@
 require("dotenv").config();
-
 const express = require("express");
 const compression = require('compression');
 const cors = require("cors");
-
 const healthRoutes = require("./routes/healthRoutes");
 const authRoutes = require("./routes/authRoutes");
 const productRoutes = require("./routes/productRoutes");
@@ -23,11 +21,11 @@ const allowedOrigins = [
   'http://localhost:5173',
   'http://127.0.0.1:5173',
   'https://sahel-api.vercel.app',
+  'https://sahel-lrd7c2oc5-sahel-s-projects21.vercel.app',
 ];
 
 const isLocalOrigin = (origin) => {
   if (!origin) return true;
-
   try {
     const { hostname } = new URL(origin);
     return hostname === "localhost" || hostname === "127.0.0.1";
@@ -36,19 +34,29 @@ const isLocalOrigin = (origin) => {
   }
 };
 
+const isVercelOrigin = (origin) => {
+  if (!origin) return false;
+  try {
+    const { hostname } = new URL(origin);
+    return hostname.endsWith('.vercel.app');
+  } catch (error) {
+    return false;
+  }
+};
+
 app.use(
   cors({
     origin(origin, callback) {
-      if (allowedOrigins.includes(origin) || isLocalOrigin(origin)) {
+      if (allowedOrigins.includes(origin) || isLocalOrigin(origin) || isVercelOrigin(origin)) {
         return callback(null, true);
       }
-
       return callback(new Error("Not allowed by CORS"));
     },
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"]
   })
 );
+
 app.options("*", cors());
 app.use(compression());
 app.use(express.json());
