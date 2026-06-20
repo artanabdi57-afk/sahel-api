@@ -40,19 +40,9 @@ const getShopForUser = async (userId) => {
 
 const signup = async (req, res, next) => {
   try {
-    const { email, phone, password, shop_name, location, setup_code } = req.body;
+    const { email, phone, password, shop_name, location } = req.body;
     const normalizedPhone = normalizePhone(phone);
     const normalizedEmail = normalizeEmail(email);
-    const requiredSetupCode = String(process.env.ACCOUNT_SETUP_CODE || "").trim();
-    const submittedSetupCode = String(setup_code || "").trim();
-
-    if (!requiredSetupCode) {
-      return res.status(503).json({ message: "Account creation is locked. Add ACCOUNT_SETUP_CODE to the server .env first." });
-    }
-
-    if (submittedSetupCode !== requiredSetupCode) {
-      return res.status(403).json({ message: "Only the Sahel owner can create new business accounts." });
-    }
 
     if (!normalizedEmail || !password || !shop_name) {
       return res.status(400).json({ message: "email, password, and shop_name are required." });
