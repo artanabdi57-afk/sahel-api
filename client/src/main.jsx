@@ -6,7 +6,6 @@ import ProtectedRoute from "./components/ProtectedRoute.jsx";
 import { LoadingState } from "./components/AsyncState.jsx";
 import { applyLanguage } from "./lib/i18n.js";
 import "./styles.css";
-
 const Dashboard = lazy(() => import("./pages/Dashboard.jsx"));
 const Inventory = lazy(() => import("./pages/Inventory.jsx"));
 const NewSale = lazy(() => import("./pages/NewSale.jsx"));
@@ -20,11 +19,10 @@ const AuthCallback = lazy(() => import("./pages/AuthCallback.jsx"));
 const Onboarding = lazy(() => import("./pages/Onboarding.jsx"));
 const AuthPage = lazy(() => import("./pages/AuthPage.jsx"));
 const Admin = lazy(() => import("./pages/Admin.jsx"));
-
+const Landing = lazy(() => import("./pages/Landing.jsx"));
 function lazyPage(element, variant = "route") {
   return <Suspense fallback={<LoadingState variant={variant} />}>{element}</Suspense>;
 }
-
 const savedSettings = localStorage.getItem("sahel_settings");
 if (savedSettings) {
   const settings = JSON.parse(savedSettings);
@@ -33,8 +31,8 @@ if (savedSettings) {
 } else {
   applyLanguage("English");
 }
-
 const router = createBrowserRouter([
+  { path: "/welcome", element: lazyPage(<Landing />) },
   { path: "/login", element: lazyPage(<AuthPage mode="login" />) },
   { path: "/signup", element: lazyPage(<AuthPage mode="signup" />) },
   { path: "/admin", element: lazyPage(<Admin />) },
@@ -62,13 +60,11 @@ const router = createBrowserRouter([
     ]
   }
 ]);
-
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
     <RouterProvider router={router} />
   </React.StrictMode>
 );
-
 if ("serviceWorker" in navigator && import.meta.env.PROD) {
   window.addEventListener("load", () => {
     navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js`).catch(() => {});
