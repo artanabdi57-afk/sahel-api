@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Check, CheckCircle2, ChevronDown, ChevronRight, CreditCard, Phone, Search, X } from "lucide-react";
+import { AlertTriangle, Check, CheckCircle2, ChevronDown, ChevronRight, CreditCard, Phone, Plus, Search, X } from "lucide-react";
 import { apiRequest, formatMoney } from "../lib/api";
 import { EmptyState, ErrorState, LoadingState } from "../components/AsyncState";
 
@@ -44,7 +44,9 @@ function buildCustomers(credits, search) {
       total_paid: 0,
       latest_date: credit.created_at,
       paid_on: null,
-      status: "unpaid"
+      status: "unpaid",
+      has_overdue: false,
+      max_days_outstanding: 0
     };
 
     const creditPayments = credit.payments || [];
@@ -56,6 +58,11 @@ function buildCustomers(credits, search) {
     existing.total_original_amount += itemAmount;
     existing.total_paid += Number(credit.total_paid || 0);
 
+    if (credit.is_overdue) existing.has_overdue = true;
+    if (Number(credit.days_outstanding || 0) > existing.max_days_outstanding) {
+      existing.max_days_outstanding = Number(credit.days_outstanding || 0);
+    }
+
     (credit.items || []).forEach((item) => {
       existing.items.push({
         credit_id: credit.id,
@@ -66,7 +73,9 @@ function buildCustomers(credits, search) {
         remaining: Number(credit.amount_owed || 0),
         date: credit.created_at,
         paid_on: credit.paid_on,
-        payments: creditPayments
+        payments: creditPayments,
+        is_overdue: credit.is_overdue,
+        days_outstanding: credit.days_outstanding
       });
     });
 
@@ -96,7 +105,21 @@ function buildCustomers(credits, search) {
       if (!query) return true;
       return customer.customer_name.toLowerCase().includes(query) || customer.customer_phone.toLowerCase().includes(query);
     })
-    .sort((a, b) => a.customer_name.localeCompare(b.customer_name));
+    .sort((a, b) => {
+      // Overdue customers float to the top
+      if (a.has_overdue && !b.has_overdue) return -1;
+      if (!a.has_overdue && b.has_overdue) return 1;
+      return a.customer_name.localeCompare(b.customer_name);
+    });
+}
+
+function OverdueBadge({ days }) {
+  return (
+    <span className="inline-flex items-center gap-1 rounded-full bg-rose-50 px-3 py-1 text-xs font-black uppercase text-rose-700">
+      <AlertTriangle className="h-3.5 w-3.5" />
+      Overdue - {days}d
+    </span>
+  );
 }
 
 function PaymentTimeline({ payments, remaining, compact = false }) {
@@ -269,12 +292,133 @@ function PaymentModal({ paymentTarget, onClose, onSaved }) {
   );
 }
 
+function GiveMoneyModal({ open, onClose, onSaved }) {
+  const [form, setForm] = useState({ customer_name: "", customer_phone: "", amount_owed: "", notes: "" });
+  const [status, setStatus] = useState({ saving: false, error: "", success: "" });
+
+  useEffect(() => {
+    if (open) {
+      setForm({ customer_name: "", customer_phone: "", amount_owed: "", notes: "" });
+      setStatus({ saving: false, error: "", success: "" });
+    }
+  }, [open]);
+
+  if (!open) return null;
+
+  async function saveDebt(event) {
+    event.preventDefault();
+
+    if (!form.customer_name.trim()) {
+      setStatus({ saving: false, error: "Enter the person's name.", success: "" });
+      return;
+    }
+    const amount = Number(form.amount_owed);
+    if (!amount || amount <= 0) {
+      setStatus({ saving: false, error: "Enter an amount greater than 0.", success: "" });
+      return;
+    }
+
+    setStatus({ saving: true, error: "", success: "" });
+
+    try {
+      await apiRequest("/credits", {
+        method: "POST",
+        body: JSON.stringify({
+          customer_name: form.customer_name.trim(),
+          customer_phone: form.customer_phone.trim(),
+          amount_owed: amount,
+          notes: form.notes.trim()
+        })
+      });
+
+      setStatus({ saving: false, error: "", success: "Debt recorded successfully." });
+      await onSaved();
+      setTimeout(onClose, 700);
+    } catch (error) {
+      setStatus({ saving: false, error: error.message, success: "" });
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-4">
+      <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white shadow-2xl">
+        <div className="flex items-start justify-between border-b border-slate-100 p-5">
+          <div>
+            <h3 className="text-xl font-black text-slate-950">Record Money Given</h3>
+            <p className="mt-1 text-sm font-semibold text-slate-500">Track cash you gave someone that they owe back</p>
+          </div>
+          <button className="rounded-lg p-2 text-slate-400 hover:bg-slate-100" onClick={onClose}>
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        <form onSubmit={saveDebt} className="space-y-5 p-5">
+          <label className="block">
+            <span className="text-sm font-bold text-slate-700">Person's name</span>
+            <input
+              className="field mt-2"
+              type="text"
+              value={form.customer_name}
+              onChange={(event) => setForm({ ...form, customer_name: event.target.value })}
+              placeholder="Example: Ahmed Ali"
+              required
+            />
+          </label>
+
+          <label className="block">
+            <span className="text-sm font-bold text-slate-700">Phone number optional</span>
+            <input
+              className="field mt-2"
+              type="text"
+              value={form.customer_phone}
+              onChange={(event) => setForm({ ...form, customer_phone: event.target.value })}
+              placeholder="Example: 615738632"
+            />
+          </label>
+
+          <label className="block">
+            <span className="text-sm font-bold text-slate-700">Amount given</span>
+            <input
+              className="field mt-2"
+              type="number"
+              min="0.01"
+              step="0.01"
+              value={form.amount_owed}
+              onChange={(event) => setForm({ ...form, amount_owed: event.target.value })}
+              required
+            />
+          </label>
+
+          <label className="block">
+            <span className="text-sm font-bold text-slate-700">Notes optional</span>
+            <textarea
+              className="field mt-2 min-h-[90px]"
+              value={form.notes}
+              onChange={(event) => setForm({ ...form, notes: event.target.value })}
+              placeholder="Example: lent for school fees, will repay end of month"
+            />
+          </label>
+
+          {status.error ? <p className="rounded-lg bg-rose-50 p-3 text-sm font-bold text-rose-700">{status.error}</p> : null}
+          {status.success ? <p className="rounded-lg bg-green-50 p-3 text-sm font-bold text-green-700">{status.success}</p> : null}
+
+          <button className="btn-primary w-full" disabled={status.saving}>
+            <Plus className="h-4 w-4" />
+            {status.saving ? "Saving..." : "Record debt"}
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 export default function Credits() {
   const [credits, setCredits] = useState([]);
   const [filter, setFilter] = useState("open");
   const [search, setSearch] = useState("");
   const [openCustomer, setOpenCustomer] = useState("");
   const [paymentTarget, setPaymentTarget] = useState(null);
+  const [giveMoneyOpen, setGiveMoneyOpen] = useState(false);
   const [status, setStatus] = useState({ loading: true, error: "" });
 
   async function loadCredits(nextFilter = filter) {
@@ -295,6 +439,8 @@ export default function Credits() {
 
   const customers = useMemo(() => buildCustomers(credits, search), [credits, search]);
   const totalAmountOwed = customers.reduce((sum, customer) => sum + customer.total_amount_owed, 0);
+  const overdueCustomers = customers.filter((customer) => customer.has_overdue);
+  const overdueTotal = overdueCustomers.reduce((sum, customer) => sum + customer.total_amount_owed, 0);
 
   function openPaymentModal(customer, mode, creditId = null) {
     setPaymentTarget({ customer, mode, creditId });
@@ -316,7 +462,7 @@ export default function Credits() {
             </div>
           </div>
 
-          <div className="flex w-full flex-col gap-3 lg:flex-row lg:items-center xl:max-w-3xl">
+          <div className="flex w-full flex-col gap-3 lg:flex-row lg:items-center xl:max-w-4xl">
             <label className="relative flex-1">
               <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
               <input
@@ -329,6 +475,7 @@ export default function Credits() {
             <div className="flex rounded-xl border border-slate-200 bg-white p-1">
               {[
                 ["open", "Open"],
+                ["overdue", "Overdue"],
                 ["paid", "Paid"],
                 ["all", "All"]
               ].map(([value, label]) => (
@@ -343,21 +490,42 @@ export default function Credits() {
                 </button>
               ))}
             </div>
-            <div className="rounded-lg bg-blue-600 px-4 py-3 text-white">
-              <p className="text-xs font-medium text-blue-100">Customers</p>
-              <p className="text-lg font-bold">{customers.length}</p>
-            </div>
+            <button className="btn-primary whitespace-nowrap" onClick={() => setGiveMoneyOpen(true)}>
+              <Plus className="h-4 w-4" />
+              Give Money
+            </button>
           </div>
         </div>
       </section>
+
+      {overdueCustomers.length > 0 && filter !== "overdue" ? (
+        <button
+          className="panel flex w-full items-center justify-between gap-3 border-rose-200 bg-rose-50 p-4 text-left transition hover:bg-rose-100"
+          onClick={() => setFilter("overdue")}
+        >
+          <div className="flex items-center gap-3">
+            <AlertTriangle className="h-5 w-5 text-rose-600" />
+            <p className="text-sm font-black text-rose-700">
+              {overdueCustomers.length} {overdueCustomers.length === 1 ? "customer has" : "customers have"} debts overdue 30+ days
+            </p>
+          </div>
+          <p className="text-sm font-black text-rose-700">{formatMoney(overdueTotal)} -&gt;</p>
+        </button>
+      ) : null}
 
       {status.error ? <ErrorState message={status.error} /> : null}
 
       {customers.length === 0 ? (
         <div className="panel p-4">
           <EmptyState
-            title={filter === "paid" ? "No paid credits yet" : "No credits found"}
-            description={filter === "paid" ? "Fully paid credit history will appear here." : "Credit customers will appear here."}
+            title={filter === "paid" ? "No paid credits yet" : filter === "overdue" ? "No overdue debts" : "No credits found"}
+            description={
+              filter === "paid"
+                ? "Fully paid credit history will appear here."
+                : filter === "overdue"
+                ? "Debts older than 30 days will show up here."
+                : "Credit customers will appear here."
+            }
           />
         </div>
       ) : (
@@ -367,7 +535,10 @@ export default function Credits() {
             const fullyPaid = customer.status === "paid";
 
             return (
-              <article key={customer.key} className="panel overflow-hidden">
+              <article
+                key={customer.key}
+                className={`panel overflow-hidden ${customer.has_overdue ? "border-rose-200" : ""}`}
+              >
                 <button
                   type="button"
                   className="flex w-full flex-col gap-4 p-5 text-left transition hover:bg-slate-50 lg:flex-row lg:items-center lg:justify-between"
@@ -383,6 +554,8 @@ export default function Credits() {
                             <CheckCircle2 className="h-3.5 w-3.5" />
                             FULLY PAID
                           </span>
+                        ) : customer.has_overdue ? (
+                          <OverdueBadge days={customer.max_days_outstanding} />
                         ) : (
                           <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-black uppercase text-amber-700">{customer.status}</span>
                         )}
@@ -419,7 +592,10 @@ export default function Credits() {
                           <div key={item.credit_id} className="rounded-xl border border-slate-100 bg-slate-50 p-4">
                             <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                               <div>
-                                <p className="font-black text-slate-950">{item.product_name}</p>
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <p className="font-black text-slate-950">{item.product_name}</p>
+                                  {item.is_overdue ? <OverdueBadge days={item.days_outstanding} /> : null}
+                                </div>
                                 <p className="mt-1 text-sm font-semibold text-slate-500">
                                   Qty {item.quantity} - {formatDateTime(item.date)}
                                 </p>
@@ -481,6 +657,12 @@ export default function Credits() {
       <PaymentModal
         paymentTarget={paymentTarget}
         onClose={() => setPaymentTarget(null)}
+        onSaved={() => loadCredits(filter)}
+      />
+
+      <GiveMoneyModal
+        open={giveMoneyOpen}
+        onClose={() => setGiveMoneyOpen(false)}
         onSaved={() => loadCredits(filter)}
       />
     </div>
