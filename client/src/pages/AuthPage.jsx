@@ -3,8 +3,32 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { ArrowRight, Lock, Mail, MapPin, Phone, Store } from "lucide-react";
 import { apiRequest } from "../lib/api";
 import { saveSession } from "../lib/auth";
+import { supabase } from "../lib/supabaseClient";
 import sahelLogo from "../assets/sahel_logo_english.svg";
 import sahelIcon from "../assets/sahel_logo_icon_only.svg";
+
+function GoogleIcon() {
+  return (
+    <svg className="h-4 w-4" viewBox="0 0 24 24">
+      <path
+        fill="#4285F4"
+        d="M23.52 12.27c0-.85-.08-1.67-.22-2.45H12v4.64h6.46c-.28 1.5-1.13 2.78-2.4 3.63v3.02h3.88c2.27-2.09 3.58-5.17 3.58-8.84z"
+      />
+      <path
+        fill="#34A853"
+        d="M12 24c3.24 0 5.95-1.08 7.94-2.9l-3.88-3.02c-1.08.72-2.45 1.15-4.06 1.15-3.13 0-5.78-2.11-6.73-4.96H1.27v3.11C3.25 21.3 7.31 24 12 24z"
+      />
+      <path
+        fill="#FBBC05"
+        d="M5.27 14.27c-.24-.72-.38-1.49-.38-2.27s.14-1.55.38-2.27V6.62H1.27A11.98 11.98 0 0 0 0 12c0 1.94.46 3.77 1.27 5.38l4-3.11z"
+      />
+      <path
+        fill="#EA4335"
+        d="M12 4.77c1.76 0 3.34.6 4.58 1.79l3.44-3.44C17.94 1.19 15.24 0 12 0 7.31 0 3.25 2.7 1.27 6.62l4 3.11C6.22 6.88 8.87 4.77 12 4.77z"
+      />
+    </svg>
+  );
+}
 
 export default function AuthPage({ mode }) {
   const isSignup = mode === "signup";
@@ -19,6 +43,7 @@ export default function AuthPage({ mode }) {
     setup_code: ""
   });
   const [status, setStatus] = useState({ loading: false, error: "" });
+  const [googleLoading, setGoogleLoading] = useState(false);
 
   async function handleSubmit(event) {
     event.preventDefault();
@@ -51,6 +76,26 @@ export default function AuthPage({ mode }) {
       navigate(location.state?.from || "/dashboard", { replace: true });
     } catch (error) {
       setStatus({ loading: false, error: error.message });
+    }
+  }
+
+  async function handleGoogleSignIn() {
+    setGoogleLoading(true);
+    setStatus({ loading: false, error: "" });
+
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`
+        }
+      });
+
+      if (error) throw error;
+      // Browser redirects to Google here; AuthCallback.jsx handles the return.
+    } catch (error) {
+      setGoogleLoading(false);
+      setStatus({ loading: false, error: error.message || "Could not start Google sign in." });
     }
   }
 
@@ -91,8 +136,24 @@ export default function AuthPage({ mode }) {
                 {isSignup ? "Create your shop" : "Welcome back"}
               </h2>
               <p className="mx-auto mt-2 max-w-xs text-sm font-medium leading-6 text-slate-500">
-                {isSignup ? "Owner-only setup for a new client business." : "Log in with your email and password."}
+                {isSignup ? "Set up your shop in under two minutes." : "Log in with your email and password."}
               </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleGoogleSignIn}
+              disabled={googleLoading}
+              className="flex h-12 w-full items-center justify-center gap-3 rounded-xl border border-slate-200 bg-white text-sm font-bold text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:opacity-60"
+            >
+              <GoogleIcon />
+              {googleLoading ? "Redirecting..." : isSignup ? "Sign up with Google" : "Continue with Google"}
+            </button>
+
+            <div className="my-5 flex items-center gap-3">
+              <div className="h-px flex-1 bg-slate-200" />
+              <span className="text-xs font-bold uppercase text-slate-400">or</span>
+              <div className="h-px flex-1 bg-slate-200" />
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-3">
@@ -156,18 +217,6 @@ export default function AuthPage({ mode }) {
                       onChange={(event) => setForm({ ...form, location: event.target.value })}
                     />
                   </label>
-
-                  <label className="flex h-12 items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 shadow-sm transition focus-within:border-blue-500 focus-within:ring-4 focus-within:ring-blue-100">
-                    <Lock className="h-4 w-4 text-slate-400" />
-                    <input
-                      className="w-full bg-transparent text-sm font-medium outline-none"
-                      type="password"
-                      placeholder="Owner setup code"
-                      value={form.setup_code}
-                      onChange={(event) => setForm({ ...form, setup_code: event.target.value })}
-                      required
-                    />
-                  </label>
                 </>
               ) : null}
 
@@ -197,9 +246,9 @@ export default function AuthPage({ mode }) {
                 </>
               ) : (
                 <>
-                  Need an account? Contact the Sahel owner.{" "}
-                  <Link className="font-black text-blue-600 hover:text-blue-700" to="/admin">
-                    Owner admin
+                  Don't have an account?{" "}
+                  <Link className="font-black text-blue-600 hover:text-blue-700" to="/signup">
+                    Sign up
                   </Link>
                 </>
               )}
