@@ -22,10 +22,8 @@ const allowedOrigins = [
   'http://127.0.0.1:5173',
   'https://sahel-api.vercel.app',
   'https://sahel-lrd7c2oc5-sahel-s-projects21.vercel.app',
-  ...(process.env.FRONTEND_ORIGINS || "")
-    .split(",")
-    .map((origin) => origin.trim())
-    .filter(Boolean)
+  'https://mysahelapp.com',
+  'https://www.mysahelapp.com',
 ];
 
 const isLocalOrigin = (origin) => {
@@ -40,10 +38,19 @@ const isLocalOrigin = (origin) => {
 
 const isVercelOrigin = (origin) => {
   if (!origin) return false;
-
   try {
     const { hostname } = new URL(origin);
-    return hostname === "vercel.app" || hostname.endsWith(".vercel.app");
+    return hostname.endsWith('.vercel.app');
+  } catch (error) {
+    return false;
+  }
+};
+
+const isSahelDomain = (origin) => {
+  if (!origin) return false;
+  try {
+    const { hostname } = new URL(origin);
+    return hostname === "mysahelapp.com" || hostname.endsWith(".mysahelapp.com");
   } catch (error) {
     return false;
   }
@@ -52,13 +59,18 @@ const isVercelOrigin = (origin) => {
 app.use(
   cors({
     origin(origin, callback) {
-      if (allowedOrigins.includes(origin) || isLocalOrigin(origin) || isVercelOrigin(origin)) {
+      if (
+        allowedOrigins.includes(origin) ||
+        isLocalOrigin(origin) ||
+        isVercelOrigin(origin) ||
+        isSahelDomain(origin)
+      ) {
         return callback(null, true);
       }
       return callback(new Error("Not allowed by CORS"));
     },
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization", "x-owner-code"]
+    allowedHeaders: ["Content-Type", "Authorization"]
   })
 );
 
