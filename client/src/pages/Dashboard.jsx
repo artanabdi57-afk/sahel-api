@@ -16,6 +16,17 @@ import {
   WalletCards
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import {
+  BarChart as RBarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell
+} from "recharts";
 import { apiRequest, formatMoney, monthISO, todayISO } from "../lib/api";
 import { ErrorState, LoadingState } from "../components/AsyncState";
 import { getCurrentShop } from "../lib/auth";
@@ -369,8 +380,22 @@ function SaleDetailModal({ sale, onClose }) {
   );
 }
 
+function RevenueTooltip({ active, payload, label }) {
+  if (!active || !payload || !payload.length) return null;
+  return (
+    <div className="rounded-xl border border-slate-100 bg-white p-3 shadow-[0_18px_50px_rgba(15,23,42,0.15)]">
+      <p className="text-xs font-bold text-slate-400">{label}</p>
+      <p className="mt-1 text-sm font-black text-slate-950">{formatMoney(payload[0].value)}</p>
+    </div>
+  );
+}
+
 function BarChart({ data, onOpenReports, t }) {
-  const max = Math.max(...data.map((day) => Number(day.total_revenue || 0)), 1);
+  const chartData = data.map((day) => ({
+    date: day.date.slice(5).replace("-", "/"),
+    fullDate: day.date,
+    revenue: Number(day.total_revenue || 0)
+  }));
 
   return (
     <div className="motion-card rounded-3xl border border-slate-100 bg-white p-5 shadow-[0_18px_50px_rgba(15,23,42,0.08)]">
@@ -388,37 +413,64 @@ function BarChart({ data, onOpenReports, t }) {
           <TrendingUp className="h-4 w-4" />
         </button>
       </div>
-      <div className="flex h-56 items-end gap-3">
-        {data.map((day) => {
-          const height = Math.max((Number(day.total_revenue || 0) / max) * 100, 8);
-          return (
-            <div key={day.date} className="flex flex-1 flex-col items-center gap-3">
-              <div className="flex h-44 w-full items-end">
-                <div
-                  className="dashboard-bar w-full rounded-t-2xl bg-gradient-to-t from-[#5b3ff2] to-[#2f7df6] shadow-[0_12px_25px_rgba(91,63,242,0.25)] transition-all duration-700 hover:brightness-110"
-                  style={{ "--bar-height": `${height}%`, height: `${height}%` }}
-                  title={`${day.date}: ${formatMoney(day.total_revenue)}`}
-                />
-              </div>
-              <p className="text-xs font-bold text-slate-400">{day.date.slice(5).replace("-", "/")}</p>
-            </div>
-          );
-        })}
+      <div className="h-56 w-full">
+        <ResponsiveContainer width="100%" height="100%">
+          <RBarChart data={chartData} margin={{ top: 8, right: 8, left: 8, bottom: 0 }}>
+            <XAxis
+              dataKey="date"
+              tick={{ fontSize: 11, fontWeight: 700, fill: "#94a3b8" }}
+              axisLine={false}
+              tickLine={false}
+            />
+            <YAxis hide />
+            <Tooltip content={<RevenueTooltip />} cursor={{ fill: "rgba(91,63,242,0.06)" }} />
+            <Bar
+              dataKey="revenue"
+              radius={[10, 10, 0, 0]}
+              cursor="pointer"
+              onClick={onOpenReports}
+              fill="#5b3ff2"
+              isAnimationActive
+              animationDuration={700}
+            />
+          </RBarChart>
+        </ResponsiveContainer>
       </div>
     </div>
   );
 }
 
+function PieTooltip({ active, payload }) {
+  if (!active || !payload || !payload.length) return null;
+  const entry = payload[0];
+  return (
+    <div className="rounded-xl border border-slate-100 bg-white p-3 shadow-[0_18px_50px_rgba(15,23,42,0.15)]">
+      <p className="text-sm font-black text-slate-950">{entry.name}</p>
+      <p className="mt-1 text-xs font-bold text-slate-500">{entry.value} sold</p>
+    </div>
+  );
+}
+
 function DonutChart({ products, onOpenReports, t }) {
-  const total = products.reduce((sum, product) => sum + Number(product.quantity_sold || 0), 0);
-  let current = 0;
-  const slices = products.slice(0, 5).map((product, index) => {
-    const start = current;
-    const size = total ? (Number(product.quantity_sold || 0) / total) * 100 : 20;
-    current += size;
-    return `${palette[index % palette.length]} ${start}% ${current}%`;
-  });
-  const background = slices.length ? `conic-gradient(${slices.join(", ")})` : "conic-gradient(#5b3ff2 0% 45%, #2f7df6 45% 70%, #14c6a4 70% 100%)";
+  const navigate = useNavigate();
+  const hasData = products.length > 0;
+  const chartData = hasData
+    ? products.slice(0, 5).map((product) => ({
+        name: product.product_name || "Unknown product",
+        value: Number(product.quantity_sold || 0),
+        productId: product.product_id
+      }))
+    : [{ name: "No sales yet", value: 1, productId: null }];
+
+  const total = hasData ? chartData.reduce((sum, item) => sum + item.value, 0) : 0;
+
+  function handleSliceClick(entry) {
+    if (entry?.productId) {
+      navigate(`/inventory?highlight=${entry.productId}`);
+    } else {
+      onOpenReports();
+    }
+  }
 
   return (
     <div className="motion-card rounded-3xl border border-slate-100 bg-white p-5 shadow-[0_18px_50px_rgba(15,23,42,0.08)]">
@@ -436,28 +488,59 @@ function DonutChart({ products, onOpenReports, t }) {
           <TrendingUp className="h-4 w-4" />
         </button>
       </div>
-      <div className="grid items-center gap-5 sm:grid-cols-[180px_1fr]">
-        <div className="dashboard-donut relative mx-auto h-44 w-44 rounded-full" style={{ background }}>
-          <div className="absolute inset-8 rounded-full bg-white shadow-inner" />
-          <div className="absolute inset-0 flex items-center justify-center">
+      <div className="grid items-center gap-5 sm:grid-cols-[200px_1fr]">
+        <div className="relative mx-auto h-48 w-48">
+          <ResponsiveContainer width="100%" height="100%">
+            <PieChart>
+              <Pie
+                data={chartData}
+                dataKey="value"
+                nameKey="name"
+                innerRadius={62}
+                outerRadius={88}
+                paddingAngle={3}
+                cursor="pointer"
+                isAnimationActive
+                animationDuration={700}
+                onClick={handleSliceClick}
+              >
+                {chartData.map((entry, index) => (
+                  <Cell
+                    key={entry.name}
+                    fill={hasData ? palette[index % palette.length] : "#e2e8f0"}
+                    stroke="#fff"
+                    strokeWidth={2}
+                  />
+                ))}
+              </Pie>
+              {hasData ? <Tooltip content={<PieTooltip />} /> : null}
+            </PieChart>
+          </ResponsiveContainer>
+          <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
             <div className="text-center">
               <p className="text-2xl font-black text-slate-950">{total}</p>
               <p className="text-xs font-bold text-slate-400">sold</p>
             </div>
           </div>
         </div>
-        <div className="space-y-3">
-          {(products.length ? products.slice(0, 5) : [{ product_name: "No sales yet", quantity_sold: 0 }]).map(
-            (product, index) => (
-              <div key={`${product.product_id || product.product_name}-${index}`} className="flex items-center justify-between gap-3">
-                <div className="flex items-center gap-2">
-                  <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: palette[index % palette.length] }} />
-                  <p className="text-sm font-semibold text-slate-600">{product.product_name || "Unknown product"}</p>
-                </div>
-                <p className="text-sm font-black text-slate-950">{product.quantity_sold}</p>
+        <div className="space-y-1">
+          {chartData.map((entry, index) => (
+            <button
+              type="button"
+              key={`${entry.productId || entry.name}-${index}`}
+              className="flex w-full items-center justify-between gap-3 rounded-xl px-2 py-2 text-left transition hover:bg-slate-50"
+              onClick={() => handleSliceClick(entry)}
+            >
+              <div className="flex items-center gap-2">
+                <span
+                  className="h-2.5 w-2.5 rounded-full"
+                  style={{ backgroundColor: hasData ? palette[index % palette.length] : "#e2e8f0" }}
+                />
+                <p className="text-sm font-semibold text-slate-600">{entry.name}</p>
               </div>
-            )
-          )}
+              <p className="text-sm font-black text-slate-950">{hasData ? entry.value : "-"}</p>
+            </button>
+          ))}
         </div>
       </div>
     </div>
