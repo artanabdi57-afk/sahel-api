@@ -232,34 +232,22 @@ export default function Landing() {
         <div className="wrap">
           <div className="section-head" style={{ marginLeft: "auto", marginRight: "auto", textAlign: "center" }}>
             <p className="section-eyebrow">Simple pricing</p>
-            <h2>Start free. Upgrade when you're ready.</h2>
+            <h2>Free for every Somali shop owner.</h2>
           </div>
-          <div className="pricing-grid">
-            <div className="price-card">
+          <div className="pricing-grid" style={{ gridTemplateColumns: "1fr", maxWidth: "420px" }}>
+            <div className="price-card featured">
+              <span className="price-badge">All features included</span>
               <p className="price-name">Free</p>
               <p className="price-amt">$0</p>
               <p className="price-period">forever, no card needed</p>
               <ul className="price-list">
-                <li>Up to 100 products</li>
-                <li>Sales tracking</li>
-                <li>Basic reports</li>
-                <li>1 user account</li>
-              </ul>
-              <Link to="/signup" className="btn-secondary" style={{ width: "100%", textAlign: "center" }}>Start free</Link>
-            </div>
-            <div className="price-card featured">
-              <span className="price-badge">Most popular</span>
-              <p className="price-name">Pro</p>
-              <p className="price-amt">$5</p>
-              <p className="price-period">per month</p>
-              <ul className="price-list">
                 <li>Unlimited products</li>
+                <li>Sales tracking</li>
                 <li>Customer credit tracking</li>
                 <li>Expense tracking</li>
-                <li>Advanced reports</li>
-                <li>Up to 3 user accounts</li>
+                <li>Reports</li>
               </ul>
-              <Link to="/signup" className="btn-primary" style={{ width: "100%", textAlign: "center" }}>Start free trial</Link>
+              <Link to="/signup" className="btn-primary" style={{ width: "100%", textAlign: "center" }}>Start free with Sahel</Link>
             </div>
           </div>
         </div>
@@ -274,7 +262,7 @@ export default function Landing() {
           <div>
             {[
               ["What is Sahel?", "Sahel is shop management software built specifically for small retail businesses in Somalia. It helps shop owners track sales, manage inventory, follow customer credit, and understand their expenses, all from one simple app."],
-              ["Is Sahel free to use?", "Yes. Sahel has a free plan that covers the essentials - sales tracking, basic reports, and up to 100 products - with no credit card required. A Pro plan is available for shops that need more."],
+              ["Is Sahel free to use?", "Yes. Sahel is completely free for Somali shop owners - sales tracking, credit tracking, expenses, and reports, with no credit card required."],
               ["Do I need to install anything?", "No. Sahel works directly in your phone or computer's browser at mysahelapp.com. A desktop app and mobile app are also available for shop owners who prefer them."],
               ["Can I track customers who owe me money?", "Yes. Sahel's credit tracking feature lets you record what each customer owes, see payment history, and get a clear view of all outstanding debts across your shop."],
               ["Is my shop data private?", "Yes. Each shop's data on Sahel is private and only visible to that shop's account. No other Sahel user can see your sales, stock, or customer information."]
@@ -307,4 +295,3 @@ export default function Landing() {
     </div>
   );
 }
-
