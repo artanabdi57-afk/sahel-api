@@ -3,6 +3,7 @@
   "appName": "Sahel",
   "webDir": "dist",
   "server": {
+    "url": "https://mysahelapp.com",
     "androidScheme": "https",
     "cleartext": true
   },
