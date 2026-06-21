@@ -13,19 +13,18 @@ function formatDate(isoDate) {
   return date.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
 }
 
+// Accepts either:
+//   sale = { productName, quantity_sold, selling_price, payment_type, customer_name, customer_phone, sale_date, receipt_no }
+// or:
+//   sale = { items: [{ productName, quantity_sold, selling_price }, ...], payment_type, customer_name, customer_phone, sale_date, receipt_no }
 export default function Receipt({ sale, shop, onClose }) {
-  const {
-    productName,
-    quantity_sold,
-    selling_price,
-    payment_type,
-    customer_name,
-    customer_phone,
-    sale_date,
-    receipt_no
-  } = sale;
+  const items = sale.items && sale.items.length
+    ? sale.items
+    : [{ productName: sale.productName, quantity_sold: sale.quantity_sold, selling_price: sale.selling_price }];
 
-  const total = Number(quantity_sold) * Number(selling_price);
+  const { payment_type, customer_name, customer_phone, sale_date, receipt_no } = sale;
+
+  const total = items.reduce((sum, item) => sum + Number(item.quantity_sold) * Number(item.selling_price), 0);
 
   async function handleDownloadPdf() {
     const node = document.getElementById("receipt-print-area");
@@ -39,7 +38,7 @@ export default function Receipt({ sale, shop, onClose }) {
         filename: `Sahel-Receipt-${receipt_no || Date.now()}.pdf`,
         image: { type: "jpeg", quality: 0.98 },
         html2canvas: { scale: 2 },
-        jsPDF: { unit: "mm", format: [80, 150], orientation: "portrait" }
+        jsPDF: { unit: "mm", format: [80, 150 + items.length * 8], orientation: "portrait" }
       })
       .from(node)
       .save();
@@ -98,12 +97,14 @@ export default function Receipt({ sale, shop, onClose }) {
               <span>Price</span>
               <span>Total</span>
             </div>
-            <div className="mt-2 flex justify-between">
-              <span className="max-w-[40%] truncate">{productName}</span>
-              <span>{quantity_sold}</span>
-              <span>{formatMoney(selling_price)}</span>
-              <span className="font-semibold">{formatMoney(total)}</span>
-            </div>
+            {items.map((item, index) => (
+              <div key={index} className="mt-2 flex justify-between">
+                <span className="max-w-[40%] truncate">{item.productName}</span>
+                <span>{item.quantity_sold}</span>
+                <span>{formatMoney(item.selling_price)}</span>
+                <span className="font-semibold">{formatMoney(Number(item.quantity_sold) * Number(item.selling_price))}</span>
+              </div>
+            ))}
           </div>
 
           <div className="border-t border-dashed border-slate-300 pt-3">
