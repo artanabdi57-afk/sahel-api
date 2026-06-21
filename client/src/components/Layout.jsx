@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { clearSession, getCurrentShop } from "../lib/auth";
 import { useLanguage } from "../lib/i18n";
+import WhatsAppSupportButton from "./WhatsAppSupportButton.jsx";
 
 const navItems = [
   { key: "dashboard", path: "/dashboard", icon: Home },
@@ -133,6 +134,8 @@ export default function Layout() {
           ))}
         </div>
       </nav>
+
+      <WhatsAppSupportButton />
     </div>
   );
 }
