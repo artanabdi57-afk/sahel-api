@@ -18,8 +18,11 @@ jobs:
         with:
           node-version: '22'
 
-      - name: Verify Node version
-        run: node -v
+      - name: Verify Node and npm version
+        run: |
+          node -v
+          npm -v
+          which node
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -31,13 +34,17 @@ jobs:
         working-directory: client
         run: npm install
 
+      - name: Verify installed Capacitor CLI version
+        working-directory: client
+        run: npx --no-install cap --version
+
       - name: Build web app
         working-directory: client
         run: npm run build
 
-      - name: Sync Capacitor
+      - name: Sync Capacitor (using local CLI explicitly)
         working-directory: client
-        run: npx cap sync android
+        run: node_modules/.bin/cap sync android
 
       - name: Grant execute permission for gradlew
         working-directory: client/android
