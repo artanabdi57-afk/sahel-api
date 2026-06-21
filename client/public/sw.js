@@ -1,48 +1,26 @@
-const CACHE_NAME = "sahel-static-v1";
-const APP_SHELL = ["./", "./index.html", "./favicon.ico"];
+// This service worker exists only to unregister any previously-installed
+// service worker and clear stale caches that were causing a blank page.
+// Once all clients have picked this up, this file (and the <link>/registration
+// referencing it, if any) can be safely deleted.
 
-self.addEventListener("install", (event) => {
-  event.waitUntil(
-    caches
-      .open(CACHE_NAME)
-      .then((cache) => cache.addAll(APP_SHELL))
-      .then(() => self.skipWaiting())
-  );
+self.addEventListener('install', () => {
+  self.skipWaiting();
 });
 
-self.addEventListener("activate", (event) => {
+self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches
-      .keys()
-      .then((keys) => Promise.all(keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key))))
-      .then(() => self.clients.claim())
+    (async () => {
+      // Delete all caches this service worker (or its predecessor) created
+      const cacheNames = await caches.keys();
+      await Promise.all(cacheNames.map((name) => caches.delete(name)));
+
+      // Unregister self so the browser stops using any service worker here
+      await self.registration.unregister();
+
+      // Force all open tabs controlled by this worker to reload with a
+      // fresh, network-only version of the page
+      const clientsList = await self.clients.matchAll({ type: 'window' });
+      clientsList.forEach((client) => client.navigate(client.url));
+    })()
   );
-});
-
-self.addEventListener("fetch", (event) => {
-  const { request } = event;
-
-  if (request.method !== "GET") return;
-
-  const url = new URL(request.url);
-  if (url.pathname.startsWith("/api")) return;
-
-  if (["script", "style", "image", "font"].includes(request.destination)) {
-    event.respondWith(
-      caches.match(request).then((cached) => {
-        if (cached) return cached;
-
-        return fetch(request).then((response) => {
-          const copy = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
-          return response;
-        });
-      })
-    );
-    return;
-  }
-
-  if (request.mode === "navigate") {
-    event.respondWith(fetch(request).catch(() => caches.match("./index.html")));
-  }
 });
