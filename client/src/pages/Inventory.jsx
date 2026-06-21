@@ -1,6 +1,6 @@
 import React, { useRef } from "react";
 import { useEffect, useState } from "react";
-import { Download, Menu, Plus, Search, Upload, X } from "lucide-react";
+import { Check, Download, Menu, Plus, Search, Upload, X } from "lucide-react";
 import { apiRequest, formatMoney } from "../lib/api";
 import { EmptyState, ErrorState, LoadingState } from "../components/AsyncState";
 
@@ -27,6 +27,20 @@ function normalizeHeader(value) {
     .trim()
     .toLowerCase()
     .replace(/[^a-z0-9]/g, "");
+}
+
+function normalizeName(value) {
+  return String(value || "").trim().toLowerCase();
+}
+
+// Simple similarity check: does one name contain the other, or are they
+// close enough in length/words to be worth asking about?
+function isSimilarName(a, b) {
+  const normA = normalizeName(a);
+  const normB = normalizeName(b);
+  if (!normA || !normB) return false;
+  if (normA === normB) return false; // handled separately as exact match
+  return normA.includes(normB) || normB.includes(normA);
 }
 
 function toNumber(value) {
@@ -80,6 +94,55 @@ function parseInventoryRows(sheetRows) {
   }));
 }
 
+// One editable cell. Click to edit, Enter/blur to save, Escape to cancel.
+function EditableCell({ value, type = "text", onSave, className = "", formatDisplay }) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(value);
+
+  useEffect(() => {
+    setDraft(value);
+  }, [value]);
+
+  function commit() {
+    setEditing(false);
+    const finalValue = type === "number" ? Number(draft) : draft;
+    if (finalValue !== value) {
+      onSave(finalValue);
+    }
+  }
+
+  if (editing) {
+    return (
+      <input
+        autoFocus
+        type={type}
+        className="w-full rounded border border-blue-400 bg-blue-50/40 px-2 py-1 text-sm outline-none ring-2 ring-blue-100"
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={commit}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") commit();
+          if (e.key === "Escape") {
+            setDraft(value);
+            setEditing(false);
+          }
+        }}
+      />
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={() => setEditing(true)}
+      className={`block w-full rounded px-2 py-1 text-left transition hover:bg-blue-50 ${className}`}
+      title="Click to edit"
+    >
+      {formatDisplay ? formatDisplay(value) : value}
+    </button>
+  );
+}
+
 export default function Inventory() {
   const [products, setProducts] = useState([]);
   const [form, setForm] = useState(emptyForm);
@@ -87,6 +150,7 @@ export default function Inventory() {
   const [showAddForm, setShowAddForm] = useState(false);
   const [showToolsMenu, setShowToolsMenu] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [duplicatePrompt, setDuplicatePrompt] = useState(null);
   const fileInputRef = useRef(null);
 
   async function loadProducts() {
@@ -100,21 +164,56 @@ export default function Inventory() {
       .finally(() => setStatus((current) => ({ ...current, loading: false })));
   }, []);
 
+  async function createProduct(productData) {
+    await apiRequest("/products", {
+      method: "POST",
+      body: JSON.stringify(productData)
+    });
+  }
+
+  async function restockExisting(existingProduct, addedQuantity) {
+    await apiRequest(`/products/${existingProduct.id}`, {
+      method: "PUT",
+      body: JSON.stringify({
+        ...existingProduct,
+        quantity: Number(existingProduct.quantity || 0) + Number(addedQuantity || 0)
+      })
+    });
+  }
+
   async function handleSubmit(event) {
     event.preventDefault();
     setStatus((current) => ({ ...current, saving: true, error: "" }));
 
     try {
-      await apiRequest("/products", {
-        method: "POST",
-        body: JSON.stringify({
-          ...form,
-          item_id: form.item_id || undefined,
-          quantity: Number(form.quantity),
-          cost_price: Number(form.cost_price),
-          selling_price: Number(form.selling_price),
-          low_stock_threshold: Number(form.low_stock_threshold)
-        })
+      const newName = form.name.trim();
+      const exactMatch = products.find((product) => normalizeName(product.name) === normalizeName(newName));
+
+      if (exactMatch) {
+        await restockExisting(exactMatch, form.quantity);
+        setForm(emptyForm);
+        setShowAddForm(false);
+        await loadProducts();
+        setStatus((current) => ({ ...current, success: `Added ${form.quantity} to existing stock of "${exactMatch.name}".` }));
+        return;
+      }
+
+      const similarMatch = products.find((product) => isSimilarName(product.name, newName));
+
+      if (similarMatch) {
+        setDuplicatePrompt({ similarMatch, draft: { ...form, name: newName } });
+        setStatus((current) => ({ ...current, saving: false }));
+        return;
+      }
+
+      await createProduct({
+        ...form,
+        name: newName,
+        item_id: form.item_id || undefined,
+        quantity: Number(form.quantity),
+        cost_price: Number(form.cost_price),
+        selling_price: Number(form.selling_price),
+        low_stock_threshold: Number(form.low_stock_threshold)
       });
       setForm(emptyForm);
       setShowAddForm(false);
@@ -123,6 +222,48 @@ export default function Inventory() {
       setStatus((current) => ({ ...current, error: error.message }));
     } finally {
       setStatus((current) => ({ ...current, saving: false }));
+    }
+  }
+
+  async function resolveDuplicatePrompt(action) {
+    const { similarMatch, draft } = duplicatePrompt;
+    setDuplicatePrompt(null);
+    setStatus((current) => ({ ...current, saving: true, error: "" }));
+
+    try {
+      if (action === "merge") {
+        await restockExisting(similarMatch, draft.quantity);
+        setStatus((current) => ({ ...current, success: `Added ${draft.quantity} to existing stock of "${similarMatch.name}".` }));
+      } else {
+        await createProduct({
+          ...draft,
+          item_id: draft.item_id || undefined,
+          quantity: Number(draft.quantity),
+          cost_price: Number(draft.cost_price),
+          selling_price: Number(draft.selling_price),
+          low_stock_threshold: Number(draft.low_stock_threshold)
+        });
+        setStatus((current) => ({ ...current, success: `Created "${draft.name}" as a new product.` }));
+      }
+      setForm(emptyForm);
+      setShowAddForm(false);
+      await loadProducts();
+    } catch (error) {
+      setStatus((current) => ({ ...current, error: error.message }));
+    } finally {
+      setStatus((current) => ({ ...current, saving: false }));
+    }
+  }
+
+  async function updateProductField(product, field, value) {
+    try {
+      await apiRequest(`/products/${product.id}`, {
+        method: "PUT",
+        body: JSON.stringify({ ...product, [field]: value })
+      });
+      await loadProducts();
+    } catch (error) {
+      setStatus((current) => ({ ...current, error: error.message }));
     }
   }
 
@@ -175,17 +316,24 @@ export default function Inventory() {
         throw new Error("No products found. Use a first column called Product, Name, Item, or Product Name.");
       }
 
+      let mergedCount = 0;
+      let createdCount = 0;
+
       for (const product of productsToImport) {
-        await apiRequest("/products", {
-          method: "POST",
-          body: JSON.stringify(product)
-        });
+        const existing = products.find((existingProduct) => normalizeName(existingProduct.name) === normalizeName(product.name));
+        if (existing) {
+          await restockExisting(existing, product.quantity);
+          mergedCount += 1;
+        } else {
+          await createProduct(product);
+          createdCount += 1;
+        }
       }
 
       await loadProducts();
       setStatus((current) => ({
         ...current,
-        success: `Imported ${productsToImport.length} product${productsToImport.length === 1 ? "" : "s"}.`
+        success: `Imported: ${createdCount} new product${createdCount === 1 ? "" : "s"}, ${mergedCount} restocked.`
       }));
     } catch (error) {
       setStatus((current) => ({ ...current, error: error.message }));
@@ -292,6 +440,9 @@ export default function Inventory() {
               <input className="field" type="number" placeholder="Selling price" value={form.selling_price} onChange={(e) => setForm({ ...form, selling_price: e.target.value })} />
               <input className="field" type="number" placeholder="Low stock threshold" value={form.low_stock_threshold} onChange={(e) => setForm({ ...form, low_stock_threshold: e.target.value })} />
             </div>
+            <p className="mt-2 text-xs text-slate-500">
+              If the product name matches an existing item, the quantity will be added to its current stock instead of creating a duplicate.
+            </p>
             <div className="mt-3 flex justify-end">
               <button className="btn-primary" disabled={status.saving}>
                 <Plus className="h-4 w-4" />
@@ -299,6 +450,40 @@ export default function Inventory() {
               </button>
             </div>
           </form>
+        ) : null}
+
+        {duplicatePrompt ? (
+          <div className="border-b border-amber-200 bg-amber-50 p-4">
+            <p className="text-sm font-semibold text-amber-800">
+              "{duplicatePrompt.draft.name}" looks similar to an existing product: "{duplicatePrompt.similarMatch.name}" (currently {duplicatePrompt.similarMatch.quantity} in stock).
+            </p>
+            <p className="mt-1 text-sm text-amber-700">Is this a restock of the existing item, or a genuinely different product?</p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <button
+                type="button"
+                className="btn-primary"
+                onClick={() => resolveDuplicatePrompt("merge")}
+              >
+                <Check className="h-4 w-4" />
+                Add to "{duplicatePrompt.similarMatch.name}" stock
+              </button>
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={() => resolveDuplicatePrompt("create")}
+              >
+                <Plus className="h-4 w-4" />
+                Create as new product
+              </button>
+              <button
+                type="button"
+                className="rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-500 hover:bg-slate-100"
+                onClick={() => setDuplicatePrompt(null)}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
         ) : null}
 
         {status.error ? <p className="px-4 pt-4 text-sm text-red-600">{status.error}</p> : null}
@@ -335,26 +520,59 @@ export default function Inventory() {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[780px] text-left text-sm">
-              <thead className="bg-slate-50 text-xs uppercase text-slate-500">
+            <table className="w-full min-w-[780px] border-collapse text-left text-sm">
+              <thead className="sticky top-0 z-10 bg-slate-100 text-xs uppercase tracking-wide text-slate-600">
                 <tr>
-                  <th className="px-4 py-3">Item ID</th>
-                  <th className="px-4 py-3">Product</th>
-                  <th className="px-4 py-3">Stock</th>
-                  <th className="px-4 py-3">Cost</th>
-                  <th className="px-4 py-3">Selling</th>
-                  <th className="px-4 py-3">Threshold</th>
+                  <th className="border border-slate-200 px-4 py-3">Item ID</th>
+                  <th className="border border-slate-200 px-4 py-3">Product</th>
+                  <th className="border border-slate-200 px-4 py-3">Stock</th>
+                  <th className="border border-slate-200 px-4 py-3">Cost</th>
+                  <th className="border border-slate-200 px-4 py-3">Selling</th>
+                  <th className="border border-slate-200 px-4 py-3">Threshold</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
-                {filteredProducts.map((product) => (
-                  <tr key={product.id}>
-                    <td className="px-4 py-3 font-mono text-xs font-semibold text-slate-500">{product.item_id || "-"}</td>
-                    <td className="px-4 py-3 font-semibold text-slate-950">{product.name}</td>
-                    <td className="px-4 py-3">{product.quantity}</td>
-                    <td className="px-4 py-3">{formatMoney(product.cost_price)}</td>
-                    <td className="px-4 py-3">{formatMoney(product.selling_price)}</td>
-                    <td className="px-4 py-3">{product.low_stock_threshold}</td>
+              <tbody>
+                {filteredProducts.map((product, rowIndex) => (
+                  <tr key={product.id} className={rowIndex % 2 === 0 ? "bg-white" : "bg-slate-50/70"}>
+                    <td className="border border-slate-200 px-2 py-1 font-mono text-xs font-semibold text-slate-500">
+                      {product.item_id || "-"}
+                    </td>
+                    <td className="border border-slate-200 px-2 py-1 font-semibold text-slate-950">
+                      <EditableCell
+                        value={product.name}
+                        onSave={(value) => updateProductField(product, "name", value)}
+                      />
+                    </td>
+                    <td className="border border-slate-200 px-2 py-1">
+                      <EditableCell
+                        value={product.quantity}
+                        type="number"
+                        onSave={(value) => updateProductField(product, "quantity", value)}
+                      />
+                    </td>
+                    <td className="border border-slate-200 px-2 py-1">
+                      <EditableCell
+                        value={product.cost_price}
+                        type="number"
+                        onSave={(value) => updateProductField(product, "cost_price", value)}
+                        formatDisplay={formatMoney}
+                      />
+                    </td>
+                    <td className="border border-slate-200 px-2 py-1">
+                      <EditableCell
+                        value={product.selling_price}
+                        type="number"
+                        onSave={(value) => updateProductField(product, "selling_price", value)}
+                        formatDisplay={formatMoney}
+                      />
+                    </td>
+                    <td className="border border-slate-200 px-2 py-1">
+                      <EditableCell
+                        value={product.low_stock_threshold}
+                        type="number"
+                        onSave={(value) => updateProductField(product, "low_stock_threshold", value)}
+                      />
+                    </td>
                   </tr>
                 ))}
               </tbody>
