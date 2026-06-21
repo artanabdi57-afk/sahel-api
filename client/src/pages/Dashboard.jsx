@@ -6,6 +6,7 @@ import {
   Clock,
   CreditCard,
   Plus,
+  Printer,
   X,
   DollarSign,
   Search,
@@ -31,6 +32,7 @@ import { apiRequest, formatMoney, monthISO, todayISO } from "../lib/api";
 import { ErrorState, LoadingState } from "../components/AsyncState";
 import { getCurrentShop } from "../lib/auth";
 import { useLanguage } from "../lib/i18n";
+import Receipt from "../components/Receipt.jsx";
 
 const palette = ["#5b3ff2", "#2f7df6", "#14c6a4", "#ffb84d", "#ff6b6b", "#8b5cf6"];
 const DASHBOARD_CACHE_KEY = "sahel_dashboard_cache_v1";
@@ -296,7 +298,10 @@ function SearchDropdown({ query, products, credits, onClose, onNavigate }) {
   );
 }
 
-function SalesDrawer({ open, sales, onClose, onSaleClick }) {
+function SalesDrawer({ open, sales, onClose, onSaleClick, onPrintCashSummary }) {
+  const cashSales = sales.filter((sale) => sale.payment_type === "cash");
+  const cashTotal = cashSales.reduce((sum, sale) => sum + Number(sale.total || 0), 0);
+
   return (
     <div className={`fixed inset-0 z-40 ${open ? "pointer-events-auto" : "pointer-events-none"}`}>
       <div className={`absolute inset-0 bg-slate-950/30 transition-opacity ${open ? "opacity-100" : "opacity-0"}`} onClick={onClose} />
@@ -314,6 +319,18 @@ function SalesDrawer({ open, sales, onClose, onSaleClick }) {
             <X className="h-5 w-5" />
           </button>
         </div>
+
+        {cashSales.length > 0 ? (
+          <button
+            type="button"
+            onClick={onPrintCashSummary}
+            className="btn-primary mb-4 w-full justify-center"
+          >
+            <Printer className="h-4 w-4" />
+            Print/Download Cash Sales ({cashSales.length}, {formatMoney(cashTotal)})
+          </button>
+        ) : null}
+
         <div className="space-y-3">
           {sales.length ? (
             sales.map((sale) => (
@@ -568,6 +585,7 @@ export default function Dashboard() {
   const [showNotifications, setShowNotifications] = useState(false);
   const [showTodaySales, setShowTodaySales] = useState(false);
   const [selectedSale, setSelectedSale] = useState(null);
+  const [cashSummaryReceipt, setCashSummaryReceipt] = useState(null);
   const [state, setState] = useState(initialDashboardState);
 
   useEffect(() => {
@@ -724,6 +742,24 @@ export default function Dashboard() {
     day: "numeric"
   }).format(new Date());
   const shop = getCurrentShop();
+
+  function openCashSummaryReceipt() {
+    const cashSales = state.todaySales.filter((sale) => sale.payment_type === "cash");
+    if (cashSales.length === 0) return;
+
+    setCashSummaryReceipt({
+      items: cashSales.map((sale) => ({
+        productName: sale.product_name,
+        quantity_sold: sale.quantity_sold,
+        selling_price: sale.quantity_sold ? Number(sale.total) / Number(sale.quantity_sold) : sale.total
+      })),
+      payment_type: "cash",
+      customer_name: "",
+      customer_phone: "",
+      sale_date: todayISO(),
+      receipt_no: `CASH-${todayISO()}`
+    });
+  }
 
   return (
     <div className="min-h-[calc(100vh-3.5rem)] space-y-5 rounded-[2rem] bg-[#f4f7ff] p-3 sm:p-5">
@@ -918,8 +954,13 @@ export default function Dashboard() {
         sales={state.todaySales}
         onClose={() => setShowTodaySales(false)}
         onSaleClick={(sale) => setSelectedSale(sale)}
+        onPrintCashSummary={openCashSummaryReceipt}
       />
       <SaleDetailModal sale={selectedSale} onClose={() => setSelectedSale(null)} />
+
+      {cashSummaryReceipt ? (
+        <Receipt sale={cashSummaryReceipt} shop={shop} onClose={() => setCashSummaryReceipt(null)} />
+      ) : null}
     </div>
   );
 }
