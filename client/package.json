@@ -39,3 +39,64 @@
     "autoprefixer": "^10.4.20",
     "concurrently": "^10.0.3",
     "electron": "^42.4.0",
+    "electron-builder": "^26.15.3",
+    "electron-winstaller": "^5.4.0",
+    "postcss": "^8.4.49",
+    "tailwindcss": "^3.4.15",
+    "wait-on": "^9.0.10"
+  },
+  "build": {
+    "appId": "com.sahel.shop",
+    "productName": "Sahel",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "assets/**/*",
+      "package.json",
+      "!node_modules/**/*",
+      "!android/**/*",
+      "!release/**/*",
+      "!release-logo/**/*",
+      "!release-admin/**/*",
+      "!release-shortcut/**/*",
+      "!release-fixed-pc/**/*",
+      "!desktop-api/**/*",
+      "!src/**/*",
+      "!public/**/*",
+      "!frontend.log",
+      "!.env",
+      "!.env.txt"
+    ],
+    "extraResources": [
+      {
+        "from": "desktop-api",
+        "to": "desktop-api",
+        "filter": [
+          "**/*",
+          "!**/.cache/**"
+        ]
+      },
+      {
+        "from": "assets/sahel-icon.ico",
+        "to": "sahel-icon.ico"
+      }
+    ],
+    "win": {
+      "icon": "assets/sahel-icon.ico",
+      "target": [
+        "portable",
+        "nsis"
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Sahel"
+    }
+  }
+}
