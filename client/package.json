@@ -1,101 +1,61 @@
-{
-  "name": "sahel-web",
-  "version": "1.0.3",
-  "description": "Sahel shop management desktop app",
-  "author": "Sahel",
-  "private": true,
-  "type": "module",
-  "main": "electron/main.cjs",
-  "scripts": {
-    "dev": "vite --host 0.0.0.0",
-    "build": "vite build",
-    "preview": "vite preview --host 0.0.0.0",
-    "desktop:dev": "concurrently \"npm run dev\" \"wait-on http://localhost:5173 && electron .\"",
-    "desktop:pack": "npm run build && node electron/prepare-api.cjs && electron-builder --win portable",
-    "desktop:build": "npm run build && node electron/prepare-api.cjs && electron-builder --win nsis",
-    "desktop:folder": "npm run build && node electron/prepare-api.cjs && electron-packager . Sahel --platform=win32 --arch=x64 --out=release --overwrite --asar=false --icon=assets/sahel-icon.ico --extra-resource=desktop-api --ignore=\"^/node_modules\" --ignore=\"^/src\" --ignore=\"^/public\" --ignore=\"^/android\" --ignore=\"^/release\" --ignore=\"^/release-logo\" --ignore=\"^/frontend.log\" --ignore=\"^/.env\" --ignore=\"^/.env.txt\" --ignore=\"^/desktop-api\"",
-    "desktop:installer": "npm run desktop:folder && node electron/create-installer.cjs",
-    "mobile:sync": "npm run build && cap sync android",
-    "mobile:open": "cap open android",
-    "mobile:apk": "npm run mobile:sync && cd android && gradlew.bat assembleDebug"
-  },
-  "dependencies": {
-    "@capacitor/android": "^8.4.0",
-    "@capacitor/core": "^8.4.0",
-    "@supabase/supabase-js": "^2.108.1",
-    "@vitejs/plugin-react": "^4.3.4",
-    "lucide-react": "^0.468.0",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1",
-    "react-router-dom": "^6.28.0",
-    "recharts": "^2.13.3",
-    "vite": "^5.4.11",
-    "xlsx": "^0.18.5"
-  },
-  "devDependencies": {
-    "@capacitor/cli": "^8.4.0",
-    "@electron/packager": "^20.0.1",
-    "autoprefixer": "^10.4.20",
-    "concurrently": "^10.0.3",
-    "electron": "^42.4.0",
-    "electron-builder": "^26.15.3",
-    "electron-winstaller": "^5.4.0",
-    "postcss": "^8.4.49",
-    "tailwindcss": "^3.4.15",
-    "wait-on": "^9.0.10"
-  },
-  "build": {
-    "appId": "com.sahel.shop",
-    "productName": "Sahel",
-    "directories": {
-      "output": "release"
-    },
-    "files": [
-      "dist/**/*",
-      "electron/**/*",
-      "assets/**/*",
-      "package.json",
-      "!node_modules/**/*",
-      "!android/**/*",
-      "!release/**/*",
-      "!release-logo/**/*",
-      "!release-admin/**/*",
-      "!release-shortcut/**/*",
-      "!release-fixed-pc/**/*",
-      "!desktop-api/**/*",
-      "!src/**/*",
-      "!public/**/*",
-      "!frontend.log",
-      "!.env",
-      "!.env.txt"
-    ],
-    "extraResources": [
-      {
-        "from": "desktop-api",
-        "to": "desktop-api",
-        "filter": [
-          "**/*",
-          "!**/.cache/**"
-        ]
-      },
-      {
-        "from": "assets/sahel-icon.ico",
-        "to": "sahel-icon.ico"
-      }
-    ],
-    "win": {
-      "icon": "assets/sahel-icon.ico",
-      "target": [
-        "portable",
-        "nsis"
-      ]
-    },
-    "nsis": {
-      "oneClick": false,
-      "allowToChangeInstallationDirectory": true,
-      "createDesktopShortcut": true,
-      "createStartMenuShortcut": true,
-      "shortcutName": "Sahel"
-    }
-  }
-}
+name: Build Android APK
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - 'client/**'
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Verify Node and npm version
+        run: |
+          node -v
+          npm -v
+          which node
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Install dependencies
+        working-directory: client
+        run: npm install
+
+      - name: Verify installed Capacitor CLI version
+        working-directory: client
+        run: npx --no-install cap --version
+
+      - name: Build web app
+        working-directory: client
+        run: npm run build
+
+      - name: Sync Capacitor (using local CLI explicitly)
+        working-directory: client
+        run: node_modules/.bin/cap sync android
+
+      - name: Grant execute permission for gradlew
+        working-directory: client/android
+        run: chmod +x gradlew
+
+      - name: Build debug APK
+        working-directory: client/android
+        run: ./gradlew assembleDebug
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sahel-debug-apk
+          path: client/android/app/build/outputs/apk/debug/app-debug.apk
