@@ -3,54 +3,74 @@ import { Check, PackageCheck, Plus, Trash2, X } from "lucide-react";
 import { apiRequest, formatMoney } from "../lib/api";
 import { EmptyState, ErrorState, LoadingState } from "../components/AsyncState";
 
-const STATUS_OPTIONS = ["pending", "ordered", "received", "cancelled"];
+function StatusBadge({ status }) {
+  const styles = {
+    pending: "bg-blue-50 text-blue-700",
+    partial: "bg-amber-50 text-amber-700",
+    received: "bg-green-50 text-green-700",
+    cancelled: "bg-slate-100 text-slate-500"
+  };
 
-// One editable cell, same pattern as Inventory.jsx
-function EditableCell({ value, type = "text", onSave, formatDisplay }) {
-  const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState(value);
+  return (
+    <span className={`rounded-full px-3 py-1 text-xs font-semibold capitalize ${styles[status] || "bg-slate-100 text-slate-600"}`}>
+      {status}
+    </span>
+  );
+}
 
-  useEffect(() => {
-    setDraft(value);
-  }, [value]);
+function ReceiveModal({ order, onClose, onConfirm }) {
+  const remaining = Number(order.quantity_ordered) - Number(order.quantity_received || 0);
+  const [quantityReceived, setQuantityReceived] = useState(remaining);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
 
-  function commit() {
-    setEditing(false);
-    const finalValue = type === "number" ? Number(draft) : draft;
-    if (finalValue !== value) {
-      onSave(finalValue);
+  async function handleConfirm() {
+    if (!quantityReceived || Number(quantityReceived) <= 0) {
+      setError("Enter a quantity greater than 0.");
+      return;
+    }
+    setSaving(true);
+    setError("");
+    try {
+      await onConfirm(Number(quantityReceived));
+    } catch (err) {
+      setError(err.message);
+      setSaving(false);
     }
   }
 
-  if (editing) {
-    return (
-      <input
-        autoFocus
-        type={type}
-        className="w-full rounded border border-blue-400 bg-blue-50/40 px-2 py-1 text-sm outline-none ring-2 ring-blue-100"
-        value={draft}
-        onChange={(e) => setDraft(e.target.value)}
-        onBlur={commit}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") commit();
-          if (e.key === "Escape") {
-            setDraft(value);
-            setEditing(false);
-          }
-        }}
-      />
-    );
-  }
-
   return (
-    <button
-      type="button"
-      onClick={() => setEditing(true)}
-      className="block w-full rounded px-2 py-1 text-left transition hover:bg-blue-50"
-      title="Click to edit"
-    >
-      {formatDisplay ? formatDisplay(value) : value}
-    </button>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+      <div className="w-full max-w-sm rounded-xl bg-white p-5 shadow-xl">
+        <h3 className="text-base font-bold text-slate-950">Receive stock</h3>
+        <p className="mt-1 text-sm text-slate-500">{order.product_name}</p>
+        <p className="text-xs text-slate-400">
+          Ordered {order.quantity_ordered}, already received {order.quantity_received || 0}
+        </p>
+
+        <label className="mt-4 block">
+          <span className="mb-1 block text-xs font-semibold text-slate-500">Quantity received now</span>
+          <input
+            autoFocus
+            type="number"
+            className="field"
+            value={quantityReceived}
+            onChange={(e) => setQuantityReceived(e.target.value)}
+          />
+        </label>
+        {error ? <p className="mt-2 text-sm text-red-600">{error}</p> : null}
+
+        <div className="mt-4 flex gap-2">
+          <button type="button" className="btn-secondary flex-1 justify-center" onClick={onClose} disabled={saving}>
+            Cancel
+          </button>
+          <button type="button" className="btn-primary flex-1 justify-center" onClick={handleConfirm} disabled={saving}>
+            <Check className="h-4 w-4" />
+            {saving ? "Saving..." : "Confirm"}
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -58,18 +78,16 @@ export default function PurchaseOrders() {
   const [orders, setOrders] = useState([]);
   const [products, setProducts] = useState([]);
 
-  // Item currently being configured before adding to the cart
   const [itemDraft, setItemDraft] = useState({
     product_name: "",
     quantity_ordered: "",
     expected_cost: ""
   });
   const [expectedArrival, setExpectedArrival] = useState("");
-
-  // Cart of items waiting to be submitted as orders
   const [cart, setCart] = useState([]);
 
   const [status, setStatus] = useState({ loading: true, saving: false, error: "", success: "" });
+  const [receivingOrder, setReceivingOrder] = useState(null);
 
   async function loadOrders() {
     const response = await apiRequest("/orders");
@@ -110,17 +128,28 @@ export default function PurchaseOrders() {
   async function handleSubmitOrders() {
     if (cart.length === 0) return;
 
+    if (!expectedArrival) {
+      setStatus((current) => ({ ...current, error: "Expected arrival date is required." }));
+      return;
+    }
+
     setStatus((current) => ({ ...current, saving: true, error: "", success: "" }));
 
     try {
       for (const item of cart) {
+        const matchedProduct = products.find(
+          (product) => product.name.trim().toLowerCase() === item.product_name.toLowerCase()
+        );
+
         await apiRequest("/orders", {
           method: "POST",
           body: JSON.stringify({
+            product_id: matchedProduct?.id || undefined,
+            item_id: matchedProduct?.item_id || undefined,
             product_name: item.product_name,
             quantity_ordered: item.quantity_ordered,
             expected_cost: item.expected_cost,
-            expected_arrival: expectedArrival || undefined
+            expected_arrival: expectedArrival
           })
         });
       }
@@ -136,43 +165,25 @@ export default function PurchaseOrders() {
     }
   }
 
-  async function updateOrderField(order, field, value) {
-    try {
-      await apiRequest(`/orders/${order.id}`, {
-        method: "PUT",
-        body: JSON.stringify({ ...order, [field]: value })
-      });
-      await loadOrders();
-    } catch (error) {
-      setStatus((current) => ({ ...current, error: error.message }));
-    }
-  }
-
   async function cancelOrder(order) {
     const confirmed = window.confirm(`Cancel the order for "${order.product_name}"?`);
     if (!confirmed) return;
 
     try {
-      await apiRequest(`/orders/${order.id}`, {
-        method: "PUT",
-        body: JSON.stringify({ ...order, status: "cancelled" })
-      });
+      await apiRequest(`/orders/${order.id}/cancel`, { method: "PUT" });
       await loadOrders();
     } catch (error) {
       setStatus((current) => ({ ...current, error: error.message }));
     }
   }
 
-  async function deleteOrder(order) {
-    const confirmed = window.confirm(`Permanently delete the order for "${order.product_name}"? This cannot be undone.`);
-    if (!confirmed) return;
-
-    try {
-      await apiRequest(`/orders/${order.id}`, { method: "DELETE" });
-      await loadOrders();
-    } catch (error) {
-      setStatus((current) => ({ ...current, error: error.message }));
-    }
+  async function confirmReceive(quantityReceived) {
+    await apiRequest(`/orders/${receivingOrder.id}/receive`, {
+      method: "PUT",
+      body: JSON.stringify({ quantity_received: quantityReceived })
+    });
+    setReceivingOrder(null);
+    await Promise.all([loadOrders(), loadProducts()]);
   }
 
   if (status.loading) return <LoadingState />;
@@ -238,7 +249,7 @@ export default function PurchaseOrders() {
         ) : null}
 
         <div className="mt-4">
-          <label className="mb-1 block text-xs font-semibold text-slate-500">Expected arrival (applies to all items above)</label>
+          <label className="mb-1 block text-xs font-semibold text-slate-500">Expected arrival (required, applies to all items above)</label>
           <input className="field" type="date" value={expectedArrival} onChange={(e) => setExpectedArrival(e.target.value)} />
         </div>
 
@@ -266,64 +277,38 @@ export default function PurchaseOrders() {
             {orders.map((order) => (
               <div key={order.id} className="rounded-lg border border-slate-200 p-3">
                 <div className="flex items-start justify-between gap-3">
-                  <div className="flex-1">
-                    <div className="font-semibold text-slate-950">
-                      <EditableCell value={order.product_name} onSave={(value) => updateOrderField(order, "product_name", value)} />
-                    </div>
-                    <div className="mt-1 flex flex-wrap items-center gap-3 text-sm text-slate-500">
-                      <span className="flex items-center gap-1">
-                        Qty:
-                        <EditableCell
-                          value={order.quantity_ordered}
-                          type="number"
-                          onSave={(value) => updateOrderField(order, "quantity_ordered", value)}
-                        />
-                      </span>
-                      <span className="flex items-center gap-1">
-                        Cost:
-                        <EditableCell
-                          value={order.expected_cost}
-                          type="number"
-                          onSave={(value) => updateOrderField(order, "expected_cost", value)}
-                          formatDisplay={formatMoney}
-                        />
-                      </span>
-                    </div>
+                  <div>
+                    <p className="font-semibold text-slate-950">{order.product_name}</p>
+                    <p className="text-sm text-slate-500">
+                      Ordered: {order.quantity_ordered}
+                      {order.quantity_received ? ` · Received: ${order.quantity_received}` : ""}
+                    </p>
+                    {order.expected_arrival ? (
+                      <p className="text-xs text-slate-400">Expected: {order.expected_arrival}</p>
+                    ) : null}
                   </div>
-
                   <div className="flex flex-col items-end gap-2">
-                    <select
-                      className="rounded-full border-0 bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700 outline-none"
-                      value={order.status}
-                      onChange={(e) => updateOrderField(order, "status", e.target.value)}
-                    >
-                      {STATUS_OPTIONS.map((option) => (
-                        <option key={option} value={option}>
-                          {option}
-                        </option>
-                      ))}
-                    </select>
-
-                    <div className="flex gap-1">
-                      {order.status !== "cancelled" ? (
+                    <StatusBadge status={order.status} />
+                    {order.status === "pending" || order.status === "partial" ? (
+                      <div className="flex gap-1">
                         <button
                           type="button"
-                          className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-amber-100 text-amber-600 hover:bg-amber-50"
+                          className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-green-100 text-green-600 hover:bg-green-50"
+                          onClick={() => setReceivingOrder(order)}
+                          title="Receive stock"
+                        >
+                          <PackageCheck className="h-4 w-4" />
+                        </button>
+                        <button
+                          type="button"
+                          className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-red-100 text-red-600 hover:bg-red-50"
                           onClick={() => cancelOrder(order)}
                           title="Cancel order"
                         >
                           <X className="h-4 w-4" />
                         </button>
-                      ) : null}
-                      <button
-                        type="button"
-                        className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-red-100 text-red-600 hover:bg-red-50"
-                        onClick={() => deleteOrder(order)}
-                        title="Delete order"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </div>
+                      </div>
+                    ) : null}
                   </div>
                 </div>
               </div>
@@ -331,6 +316,10 @@ export default function PurchaseOrders() {
           </div>
         )}
       </section>
+
+      {receivingOrder ? (
+        <ReceiveModal order={receivingOrder} onClose={() => setReceivingOrder(null)} onConfirm={confirmReceive} />
+      ) : null}
     </div>
   );
 }
