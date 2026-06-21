@@ -1,9 +1,11 @@
 import React from "react";
 import { useEffect, useState } from "react";
-import { BarChart3, Trash2, Trophy } from "lucide-react";
+import { BarChart3, Receipt as ReceiptIcon, Trash2, Trophy } from "lucide-react";
 import { apiRequest, formatMoney, todayISO } from "../lib/api";
 import StatCard from "../components/StatCard";
 import { EmptyState } from "../components/AsyncState";
+import { getCurrentShop } from "../lib/auth";
+import Receipt from "../components/Receipt.jsx";
 
 export default function Reports() {
   const [reportDate, setReportDate] = useState(todayISO());
@@ -12,6 +14,8 @@ export default function Reports() {
   const [profit, setProfit] = useState(null);
   const [topProducts, setTopProducts] = useState([]);
   const [status, setStatus] = useState({ loading: true, error: "", deletingSaleId: "" });
+  const [receiptSale, setReceiptSale] = useState(null);
+  const shop = getCurrentShop();
 
   async function loadReports(selectedDate = reportDate) {
     setStatus({ loading: true, error: "" });
@@ -50,6 +54,19 @@ export default function Reports() {
     } catch (error) {
       setStatus({ loading: false, error: error.message, deletingSaleId: "" });
     }
+  }
+
+  function openReceipt(sale) {
+    setReceiptSale({
+      productName: sale.product_name,
+      quantity_sold: sale.quantity_sold,
+      selling_price: sale.quantity_sold ? Number(sale.total) / Number(sale.quantity_sold) : sale.total,
+      payment_type: sale.payment_type,
+      customer_name: sale.customer_name,
+      customer_phone: sale.customer_phone,
+      sale_date: sale.sale_date,
+      receipt_no: sale.id
+    });
   }
 
   useEffect(() => {
@@ -161,15 +178,25 @@ export default function Reports() {
                     </td>
                     <td className="px-4 py-3 text-slate-500">{new Date(sale.sale_date).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</td>
                     <td className="px-4 py-3 text-right">
-                      <button
-                        type="button"
-                        className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-red-100 text-red-600 transition hover:bg-red-50 disabled:opacity-50"
-                        onClick={() => removeSale(sale.id)}
-                        disabled={status.deletingSaleId === sale.id}
-                        title="Remove sale"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
+                      <div className="flex items-center justify-end gap-2">
+                        <button
+                          type="button"
+                          className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-blue-100 text-blue-600 transition hover:bg-blue-50"
+                          onClick={() => openReceipt(sale)}
+                          title="Print receipt"
+                        >
+                          <ReceiptIcon className="h-4 w-4" />
+                        </button>
+                        <button
+                          type="button"
+                          className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-red-100 text-red-600 transition hover:bg-red-50 disabled:opacity-50"
+                          onClick={() => removeSale(sale.id)}
+                          disabled={status.deletingSaleId === sale.id}
+                          title="Remove sale"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -226,6 +253,10 @@ export default function Reports() {
           )}
         </div>
       </section>
+
+      {receiptSale ? (
+        <Receipt sale={receiptSale} shop={shop} onClose={() => setReceiptSale(null)} />
+      ) : null}
     </div>
   );
 }
