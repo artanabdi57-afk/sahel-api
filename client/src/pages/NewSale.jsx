@@ -3,6 +3,8 @@ import { useEffect, useState } from "react";
 import { Phone, ShoppingCart, UserRound } from "lucide-react";
 import { apiRequest, todayISO } from "../lib/api";
 import { ErrorState, LoadingState } from "../components/AsyncState";
+import { getCurrentShop } from "../lib/auth";
+import Receipt from "../components/Receipt.jsx";
 
 export default function NewSale() {
   const [products, setProducts] = useState([]);
@@ -17,6 +19,8 @@ export default function NewSale() {
     sale_date: todayISO()
   });
   const [status, setStatus] = useState({ loading: true, saving: false, error: "", success: "" });
+  const [completedSale, setCompletedSale] = useState(null);
+  const shop = getCurrentShop();
 
   useEffect(() => {
     Promise.all([apiRequest("/products"), apiRequest("/sales/customers")])
@@ -78,17 +82,29 @@ export default function NewSale() {
         throw new Error("Phone must be 9 digits and start with 61, 62, or 68.");
       }
 
-      await apiRequest("/sales", {
+      const selectedProduct = products.find((item) => String(item.id) === String(form.product_id));
+
+      const submittedSale = {
+        ...form,
+        customer_name: form.customer_name.trim() || "Walk-in",
+        customer_phone: form.customer_phone.trim() || "N/A",
+        quantity_sold: Number(form.quantity_sold),
+        selling_price: Number(form.selling_price)
+      };
+
+      const response = await apiRequest("/sales", {
         method: "POST",
-        body: JSON.stringify({
-          ...form,
-          customer_name: form.customer_name.trim() || "Walk-in",
-          customer_phone: form.customer_phone.trim() || "N/A",
-          quantity_sold: Number(form.quantity_sold),
-          selling_price: Number(form.selling_price)
-        })
+        body: JSON.stringify(submittedSale)
       });
+
       setStatus((current) => ({ ...current, success: "Sale recorded." }));
+
+      setCompletedSale({
+        ...submittedSale,
+        productName: selectedProduct?.name || "Item",
+        receipt_no: response?.data?.id || response?.id || null
+      });
+
       setForm((current) => ({
         ...current,
         product_id: "",
@@ -119,7 +135,20 @@ export default function NewSale() {
       <form onSubmit={handleSubmit} className="panel p-4">
         <h2 className="mb-4 text-base font-bold text-slate-950">Record Sale</h2>
         {status.error ? <ErrorState message={status.error} /> : null}
-        {status.success ? <div className="mb-4 rounded-lg bg-green-50 p-3 text-sm font-medium text-green-700">{status.success}</div> : null}
+        {status.success ? (
+          <div className="mb-4 flex items-center justify-between gap-3 rounded-lg bg-green-50 p-3 text-sm font-medium text-green-700">
+            <span>{status.success}</span>
+            {completedSale ? (
+              <button
+                type="button"
+                onClick={() => setCompletedSale({ ...completedSale })}
+                className="rounded-md bg-green-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-green-700"
+              >
+                View Receipt
+              </button>
+            ) : null}
+          </div>
+        ) : null}
         <div className="grid gap-3 sm:grid-cols-2">
           <select className="field sm:col-span-2" value={form.product_id} onChange={(e) => chooseProduct(e.target.value)}>
             <option value="">Select product</option>
@@ -180,6 +209,10 @@ export default function NewSale() {
           {status.saving ? "Recording..." : "Record sale"}
         </button>
       </form>
+
+      {completedSale ? (
+        <Receipt sale={completedSale} shop={shop} onClose={() => setCompletedSale(null)} />
+      ) : null}
     </div>
   );
 }
