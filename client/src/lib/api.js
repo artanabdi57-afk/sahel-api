@@ -94,13 +94,22 @@ export function useCurrency() {
   return currency;
 }
 
+// Currency symbols for display
+const CURRENCY_SYMBOLS = {
+  USD: "$", SOS: "Sh", KES: "KSh", ETB: "Br", TZS: "TSh",
+  UGX: "USh", DJF: "Fr", SAR: "﷼", AED: "د.إ", GBP: "£",
+  EUR: "€", TRY: "₺"
+};
+
 export function formatMoney(value, currencyOverride) {
   const currency = currencyOverride || getSavedCurrency();
-  return new Intl.NumberFormat("en", {
-    style: "currency",
-    currency,
+  const symbol = CURRENCY_SYMBOLS[currency] || currency;
+  const number = Number(value || 0);
+  const formatted = new Intl.NumberFormat("en", {
+    minimumFractionDigits: 0,
     maximumFractionDigits: 0
-  }).format(Number(value || 0));
+  }).format(number);
+  return `${symbol}${formatted}`;
 }
 
 export function todayISO() {
