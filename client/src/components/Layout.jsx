@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { clearSession, getCurrentShop } from "../lib/auth";
 import { useLanguage } from "../lib/i18n";
+import { useCurrency } from "../lib/api";
 import WhatsAppSupportButton from "./WhatsAppSupportButton.jsx";
 
 const navItems = [
@@ -53,6 +54,7 @@ function NavItem({ item, compact = false, t }) {
 
 export default function Layout() {
   const { t } = useLanguage();
+  useCurrency(); // Re-renders the whole app tree when currency changes in Settings
   const location = useLocation();
   const navigate = useNavigate();
   const current = [...navItems, ...hiddenPages].find((item) => item.path === location.pathname) || navItems[0];
