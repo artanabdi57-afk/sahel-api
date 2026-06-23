@@ -1,3 +1,4 @@
+import React from "react";
 import { clearSession, getToken } from "./auth";
 import { Capacitor } from "@capacitor/core";
 
@@ -78,6 +79,19 @@ export function saveCurrency(currencyCode) {
   localStorage.setItem(CURRENCY_STORAGE_KEY, currencyCode);
   // Dispatch an event so any open components re-render with the new currency
   window.dispatchEvent(new CustomEvent("sahel_currency_changed", { detail: currencyCode }));
+}
+
+// Hook: call once in a top-level component (e.g. Layout) to force re-render on currency change
+export function useCurrency() {
+  const [currency, setCurrency] = React.useState(getSavedCurrency);
+  React.useEffect(() => {
+    function handleChange(event) {
+      setCurrency(event.detail);
+    }
+    window.addEventListener("sahel_currency_changed", handleChange);
+    return () => window.removeEventListener("sahel_currency_changed", handleChange);
+  }, []);
+  return currency;
 }
 
 export function formatMoney(value, currencyOverride) {
