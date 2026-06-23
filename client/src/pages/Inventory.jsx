@@ -33,13 +33,11 @@ function normalizeName(value) {
   return String(value || "").trim().toLowerCase();
 }
 
-// Simple similarity check: does one name contain the other, or are they
-// close enough in length/words to be worth asking about?
 function isSimilarName(a, b) {
   const normA = normalizeName(a);
   const normB = normalizeName(b);
   if (!normA || !normB) return false;
-  if (normA === normB) return false; // handled separately as exact match
+  if (normA === normB) return false;
   return normA.includes(normB) || normB.includes(normA);
 }
 
@@ -47,7 +45,6 @@ function toNumber(value) {
   const cleaned = String(value || "")
     .replace(/,/g, "")
     .replace(/[^0-9.-]/g, "");
-
   return Number(cleaned || 0);
 }
 
@@ -94,7 +91,6 @@ function parseInventoryRows(sheetRows) {
   }));
 }
 
-// One editable cell. Click to edit, Enter/blur to save, Escape to cancel.
 function EditableCell({ value, type = "text", onSave, className = "", formatDisplay }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(value);
@@ -345,11 +341,7 @@ export default function Inventory() {
 
   const filteredProducts = products.filter((product) => {
     const query = searchTerm.trim().toLowerCase();
-
-    if (!query) {
-      return true;
-    }
-
+    if (!query) return true;
     return [
       product.name,
       product.item_id,
@@ -362,6 +354,11 @@ export default function Inventory() {
       .toLowerCase()
       .includes(query);
   });
+
+  const totalInventoryValue = products.reduce(
+    (sum, product) => sum + Number(product.quantity || 0) * Number(product.cost_price || 0),
+    0
+  );
 
   return (
     <div className="space-y-4">
@@ -577,6 +574,14 @@ export default function Inventory() {
                 ))}
               </tbody>
             </table>
+
+            <div className="flex items-center justify-between border-t border-slate-200 bg-slate-50 px-4 py-3">
+              <p className="text-xs text-slate-500">{products.length} product{products.length === 1 ? "" : "s"} total</p>
+              <p className="text-sm font-semibold text-slate-700">
+                Total inventory value (cost):{" "}
+                <span className="text-slate-950">{formatMoney(totalInventoryValue)}</span>
+              </p>
+            </div>
           </div>
         )}
       </section>
