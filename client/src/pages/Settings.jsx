@@ -1,7 +1,24 @@
 import React, { useEffect, useState } from "react";
-import { Languages, Mail, Moon, Settings as SettingsIcon, Store, Sun } from "lucide-react";
+import { DollarSign, Languages, Mail, Moon, Settings as SettingsIcon, Store, Sun } from "lucide-react";
 import { getCurrentShop, getCurrentUser, updateLocalShop } from "../lib/auth";
 import { getSavedSettings, saveSettings, useLanguage } from "../lib/i18n";
+import { getSavedCurrency, saveCurrency } from "../lib/api";
+
+// Currencies most relevant to East Africa + common international ones
+const CURRENCIES = [
+  { code: "USD", label: "US Dollar", symbol: "$" },
+  { code: "SOS", label: "Somali Shilling", symbol: "Sh" },
+  { code: "KES", label: "Kenyan Shilling", symbol: "KSh" },
+  { code: "ETB", label: "Ethiopian Birr", symbol: "Br" },
+  { code: "TZS", label: "Tanzanian Shilling", symbol: "TSh" },
+  { code: "UGX", label: "Ugandan Shilling", symbol: "USh" },
+  { code: "DJF", label: "Djiboutian Franc", symbol: "Fr" },
+  { code: "SAR", label: "Saudi Riyal", symbol: "﷼" },
+  { code: "AED", label: "UAE Dirham", symbol: "د.إ" },
+  { code: "GBP", label: "British Pound", symbol: "£" },
+  { code: "EUR", label: "Euro", symbol: "€" },
+  { code: "TRY", label: "Turkish Lira", symbol: "₺" }
+];
 
 export default function Settings() {
   const { t } = useLanguage();
@@ -10,6 +27,7 @@ export default function Settings() {
   const [settings, setSettings] = useState(getSavedSettings);
   const [shopName, setShopName] = useState(shop?.shop_name || "");
   const [location, setLocation] = useState(shop?.location || "");
+  const [currency, setCurrency] = useState(getSavedCurrency);
   const [message, setMessage] = useState("");
 
   useEffect(() => {
@@ -20,6 +38,12 @@ export default function Settings() {
     const nextSettings = { ...settings, language };
     saveSettings(nextSettings);
     setSettings(nextSettings);
+  }
+
+  function changeCurrency(currencyCode) {
+    saveCurrency(currencyCode);
+    setCurrency(currencyCode);
+    setMessage(`Currency changed to ${currencyCode}. Prices will update across the app.`);
   }
 
   function saveShopDetails(event) {
@@ -105,6 +129,29 @@ export default function Settings() {
           </select>
         </div>
 
+        <div className="panel p-5">
+          <div className="mb-4 flex items-center gap-2">
+            <DollarSign className="h-5 w-5 text-blue-600" />
+            <h3 className="font-bold text-slate-950">Currency</h3>
+          </div>
+          <select
+            className="field"
+            value={currency}
+            onChange={(event) => changeCurrency(event.target.value)}
+          >
+            {CURRENCIES.map((c) => (
+              <option key={c.code} value={c.code}>
+                {c.code} — {c.label} ({c.symbol})
+              </option>
+            ))}
+          </select>
+          <p className="mt-2 text-xs text-slate-500">
+            This applies to all prices across the app — receipts, inventory, reports, and dashboard.
+          </p>
+        </div>
+      </section>
+
+      <section className="grid gap-5 xl:grid-cols-2">
         <form onSubmit={saveShopDetails} className="panel p-5">
           <div className="mb-4 flex items-center gap-2">
             <Store className="h-5 w-5 text-blue-600" />
