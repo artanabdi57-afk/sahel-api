@@ -20,6 +20,8 @@ const Onboarding = lazy(() => import("./pages/Onboarding.jsx"));
 const AuthPage = lazy(() => import("./pages/AuthPage.jsx"));
 const Admin = lazy(() => import("./pages/Admin.jsx"));
 const Landing = lazy(() => import("./pages/Landing.jsx"));
+const ForgotPassword = lazy(() => import("./pages/ForgotPassword.jsx"));
+const ResetPassword = lazy(() => import("./pages/ResetPassword.jsx"));
 function lazyPage(element, variant = "route") {
   return <Suspense fallback={<LoadingState variant={variant} />}>{element}</Suspense>;
 }
@@ -37,6 +39,8 @@ const router = createBrowserRouter([
   { path: "/signup", element: lazyPage(<AuthPage mode="signup" />) },
   { path: "/admin", element: lazyPage(<Admin />) },
   { path: "/auth/callback", element: lazyPage(<AuthCallback />) },
+  { path: "/forgot-password", element: lazyPage(<ForgotPassword />) },
+  { path: "/reset-password", element: lazyPage(<ResetPassword />) },
   {
     path: "/",
     element: <ProtectedRoute />,
