@@ -25,20 +25,49 @@ export default function AuthPage({ mode }) {
   const [form, setForm] = useState({ phone: "", email: "", password: "", shop_name: "", location: "", setup_code: "" });
   const [status, setStatus] = useState({ loading: false, error: "" });
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [otpStep, setOtpStep] = useState(false);
+  const [otp, setOtp] = useState("");
+  const [signupEmail, setSignupEmail] = useState("");
 
   async function handleSubmit(e) {
     e.preventDefault();
     setStatus({ loading: true, error: "" });
     try {
-      if (isSignup && form.phone && !/^(61|62|68)\d{7}$/.test(form.phone)) {
-        throw new Error("Phone must be 9 digits and start with 61, 62, or 68.");
+      if (isSignup) {
+        if (form.phone && !/^(61|62|68)\d{7}$/.test(form.phone)) {
+          throw new Error("Phone must be 9 digits and start with 61, 62, or 68.");
+        }
+        const { error } = await supabase.auth.signUp({
+          email: form.email,
+          password: form.password,
+          options: { data: { shop_name: form.shop_name, location: form.location, phone: form.phone } }
+        });
+        if (error) throw error;
+        setSignupEmail(form.email);
+        setOtpStep(true);
+        setStatus({ loading: false, error: "" });
+      } else {
+        const payload = { email: form.email, password: form.password };
+        const response = await apiRequest("/auth/login", { method: "POST", body: JSON.stringify(payload) });
+        saveSession(response.data);
+        navigate(location.state?.from || "/dashboard", { replace: true });
       }
-      const payload = isSignup
-        ? { phone: form.phone, email: form.email, password: form.password, shop_name: form.shop_name, location: form.location, setup_code: form.setup_code }
-        : { email: form.email, password: form.password };
-      const response = await apiRequest(isSignup ? "/auth/signup" : "/auth/login", { method: "POST", body: JSON.stringify(payload) });
-      saveSession(response.data);
-      navigate(location.state?.from || "/dashboard", { replace: true });
+    } catch (error) {
+      setStatus({ loading: false, error: error.message });
+    }
+  }
+
+  async function handleVerifyOtp(e) {
+    e.preventDefault();
+    setStatus({ loading: true, error: "" });
+    try {
+      const { error } = await supabase.auth.verifyOtp({
+        email: signupEmail,
+        token: otp,
+        type: "signup"
+      });
+      if (error) throw error;
+      navigate("/onboarding", { replace: true });
     } catch (error) {
       setStatus({ loading: false, error: error.message });
     }
@@ -54,6 +83,42 @@ export default function AuthPage({ mode }) {
       setGoogleLoading(false);
       setStatus({ loading: false, error: error.message || "Could not start Google sign in." });
     }
+  }
+
+  if (otpStep) {
+    return (
+      <main className="min-h-screen bg-gradient-to-br from-white via-[#f7fbff] to-[#edf6ff] p-4 flex items-center justify-center">
+        <div className="w-full max-w-sm">
+          <div className="mb-8 text-center">
+            <img className="mx-auto h-14 w-14" src={sahelIcon} alt="Sahel" />
+            <h2 className="mt-5 text-3xl font-black tracking-tight text-slate-950">Check your email</h2>
+            <p className="mx-auto mt-2 max-w-xs text-sm font-medium leading-6 text-slate-500">
+              We sent a 6-digit code to <strong>{signupEmail}</strong>. Enter it below to verify your account.
+            </p>
+          </div>
+          <form onSubmit={handleVerifyOtp} className="space-y-3">
+            <input
+              className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-center text-2xl font-black tracking-[0.5em] shadow-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+              type="text"
+              inputMode="numeric"
+              maxLength={6}
+              placeholder="000000"
+              value={otp}
+              onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
+              required
+            />
+            {status.error ? <div className="rounded-xl bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">{status.error}</div> : null}
+            <button className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-blue-600 text-sm font-bold text-white shadow-[0_12px_25px_rgba(37,99,235,0.20)] transition hover:bg-blue-700 disabled:opacity-60" disabled={status.loading || otp.length < 6}>
+              {status.loading ? "Verifying..." : "Verify & continue"}
+              <ArrowRight className="h-4 w-4" />
+            </button>
+            <button type="button" className="w-full text-center text-sm font-medium text-slate-500 hover:text-blue-600" onClick={() => { setOtpStep(false); setOtp(""); setStatus({ loading: false, error: "" }); }}>
+              ← Back to sign up
+            </button>
+          </form>
+        </div>
+      </main>
+    );
   }
 
   return (
@@ -130,11 +195,7 @@ export default function AuthPage({ mode }) {
               ) : null}
               <p className="mt-4 text-center text-xs font-medium leading-5 text-slate-400">Your shop data stays separated and protected.</p>
               <p className="mt-4 text-center text-sm font-medium text-slate-500">
-                {isSignup ? (
-                  <>Already have an account?{" "}<Link className="font-black text-blue-600 hover:text-blue-700" to="/login">Log in</Link></>
-                ) : (
-                  <>Don't have an account?{" "}<Link className="font-black text-blue-600 hover:text-blue-700" to="/signup">Sign up</Link></>
-                )}
+                {isSignup ? (<>Already have an account?{" "}<Link className="font-black text-blue-600 hover:text-blue-700" to="/login">Log in</Link></>) : (<>Don't have an account?{" "}<Link className="font-black text-blue-600 hover:text-blue-700" to="/signup">Sign up</Link></>)}
               </p>
             </div>
           </section>
