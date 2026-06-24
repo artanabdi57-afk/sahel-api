@@ -6,8 +6,7 @@ export default function ProtectedRoute() {
   const location = useLocation();
 
   if (!isAuthenticated()) {
-    return <Navigate to="/login" replace state={{ from: location.pathname }} />;
-  }
+  return <Navigate to="/welcome" replace state={{ from: location.pathname }} />;
 
   if (!getCurrentShop() && location.pathname !== "/onboarding") {
     return <Navigate to="/onboarding" replace />;
