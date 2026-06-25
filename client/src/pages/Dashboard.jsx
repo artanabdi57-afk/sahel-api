@@ -247,7 +247,7 @@ function SearchDropdown({ query, products, credits, onClose, onNavigate }) {
   }
 
   return (
-    <div className="absolute left-0 top-14 z-30 w-full rounded-2xl border border-slate-100 bg-white p-3 shadow-[0_24px_70px_rgba(15,23,42,0.14)]">
+<div className="absolute right-0 top-14 z-20 w-80 max-w-[calc(100vw-1.5rem)] rounded-2xl border border-slate-100 bg-white p-4 shadow-[0_24px_70px_rgba(15,23,42,0.14)]">
       {productMatches.length ? (
         <div>
           <p className="px-2 pb-2 text-xs font-black uppercase text-slate-400">Products</p>
