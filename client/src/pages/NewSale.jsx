@@ -1,3 +1,4 @@
+import React, { useEffect, useState } from "react";
 function ProductSearch({ products, value, onSelect }) {
   const [query, setQuery] = useState("");
 
