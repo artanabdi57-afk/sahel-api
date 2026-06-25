@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from "react";
-import { DollarSign, Languages, Mail, Moon, Settings as SettingsIcon, Store, Sun } from "lucide-react";
-import { getCurrentShop, getCurrentUser, updateLocalShop } from "../lib/auth";
+import { DollarSign, Languages, Mail, Moon, Plus, Settings as SettingsIcon, Store, Sun, Trash2, X } from "lucide-react";
+import { getCurrentShop, getCurrentUser, updateLocalShop, saveSession } from "../lib/auth";
 import { getSavedSettings, saveSettings, useLanguage } from "../lib/i18n";
-import { getSavedCurrency, saveCurrency } from "../lib/api";
+import { getSavedCurrency, saveCurrency, apiRequest } from "../lib/api";
+import { supabase } from "../lib/supabaseClient";
 
-// Currencies most relevant to East Africa + common international ones
 const CURRENCIES = [
   { code: "USD", label: "US Dollar", symbol: "$" },
   { code: "SOS", label: "Somali Shilling", symbol: "Sh" },
@@ -29,10 +29,74 @@ export default function Settings() {
   const [location, setLocation] = useState(shop?.location || "");
   const [currency, setCurrency] = useState(getSavedCurrency);
   const [message, setMessage] = useState("");
+  const [shops, setShops] = useState([]);
+  const [loadingShops, setLoadingShops] = useState(true);
+  const [showAddShop, setShowAddShop] = useState(false);
+  const [newShop, setNewShop] = useState({ shop_name: "", location: "" });
+  const [addingShop, setAddingShop] = useState(false);
+  const [switchingShop, setSwitchingShop] = useState(null);
 
   useEffect(() => {
     saveSettings(settings);
   }, [settings]);
+
+  useEffect(() => {
+    loadShops();
+  }, []);
+
+  async function loadShops() {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      const { data, error } = await supabase
+        .from("owner_shops")
+        .select("*")
+        .eq("owner_id", session.user.id)
+        .order("created_at", { ascending: true });
+      if (!error) setShops(data || []);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoadingShops(false);
+    }
+  }
+
+  async function handleAddShop(e) {
+    e.preventDefault();
+    if (!newShop.shop_name.trim()) return;
+    setAddingShop(true);
+    try {
+      const response = await apiRequest("/auth/setup-shop", {
+        method: "POST",
+        body: JSON.stringify({ shop_name: newShop.shop_name, location: newShop.location, create_new: true })
+      });
+      setNewShop({ shop_name: "", location: "" });
+      setShowAddShop(false);
+      await loadShops();
+      setMessage(`Shop "${newShop.shop_name}" created successfully.`);
+    } catch (error) {
+      setMessage(`Error: ${error.message}`);
+    } finally {
+      setAddingShop(false);
+    }
+  }
+
+  async function handleSwitchShop(selectedShop) {
+    setSwitchingShop(selectedShop.id);
+    try {
+      const response = await apiRequest("/auth/switch-shop", {
+        method: "POST",
+        body: JSON.stringify({ shop_id: selectedShop.id })
+      });
+      saveSession(response.data);
+      setMessage(`Switched to ${selectedShop.shop_name}. Reloading...`);
+      setTimeout(() => window.location.href = "/dashboard", 1000);
+    } catch (error) {
+      setMessage(`Error: ${error.message}`);
+    } finally {
+      setSwitchingShop(null);
+    }
+  }
 
   function changeLanguage(language) {
     const nextSettings = { ...settings, language };
@@ -43,7 +107,7 @@ export default function Settings() {
   function changeCurrency(currencyCode) {
     saveCurrency(currencyCode);
     setCurrency(currencyCode);
-    setMessage(`Currency changed to ${currencyCode}. Prices will update across the app.`);
+    setMessage(`Currency changed to ${currencyCode}.`);
   }
 
   function saveShopDetails(event) {
@@ -66,7 +130,93 @@ export default function Settings() {
         </div>
       </section>
 
-      {message ? <div className="rounded-lg bg-green-50 p-3 text-sm font-semibold text-green-700">{message}</div> : null}
+      {message ? (
+        <div className="flex items-center justify-between rounded-lg bg-green-50 p-3 text-sm font-semibold text-green-700">
+          <span>{message}</span>
+          <button type="button" onClick={() => setMessage("")}><X className="h-4 w-4" /></button>
+        </div>
+      ) : null}
+
+      {/* My Shops */}
+      <section className="panel p-5">
+        <div className="mb-4 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Store className="h-5 w-5 text-blue-600" />
+            <h3 className="font-bold text-slate-950">My Shops</h3>
+          </div>
+          <button
+            type="button"
+            className="btn-primary h-9 rounded-lg px-3 text-xs"
+            onClick={() => setShowAddShop((c) => !c)}
+          >
+            <Plus className="h-4 w-4" />
+            Add Shop
+          </button>
+        </div>
+
+        {showAddShop ? (
+          <form onSubmit={handleAddShop} className="mb-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
+            <p className="mb-3 text-sm font-bold text-slate-700">New Shop</p>
+            <div className="grid gap-2 sm:grid-cols-2">
+              <input
+                className="field"
+                placeholder="Shop name"
+                value={newShop.shop_name}
+                onChange={(e) => setNewShop({ ...newShop, shop_name: e.target.value })}
+                required
+              />
+              <input
+                className="field"
+                placeholder="Location"
+                value={newShop.location}
+                onChange={(e) => setNewShop({ ...newShop, location: e.target.value })}
+              />
+            </div>
+            <div className="mt-3 flex gap-2">
+              <button className="btn-primary h-9 rounded-lg px-4 text-xs" disabled={addingShop}>
+                {addingShop ? "Creating..." : "Create Shop"}
+              </button>
+              <button type="button" className="btn-secondary h-9 rounded-lg px-4 text-xs" onClick={() => setShowAddShop(false)}>
+                Cancel
+              </button>
+            </div>
+          </form>
+        ) : null}
+
+        {loadingShops ? (
+          <p className="text-sm text-slate-400">Loading shops...</p>
+        ) : shops.length === 0 ? (
+          <p className="text-sm text-slate-400">No shops found.</p>
+        ) : (
+          <div className="space-y-2">
+            {shops.map((s) => (
+              <div
+                key={s.id}
+                className={`flex items-center justify-between rounded-xl border p-3 ${s.id === shop?.id ? "border-blue-300 bg-blue-50" : "border-slate-200 bg-white"}`}
+              >
+                <div>
+                  <p className="font-bold text-slate-950">{s.shop_name}</p>
+                  <p className="text-xs text-slate-500">{s.location || "No location"} · {s.product_count || 0} products · {s.sales_count || 0} sales</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  {s.id === shop?.id ? (
+                    <span className="rounded-full bg-blue-600 px-3 py-1 text-xs font-bold text-white">Active</span>
+                  ) : (
+                    <button
+                      type="button"
+                      className="btn-secondary h-8 rounded-lg px-3 text-xs"
+                      onClick={() => handleSwitchShop(s)}
+                      disabled={switchingShop === s.id}
+                    >
+                      {switchingShop === s.id ? "Switching..." : "Switch"}
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
 
       <section className="grid gap-5 xl:grid-cols-2">
         <div className="panel p-5">
@@ -118,11 +268,7 @@ export default function Settings() {
             <Languages className="h-5 w-5 text-blue-600" />
             <h3 className="font-bold text-slate-950">{t("language")}</h3>
           </div>
-          <select
-            className="field"
-            value={settings.language}
-            onChange={(event) => changeLanguage(event.target.value)}
-          >
+          <select className="field" value={settings.language} onChange={(event) => changeLanguage(event.target.value)}>
             <option value="English">English</option>
             <option value="Somali">Somali</option>
             <option value="Arabic">العربية</option>
@@ -134,20 +280,12 @@ export default function Settings() {
             <DollarSign className="h-5 w-5 text-blue-600" />
             <h3 className="font-bold text-slate-950">Currency</h3>
           </div>
-          <select
-            className="field"
-            value={currency}
-            onChange={(event) => changeCurrency(event.target.value)}
-          >
+          <select className="field" value={currency} onChange={(event) => changeCurrency(event.target.value)}>
             {CURRENCIES.map((c) => (
-              <option key={c.code} value={c.code}>
-                {c.code} — {c.label} ({c.symbol})
-              </option>
+              <option key={c.code} value={c.code}>{c.code} — {c.label} ({c.symbol})</option>
             ))}
           </select>
-          <p className="mt-2 text-xs text-slate-500">
-            This applies to all prices across the app — receipts, inventory, reports, and dashboard.
-          </p>
+          <p className="mt-2 text-xs text-slate-500">This applies to all prices across the app.</p>
         </div>
       </section>
 
