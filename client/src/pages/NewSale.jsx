@@ -192,25 +192,27 @@ export default function NewSale() {
           </div>
         ) : null}
 
-        <div className="grid gap-3 sm:grid-cols-[1fr_auto_auto_auto]">
+        <div className="flex flex-col gap-2">
           <ProductSearch products={products} value={itemDraft.product_id} onSelect={chooseDraftProduct} />
-          <input className="field w-24" type="number" min="1" placeholder="Qty" value={itemDraft.quantity_sold} onChange={(e) => setItemDraft({ ...itemDraft, quantity_sold: e.target.value })} />
-          <input className="field w-28" type="number" placeholder="Price" value={itemDraft.selling_price} onChange={(e) => setItemDraft({ ...itemDraft, selling_price: e.target.value })} />
-          <button type="button" className="btn-secondary justify-center" onClick={addItemToCart} disabled={!itemDraft.product_id}>
+          <div className="grid grid-cols-2 gap-2">
+            <input className="field" type="number" min="1" placeholder="Qty" value={itemDraft.quantity_sold} onChange={(e) => setItemDraft({ ...itemDraft, quantity_sold: e.target.value })} />
+            <input className="field" type="number" placeholder="Price" value={itemDraft.selling_price} onChange={(e) => setItemDraft({ ...itemDraft, selling_price: e.target.value })} />
+          </div>
+          <button type="button" className="btn-primary w-full justify-center" onClick={addItemToCart} disabled={!itemDraft.product_id}>
             <Plus className="h-4 w-4" />
-            Add
+            Add to cart
           </button>
         </div>
 
         {cart.length > 0 ? (
-          <div className="mt-4 overflow-hidden rounded-lg border border-slate-200">
+          <div className="mt-4 overflow-x-auto rounded-lg border border-slate-200">
             <table className="min-w-full text-left text-sm">
               <thead className="bg-slate-50 text-xs uppercase text-slate-500">
                 <tr>
                   <th className="px-3 py-2 font-semibold">Product</th>
                   <th className="px-3 py-2 font-semibold">Qty</th>
                   <th className="px-3 py-2 font-semibold">Price</th>
-                  <th className="px-3 py-2 font-semibold">Subtotal</th>
+                  <th className="px-3 py-2 font-semibold">Total</th>
                   <th className="px-3 py-2"></th>
                 </tr>
               </thead>
@@ -260,7 +262,7 @@ export default function NewSale() {
         {matchedCustomer ? <p className="mt-2 text-sm font-medium text-green-700">Matched: {matchedCustomer.customer_name}</p> : null}
         {showPhoneError ? <p className="mt-2 text-sm font-medium text-red-600">Phone must be 9 digits starting with 61, 62, or 68.</p> : null}
 
-        <button type="button" className="btn-primary mt-4 w-full sm:w-auto" onClick={handleCompleteSale} disabled={status.saving || cart.length === 0}>
+        <button type="button" className="btn-primary mt-4 w-full" onClick={handleCompleteSale} disabled={status.saving || cart.length === 0}>
           <ShoppingCart className="h-4 w-4" />
           {status.saving ? "Recording..." : `Complete Sale (${cart.length} item${cart.length === 1 ? "" : "s"})`}
         </button>
