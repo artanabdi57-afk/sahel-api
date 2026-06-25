@@ -129,8 +129,8 @@ export default function Layout() {
         </div>
       </main>
 
-      <nav className="fixed bottom-0 left-0 right-0 z-20 border-t border-slate-200 bg-white pb-safe lg:hidden">
-  <div className="flex w-full">
+  <nav className="fixed bottom-0 left-0 right-0 z-20 border-t border-slate-200 bg-white px-2 pb-2 pt-1 lg:hidden">
+  <div className="flex gap-1 overflow-x-auto">
     {navItems.map((item) => (
       <NavItem key={item.path} item={item} compact t={t} />
     ))}
