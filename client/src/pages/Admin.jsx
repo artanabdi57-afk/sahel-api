@@ -13,14 +13,11 @@ import {
   ShoppingCart,
   Trash2,
   User,
-  Users,
-  Mail,
-  MapPin,
-  Calendar
+  Users
 } from "lucide-react";
 import { apiRequest, formatMoney } from "../lib/api";
 
-const ADMIN_USER = "sahal2026";
+const ADMIN_USER = "sahel2026";
 const ADMIN_PASS = "Halimoabdimuse@123";
 
 function AdminMetric({ title, value, icon: Icon, blue = false }) {
@@ -32,6 +29,14 @@ function AdminMetric({ title, value, icon: Icon, blue = false }) {
       </div>
       <p className="mt-4 text-3xl font-black">{value}</p>
     </div>
+  );
+}
+
+function PlanBadge({ plan }) {
+  return (
+    <span className={`rounded-full px-3 py-1 text-xs font-black uppercase ${plan === "paid" ? "bg-blue-50 text-blue-700" : "bg-slate-100 text-slate-500"}`}>
+      {plan || "free"}
+    </span>
   );
 }
 
@@ -63,8 +68,6 @@ export default function Admin() {
 
   async function loadOverview(event) {
     event?.preventDefault();
-    if (!ownerCode) return setStatus({ ...status, error: "Owner code required" });
-    
     setStatus({ loading: true, error: "", action: "" });
     try {
       const response = await apiRequest("/admin/overview", { headers: { "x-owner-code": ownerCode } });
@@ -72,36 +75,61 @@ export default function Admin() {
       setOverview(response.data);
       setStatus({ loading: false, error: "", action: "" });
     } catch (error) {
-      setStatus({ loading: false, error: "Failed to load data. Check owner code.", action: "" });
+      setStatus({ loading: false, error: error.message, action: "" });
     }
   }
 
   async function runOwnerAction(actionName, request) {
-    setStatus({ ...status, loading: true, action: actionName });
+    setStatus({ loading: false, error: "", action: actionName });
     try {
       await request();
-      // Reload overview to get fresh data
-      const response = await apiRequest("/admin/overview", { headers: { "x-owner-code": ownerCode } });
-      setOverview(response.data);
-      setStatus({ loading: false, error: "", action: "" });
+      await loadOverview();
     } catch (error) {
       setStatus({ loading: false, error: error.message, action: "" });
     }
   }
 
-  function changeShopStatus(shop, nextStatus) {
-    const confirmMsg = nextStatus === "suspended" 
-      ? `Are you sure you want to SUSPEND ${shop.shop_name}? They will lose access.` 
-      : `ACTIVATE ${shop.shop_name}?`;
-      
-    if (!window.confirm(confirmMsg)) return;
+  function ownerHeaders() {
+    return { "x-owner-code": ownerCode };
+  }
 
-    runOwnerAction(`status-${shop.id}`, () =>
+  function changeShopStatus(shop, nextStatus) {
+    runOwnerAction(`${nextStatus}-${shop.id}`, () =>
       apiRequest(`/admin/shops/${shop.id}/status`, {
         method: "PUT",
-        headers: { "x-owner-code": ownerCode },
+        headers: ownerHeaders(),
         body: JSON.stringify({ status: nextStatus })
       })
+    );
+  }
+
+  function changeShopPlan(shop, plan) {
+    runOwnerAction(`plan-${shop.id}`, () =>
+      apiRequest(`/admin/shops/${shop.id}/plan`, {
+        method: "PUT",
+        headers: ownerHeaders(),
+        body: JSON.stringify({ plan })
+      })
+    );
+  }
+
+  function resetPassword(shop) {
+    const newPassword = window.prompt(`Enter a new password for ${shop.shop_name}. Minimum 8 characters.`);
+    if (!newPassword) return;
+    runOwnerAction(`password-${shop.id}`, () =>
+      apiRequest(`/admin/shops/${shop.id}/password`, {
+        method: "PUT",
+        headers: ownerHeaders(),
+        body: JSON.stringify({ password: newPassword })
+      })
+    );
+  }
+
+  function deleteShop(shop) {
+    const confirmed = window.confirm(`Delete ${shop.shop_name} and all its data? This cannot be undone.`);
+    if (!confirmed) return;
+    runOwnerAction(`delete-${shop.id}`, () =>
+      apiRequest(`/admin/shops/${shop.id}`, { method: "DELETE", headers: ownerHeaders() })
     );
   }
 
@@ -115,19 +143,43 @@ export default function Admin() {
   if (!authed) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-slate-50 p-4">
-        <div className="w-full max-w-sm rounded-3xl border border-slate-200 bg-white p-8 shadow-xl">
+        <div className="w-full max-w-sm rounded-3xl border border-slate-200 bg-white p-8 shadow-[0_24px_70px_rgba(15,23,42,0.10)]">
           <div className="mb-8 text-center">
             <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-600 text-white">
               <Lock className="h-6 w-6" />
             </div>
-            <h1 className="mt-4 text-2xl font-black text-slate-950">Sahel Admin</h1>
-            <p className="mt-1 text-sm font-medium text-slate-500">Access Restricted</p>
+            <h1 className="mt-4 text-2xl font-black text-slate-950">Admin Panel</h1>
+            <p className="mt-1 text-sm font-medium text-slate-500">Sahel owner access only</p>
           </div>
           <form onSubmit={handleLogin} className="space-y-3">
-            <input className="w-full h-12 rounded-xl border border-slate-200 px-4 outline-none focus:ring-2 focus:ring-blue-500" placeholder="Username" value={loginForm.username} onChange={(e) => setLoginForm({ ...loginForm, username: e.target.value })} required />
-            <input className="w-full h-12 rounded-xl border border-slate-200 px-4 outline-none focus:ring-2 focus:ring-blue-500" type="password" placeholder="Password" value={loginForm.password} onChange={(e) => setLoginForm({ ...loginForm, password: e.target.value })} required />
-            {loginError && <div className="text-rose-600 text-sm font-bold">{loginError}</div>}
-            <button className="h-12 w-full rounded-xl bg-blue-600 font-bold text-white hover:bg-blue-700">Sign In</button>
+            <label className="flex h-12 items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 shadow-sm transition focus-within:border-blue-500 focus-within:ring-4 focus-within:ring-blue-100">
+              <User className="h-4 w-4 text-slate-400" />
+              <input
+                className="w-full bg-transparent text-sm font-medium outline-none"
+                placeholder="Username"
+                value={loginForm.username}
+                onChange={(e) => setLoginForm({ ...loginForm, username: e.target.value })}
+                required
+              />
+            </label>
+            <label className="flex h-12 items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 shadow-sm transition focus-within:border-blue-500 focus-within:ring-4 focus-within:ring-blue-100">
+              <Lock className="h-4 w-4 text-slate-400" />
+              <input
+                className="w-full bg-transparent text-sm font-medium outline-none"
+                type="password"
+                placeholder="Password"
+                value={loginForm.password}
+                onChange={(e) => setLoginForm({ ...loginForm, password: e.target.value })}
+                required
+              />
+            </label>
+            {loginError ? (
+              <div className="rounded-xl bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">{loginError}</div>
+            ) : null}
+            <button className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-blue-600 text-sm font-bold text-white shadow-[0_12px_25px_rgba(37,99,235,0.20)] transition hover:bg-blue-700">
+              <Lock className="h-4 w-4" />
+              Sign in to Admin
+            </button>
           </form>
         </div>
       </main>
@@ -135,177 +187,194 @@ export default function Admin() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-50 p-4 sm:p-8">
+    <main className="min-h-screen bg-slate-50 p-4 text-slate-950 sm:p-6 lg:p-8">
       <div className="mx-auto max-w-7xl">
-        {/* Header */}
-        <div className="flex flex-col gap-6 rounded-3xl border bg-white p-6 shadow-sm md:flex-row md:items-center md:justify-between">
+        <div className="flex flex-col gap-4 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-3xl font-black text-slate-950 tracking-tight">Admin Control Center</h1>
-            <p className="text-slate-500 font-medium">Manage Sahel client network and subscription status.</p>
+            <p className="text-xs font-black uppercase tracking-[0.24em] text-blue-600">Sahel Owner</p>
+            <h1 className="mt-2 text-3xl font-black tracking-tight">Admin Panel</h1>
+            <p className="mt-1 text-sm font-semibold text-slate-500">Manage all client accounts, plans, and data.</p>
           </div>
-          <div className="flex gap-3">
-            <input 
-              type="password" 
-              className="h-11 rounded-xl border border-slate-200 px-4 text-sm font-bold w-48" 
-              placeholder="Owner Code" 
-              value={ownerCode} 
-              onChange={(e) => setOwnerCode(e.target.value)} 
-            />
-            <button onClick={loadOverview} className="btn-primary h-11 px-6 rounded-xl" disabled={status.loading}>
-              {status.loading ? <RefreshCw className="h-4 w-4 animate-spin" /> : "Sync Data"}
+          <div className="flex flex-col gap-2 sm:w-auto sm:min-w-[520px] sm:flex-row">
+            <form onSubmit={loadOverview} className="flex flex-1 gap-2">
+              <label className="flex h-12 flex-1 items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 shadow-sm focus-within:border-blue-500 focus-within:ring-4 focus-within:ring-blue-100">
+                <Lock className="h-4 w-4 text-slate-400" />
+                <input
+                  className="w-full bg-transparent text-sm font-bold outline-none"
+                  type="password"
+                  placeholder="Owner setup code"
+                  value={ownerCode}
+                  onChange={(event) => setOwnerCode(event.target.value)}
+                />
+              </label>
+              <button className="btn-primary h-12 rounded-xl px-5" disabled={status.loading}>
+                {status.loading ? <RefreshCw className="h-4 w-4 animate-spin" /> : <BarChart3 className="h-4 w-4" />}
+                Load
+              </button>
+            </form>
+            <Link className="btn-secondary h-12 rounded-xl px-5" to="/signup">
+              <Plus className="h-4 w-4" />
+              New Client
+            </Link>
+            <button className="btn-secondary h-12 rounded-xl px-5" onClick={handleLogout}>
+              Sign out
             </button>
           </div>
         </div>
 
-        {status.error && (
-          <div className="mt-4 p-4 bg-rose-50 text-rose-700 rounded-2xl border border-rose-100 font-bold">{status.error}</div>
-        )}
+        {status.error ? (
+          <div className="mt-4 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-bold text-rose-700">
+            {status.error}
+          </div>
+        ) : null}
 
-        {overview && (
+        {overview ? (
           <>
-            {/* Stats */}
-            <section className="mt-8 grid gap-4 grid-cols-2 lg:grid-cols-4">
-              <AdminMetric title="Total Shops" value={totals.shops || 0} icon={Building2} blue />
-              <AdminMetric title="Sales Activity" value={totals.sales || 0} icon={ShoppingCart} />
-              <AdminMetric title="Revenue Processed" value={formatMoney(totals.revenue || 0)} icon={BarChart3} />
-              <AdminMetric title="Active Users" value={totals.users || 0} icon={Users} />
+            <section className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+              <AdminMetric title="Client Shops" value={totals.shops || 0} icon={Building2} blue />
+              <AdminMetric title="User Accounts" value={totals.users || 0} icon={Users} />
+              <AdminMetric title="Total Sales Records" value={totals.sales || 0} icon={ShoppingCart} />
+              <AdminMetric title="Products Managed" value={totals.products || 0} icon={Package} />
             </section>
 
-            {/* Shop Table */}
-            <section className="mt-8 rounded-3xl border bg-white overflow-hidden shadow-sm">
-              <div className="p-6 border-b bg-slate-50/50">
-                <h2 className="text-xl font-black">Client Portfolio</h2>
-                <p className="text-sm text-slate-500">View and manage shop accounts. Click row for full details.</p>
+            <section className="mt-6 rounded-3xl border border-slate-200 bg-white shadow-sm">
+              <div className="border-b border-slate-100 p-5">
+                <h2 className="text-xl font-black">All Client Accounts</h2>
+                <p className="mt-1 text-sm font-semibold text-slate-500">Click a row to see onboarding data.</p>
               </div>
 
               <div className="overflow-x-auto">
-                <table className="w-full text-left text-sm">
-                  <thead className="bg-slate-50 text-slate-500 uppercase text-[10px] font-black tracking-widest">
+                <table className="min-w-full divide-y divide-slate-100 text-left text-sm">
+                  <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
                     <tr>
-                      <th className="px-6 py-4">Shop Name</th>
-                      <th className="px-6 py-4">Contact Info</th>
-                      <th className="px-6 py-4">Usage</th>
-                      <th className="px-6 py-4">Revenue</th>
-                      <th className="px-6 py-4">Status</th>
-                      <th className="px-6 py-4 text-right">Actions</th>
+                      <th className="px-5 py-3">Business</th>
+                      <th className="px-5 py-3">Owner Email</th>
+                      <th className="px-5 py-3">Phone</th>
+                      <th className="px-5 py-3">Signup</th>
+                      <th className="px-5 py-3">Products</th>
+                      <th className="px-5 py-3">Sales</th>
+                      <th className="px-5 py-3">Revenue</th>
+                      <th className="px-5 py-3">Plan</th>
+                      <th className="px-5 py-3">Status</th>
+                      <th className="px-5 py-3">Actions</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y">
+                  <tbody className="divide-y divide-slate-100">
                     {sortedShops.map((shop) => (
-                      <React.Fragment key={shop.id}>
-                        <tr 
-                          className={`hover:bg-slate-50 cursor-pointer transition-colors ${expandedShop === shop.id ? 'bg-blue-50/50' : ''}`}
+                      <>
+                        <tr
+                          key={shop.id}
+                          className="cursor-pointer hover:bg-blue-50/40"
                           onClick={() => setExpandedShop(expandedShop === shop.id ? null : shop.id)}
                         >
-                          <td className="px-6 py-5">
-                            <div className="flex items-center gap-3">
-                              <div className="h-10 w-10 rounded-full bg-slate-100 flex items-center justify-center font-bold text-blue-600">
-                                {shop.shop_name?.charAt(0)}
-                              </div>
-                              <div>
-                                <p className="font-bold text-slate-900">{shop.shop_name}</p>
-                                <p className="text-xs text-slate-500">{shop.location || "Mogadishu"}</p>
-                              </div>
-                            </div>
+                          <td className="px-5 py-4">
+                            <p className="font-black text-slate-950">{shop.shop_name}</p>
+                            <p className="text-xs font-semibold text-slate-500">{shop.location || "No location"}</p>
                           </td>
-                          <td className="px-6 py-5">
-                            <p className="font-semibold text-slate-700">{shop.owner_email}</p>
-                            <p className="text-xs font-bold text-blue-600 flex items-center gap-1">
-                              <Phone size={12} /> {shop.phone || "No phone"}
-                            </p>
+                          <td className="px-5 py-4 font-semibold text-slate-600">{shop.owner_email}</td>
+                          <td className="px-5 py-4">
+                            {shop.phone ? (
+                              <a href={`tel:${shop.phone}`} className="font-semibold text-blue-600 hover:underline" onClick={(e) => e.stopPropagation()}>
+                                <Phone className="mr-1 inline h-3.5 w-3.5" />
+                                {shop.phone}
+                              </a>
+                            ) : (
+                              <span className="text-slate-400">—</span>
+                            )}
                           </td>
-                          <td className="px-6 py-5 font-bold">
-                            <p>{shop.usage?.sales || 0} Sales</p>
-                            <p className="text-xs text-slate-400">{shop.usage?.products || 0} Products</p>
+                          <td className="px-5 py-4 font-semibold text-slate-600">
+                            {new Date(shop.created_at).toLocaleDateString()}
                           </td>
-                          <td className="px-6 py-5 font-black text-slate-900">
-                            {formatMoney(shop.usage?.revenue || 0)}
+                          <td className="px-5 py-4 font-black">{shop.usage?.products || 0}</td>
+                          <td className="px-5 py-4 font-black">{shop.usage?.sales || 0}</td>
+                          <td className="px-5 py-4 font-black text-blue-600">{formatMoney(shop.usage?.revenue || 0)}</td>
+                          <td className="px-5 py-4">
+                            <select
+                              className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-bold outline-none focus:border-blue-500"
+                              value={shop.plan || "free"}
+                              onClick={(e) => e.stopPropagation()}
+                              onChange={(e) => changeShopPlan(shop, e.target.value)}
+                              disabled={status.action === `plan-${shop.id}`}
+                            >
+                              <option value="free">Free</option>
+                              <option value="paid">Paid</option>
+                            </select>
                           </td>
-                          <td className="px-6 py-5">
-                            <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase ${shop.status === 'suspended' ? 'bg-rose-100 text-rose-700' : 'bg-emerald-100 text-emerald-700'}`}>
-                              {shop.status || 'active'}
+                          <td className="px-5 py-4">
+                            <span className={`rounded-full px-3 py-1 text-xs font-black uppercase ${shop.status === "suspended" ? "bg-rose-50 text-rose-700" : "bg-green-50 text-green-700"}`}>
+                              {shop.status || "active"}
                             </span>
                           </td>
-                          <td className="px-6 py-5 text-right">
-                            <div className="flex justify-end gap-2" onClick={(e) => e.stopPropagation()}>
+                          <td className="px-5 py-4">
+                            <div className="flex min-w-[220px] flex-wrap gap-2">
                               {shop.status === "suspended" ? (
-                                <button 
-                                  onClick={() => changeShopStatus(shop, "active")}
-                                  className="p-2 bg-emerald-50 text-emerald-600 rounded-lg hover:bg-emerald-100"
-                                  title="Activate Shop"
+                                <button
+                                  className="inline-flex items-center gap-1 rounded-lg border border-green-200 px-3 py-2 text-xs font-black text-green-700 hover:bg-green-50"
+                                  disabled={status.action === `active-${shop.id}`}
+                                  onClick={(e) => { e.stopPropagation(); changeShopStatus(shop, "active"); }}
                                 >
-                                  <ShieldCheck size={18} />
+                                  <ShieldCheck className="h-3.5 w-3.5" />
+                                  Activate
                                 </button>
                               ) : (
-                                <button 
-                                  onClick={() => changeShopStatus(shop, "suspended")}
-                                  className="p-2 bg-amber-50 text-amber-600 rounded-lg hover:bg-amber-100"
-                                  title="Suspend Shop"
+                                <button
+                                  className="inline-flex items-center gap-1 rounded-lg border border-amber-200 px-3 py-2 text-xs font-black text-amber-700 hover:bg-amber-50"
+                                  disabled={status.action === `suspended-${shop.id}`}
+                                  onClick={(e) => { e.stopPropagation(); changeShopStatus(shop, "suspended"); }}
                                 >
-                                  <ShieldOff size={18} />
+                                  <ShieldOff className="h-3.5 w-3.5" />
+                                  Suspend
                                 </button>
                               )}
-                              <button onClick={() => deleteShop(shop)} className="p-2 bg-rose-50 text-rose-600 rounded-lg hover:bg-rose-100">
-                                <Trash2 size={18} />
+                              <button
+                                className="inline-flex items-center gap-1 rounded-lg border border-rose-200 px-3 py-2 text-xs font-black text-rose-700 hover:bg-rose-50"
+                                disabled={status.action === `delete-${shop.id}`}
+                                onClick={(e) => { e.stopPropagation(); deleteShop(shop); }}
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                                Delete
                               </button>
                             </div>
                           </td>
                         </tr>
-
-                        {/* EXPANDED DETAILS */}
-                        {expandedShop === shop.id && (
-                          <tr className="bg-white">
-                            <td colSpan="6" className="px-8 py-6 border-x-4 border-blue-500">
-                              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                                <div>
-                                  <h4 className="text-xs font-black uppercase text-slate-400 mb-4 flex items-center gap-2">
-                                    <User size={14} /> Full Registration Profile
-                                  </h4>
-                                  <div className="space-y-3">
-                                    <DetailItem label="Shop Owner Phone" value={shop.phone || "Not provided"} />
-                                    <DetailItem label="Business Type" value={shop.business_type || "Retailer"} />
-                                    <DetailItem label="Location" value={shop.location || "Not set"} />
-                                  </div>
+                        {expandedShop === shop.id ? (
+                          <tr key={`${shop.id}-expanded`} className="bg-blue-50/30">
+                            <td colSpan="10" className="px-5 py-4">
+                              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                                <div className="rounded-xl bg-white p-3 shadow-sm">
+                                  <p className="text-xs font-black uppercase text-slate-400">Where they heard</p>
+                                  <p className="mt-1 font-semibold text-slate-700">{shop.hear_about || "—"}</p>
                                 </div>
-                                <div>
-                                  <h4 className="text-xs font-black uppercase text-slate-400 mb-4 flex items-center gap-2">
-                                    <BarChart3 size={14} /> Onboarding Insights
-                                  </h4>
-                                  <div className="space-y-3">
-                                    <DetailItem label="Main Pain Point" value={shop.main_problem || "Managing Sales"} />
-                                    <DetailItem label="Referral Source" value={shop.hear_about || "Direct"} />
-                                    <DetailItem label="Signup Date" value={new Date(shop.created_at).toLocaleDateString()} />
-                                  </div>
+                                <div className="rounded-xl bg-white p-3 shadow-sm">
+                                  <p className="text-xs font-black uppercase text-slate-400">Business type</p>
+                                  <p className="mt-1 font-semibold text-slate-700">{shop.business_type || "—"}</p>
                                 </div>
-                                <div className="bg-slate-50 p-4 rounded-2xl">
-                                  <h4 className="text-xs font-black uppercase text-slate-400 mb-4">Quick Actions</h4>
-                                  <div className="grid grid-cols-1 gap-2">
-                                    <button onClick={() => resetPassword(shop)} className="w-full text-left px-4 py-2 bg-white border rounded-xl text-sm font-bold hover:bg-slate-100">Reset Shop Password</button>
-                                    <button className="w-full text-left px-4 py-2 bg-white border rounded-xl text-sm font-bold hover:bg-slate-100">Contact via Email</button>
-                                  </div>
+                                <div className="rounded-xl bg-white p-3 shadow-sm">
+                                  <p className="text-xs font-black uppercase text-slate-400">Main problem</p>
+                                  <p className="mt-1 font-semibold text-slate-700">{shop.main_problem || "—"}</p>
+                                </div>
+                                <div className="rounded-xl bg-white p-3 shadow-sm">
+                                  <p className="text-xs font-black uppercase text-slate-400">Expenses total</p>
+                                  <p className="mt-1 font-semibold text-slate-700">{formatMoney(shop.usage?.expenses_total || 0)}</p>
                                 </div>
                               </div>
                             </td>
                           </tr>
-                        )}
-                      </React.Fragment>
+                        ) : null}
+                      </>
                     ))}
                   </tbody>
                 </table>
               </div>
             </section>
           </>
+        ) : (
+          <div className="mt-6 rounded-3xl border border-dashed border-slate-300 bg-white p-10 text-center">
+            <p className="text-lg font-black">Enter your owner setup code to load client data.</p>
+            <p className="mt-2 text-sm font-semibold text-slate-500">This page is for you only.</p>
+          </div>
         )}
       </div>
     </main>
-  );
-}
-
-function DetailItem({ label, value }) {
-  return (
-    <div>
-      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">{label}</p>
-      <p className="text-sm font-black text-slate-800">{value}</p>
-    </div>
   );
 }
