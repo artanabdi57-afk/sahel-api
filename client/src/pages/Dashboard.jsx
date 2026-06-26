@@ -1,119 +1,133 @@
 import React, { useEffect, useMemo, useState } from "react";
-import {
-  Bell, ChevronRight, Clock, CreditCard, Plus, Printer, X,
-  DollarSign, Search, Settings, ShoppingBag, TrendingDown,
-  TrendingUp, WalletCards, Info, ArrowUpRight, BarChart3, Activity
+import { 
+  Search, Plus, BarChart3, ShoppingBag, CreditCard, DollarSign, 
+  WalletCards, Bell, Settings, Clock, ArrowUpRight 
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import {
-  AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer,
-  PieChart, Pie, Cell, Sector
+import { 
+  AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, 
+  PieChart, Pie, Cell, LineChart, Line 
 } from "recharts";
 import { apiRequest, formatMoney, monthISO, todayISO } from "../lib/api";
-import { ErrorState, LoadingState } from "../components/AsyncState";
+import { LoadingState } from "../components/AsyncState";
 import { getCurrentShop } from "../lib/auth";
-import { useLanguage } from "../lib/i18n";
-import Receipt from "../components/Receipt.jsx";
 
-const palette = ["#5b3ff2", "#2f7df6", "#14c6a4", "#ffb84d", "#ff6b6b", "#8b5cf6"];
+const COLORS = ["#5b3ff2", "#2f7df6", "#14c6a4", "#ffb84d", "#ff6b6b"];
 
-// --- HELPERS (Essential for data loading) ---
-const DASHBOARD_CACHE_KEY = "sahel_dashboard_full_v3";
-const emptyState = {
-  loading: true, error: "", products: [], currentProfit: null, 
-  previousProfit: null, credits: null, daily: [], recentSales: [], topProducts: []
-};
+// Small sparkline for the metric cards
+const Spark = ({ data, color }) => (
+  <div className="absolute bottom-0 left-0 right-0 h-12 opacity-20">
+    <ResponsiveContainer width="100%" height="100%">
+      <LineChart data={data}>
+        <Line type="monotone" dataKey="v" stroke={color} strokeWidth={3} dot={false} />
+      </LineChart>
+    </ResponsiveContainer>
+  </div>
+);
 
-function initialDashboardState() {
-  try {
-    const cached = JSON.parse(localStorage.getItem(DASHBOARD_CACHE_KEY));
-    if (cached && (Date.now() - cached.time < 60000)) return { ...cached.data, loading: false };
-  } catch (e) {}
-  return emptyState;
-}
-
-// --- SUB-COMPONENTS ---
-function MetricCard({ title, value, icon: Icon, color }) {
+function MetricCard({ title, value, helper, icon: Icon, featured = false, sparkData, color }) {
   return (
-    <div className="rounded-3xl border border-slate-100 bg-white p-5 shadow-sm transition-all hover:shadow-md">
-      <div className="flex items-center gap-3 mb-3">
-        <div className="p-2 rounded-xl bg-slate-50" style={{ color: color }}><Icon size={20} /></div>
-        <p className="text-xs font-black uppercase tracking-widest text-slate-400">{title}</p>
+    <div className={`relative overflow-hidden rounded-[2rem] p-6 shadow-sm border ${featured ? "bg-blue-600 text-white border-blue-600" : "bg-white text-slate-900 border-slate-100"}`}>
+      <Spark data={sparkData} color={featured ? "#fff" : color} />
+      <div className="relative z-10">
+        <div className="flex justify-between items-start mb-4">
+          <p className={`text-xs font-bold uppercase tracking-widest ${featured ? "text-blue-100" : "text-slate-400"}`}>{title}</p>
+          <div className={`p-2 rounded-xl ${featured ? "bg-white/20" : "bg-slate-50"}`}><Icon size={18} color={featured ? "white" : color} /></div>
+        </div>
+        <h2 className="text-3xl font-black mb-1">{featured ? "" : "$"}{value.toLocaleString()}</h2>
+        <p className={`text-xs ${featured ? "text-blue-100" : "text-slate-400"}`}>{helper}</p>
       </div>
-      <h3 className="text-2xl font-black text-slate-900">{formatMoney(value)}</h3>
     </div>
   );
 }
 
 export default function Dashboard() {
-  const { t } = useLanguage();
   const navigate = useNavigate();
-  const [state, setState] = useState(initialDashboardState);
-  const [searchTerm, setSearchTerm] = useState("");
+  const [state, setState] = useState({ loading: true, data: null });
+  const shop = getCurrentShop();
 
   useEffect(() => {
     async function load() {
+      const today = todayISO();
+      const month = monthISO();
       try {
-        const [products, currentProfit, prevProfit, daily, credits, top, recent] = await Promise.all([
-          apiRequest("/products").then(r => r.data),
-          apiRequest(`/reports/profit?month=${monthISO()}`).then(r => r.data),
-          apiRequest(`/reports/profit?month=${todayISO().slice(0, 7)}`).then(r => r.data),
+        const [daily, profit, top, recent, credits] = await Promise.all([
           apiRequest("/reports/daily").then(r => r.data),
-          apiRequest("/credits/summary").then(r => r.data),
-          apiRequest(`/reports/top-products?from=${todayISO().slice(0, 7)}-01&to=${todayISO()}`).then(r => r.data),
-          apiRequest("/sales?limit=10").then(r => r.data)
+          apiRequest(`/reports/profit?month=${month}`).then(r => r.data),
+          apiRequest(`/reports/top-products?from=${month}-01&to=${today}`).then(r => r.data),
+          apiRequest("/sales?limit=8").then(r => r.data),
+          apiRequest("/credits/summary").then(r => r.data)
         ]);
-        const data = { loading: false, products, currentProfit, previousProfit: prevProfit, daily, credits, topProducts: top, recentSales: recent };
-        setState(data);
-        localStorage.setItem(DASHBOARD_CACHE_KEY, JSON.stringify({ data, time: Date.now() }));
-      } catch (e) { setState(s => ({ ...s, loading: false, error: "Failed to load data" })); }
+        setState({ loading: false, data: { daily, profit, top, recent, credits } });
+      } catch (e) { console.error(e); }
     }
     load();
   }, []);
 
-  if (state.loading) return <LoadingState variant="dashboard" />;
+  if (state.loading) return <LoadingState />;
 
-  const todayRevenue = state.daily[state.daily.length - 1]?.total_revenue || 0;
+  const { daily, profit, top, recent, credits } = state.data;
+  const todayRevenue = daily[daily.length - 1]?.total_revenue || 0;
+  const sparkItems = daily.map(d => ({ v: d.total_revenue }));
 
   return (
-    <div className="min-h-screen space-y-6 bg-[#f8faff] p-4 sm:p-8">
+    <div className="min-h-screen bg-[#f4f7ff] p-6 space-y-8">
       
       {/* 1. SEARCH BAR ON TOP */}
-      <header className="relative w-full max-w-4xl mx-auto">
-        <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
-        <input 
-          className="w-full rounded-2xl border-none bg-white px-12 py-4 text-sm font-bold shadow-sm outline-none focus:ring-2 focus:ring-blue-500" 
-          placeholder={t("searchPlaceholder")} 
-          value={searchTerm} 
-          onChange={(e) => setSearchTerm(e.target.value)} 
-        />
-      </header>
+      <div className="flex items-center justify-between gap-4">
+        <div className="relative flex-1 max-w-2xl">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+          <input 
+            className="w-full bg-white rounded-2xl py-4 pl-12 pr-4 shadow-sm border-none outline-none focus:ring-2 focus:ring-blue-500 font-medium" 
+            placeholder="Raadi iib, alaab, ama macmiil..." 
+          />
+        </div>
+        <div className="flex items-center gap-3">
+          <div className="bg-white p-3 rounded-2xl shadow-sm text-slate-500 font-bold hidden md:block">
+            {shop?.shop_name} — {new Date().toLocaleDateString('so-SO', { weekday: 'short', month: 'short', day: 'numeric' })}
+          </div>
+          <button className="p-3 bg-white rounded-2xl shadow-sm text-slate-400"><Settings size={20}/></button>
+          <button className="p-3 bg-white rounded-2xl shadow-sm text-slate-400"><Bell size={20}/></button>
+          <div className="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center text-white font-black shadow-lg">SA</div>
+        </div>
+      </div>
+
+      <section>
+        <h1 className="text-4xl font-black text-slate-900">Salaan!</h1>
+        <p className="text-slate-500 font-medium">Tani waa waxa ka socda dukaankaaga bishan</p>
+      </section>
 
       {/* 2. ACTION BUTTONS */}
-      <section className="flex flex-wrap gap-3">
-        <button onClick={() => navigate("/sale")} className="btn-primary py-2 px-6 rounded-xl text-sm"><Plus size={16}/> New Sale</button>
-        <button onClick={() => navigate("/inventory")} className="btn-secondary py-2 px-6 rounded-xl text-sm">Add Product</button>
-        <button onClick={() => navigate("/reports")} className="btn-secondary py-2 px-6 rounded-xl text-sm">Reports</button>
-      </section>
+      <div className="flex flex-wrap gap-3">
+        <button onClick={() => navigate("/sale")} className="flex items-center gap-2 bg-blue-600 text-white px-8 py-3 rounded-2xl font-bold shadow-lg hover:bg-blue-700 transition">
+          <Plus size={20}/> Iib Cusub
+        </button>
+        <button onClick={() => navigate("/inventory")} className="flex items-center gap-2 bg-white text-slate-700 px-8 py-3 rounded-2xl font-bold border border-slate-100 hover:bg-slate-50 transition">
+          <Plus size={20}/> Ku dar Alaab
+        </button>
+        <button onClick={() => navigate("/reports")} className="flex items-center gap-2 bg-white text-slate-700 px-8 py-3 rounded-2xl font-bold border border-slate-100 hover:bg-slate-50 transition">
+          Eeg Warbixinno
+        </button>
+      </div>
 
-      {/* 3. FOUR METRIC CARDS */}
-      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <MetricCard title="Today Sales" value={todayRevenue} icon={ShoppingBag} color="#5b3ff2" />
-        <MetricCard title="Credits" value={state.credits?.total_amount_owed || 0} icon={CreditCard} color="#ff6b6b" />
-        <MetricCard title="Total Revenue" value={state.currentProfit?.revenue || 0} icon={DollarSign} color="#2f7df6" />
-        <MetricCard title="Net Profit" value={state.currentProfit?.net_profit || 0} icon={WalletCards} color="#14c6a4" />
-      </section>
+      {/* 3. METRIC CARDS */}
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+        <MetricCard title="Iibka Maanta" value={todayRevenue} helper="Compared to 7-day avg" icon={ShoppingBag} featured sparkData={sparkItems} />
+        <MetricCard title="Dakhliga Guud" value={profit?.revenue || 0} helper="This month vs last" icon={DollarSign} color="#2563eb" sparkData={sparkItems} />
+        <MetricCard title="Dayn" value={credits?.total_amount_owed || 0} helper="Unpaid or partial" icon={CreditCard} color="#f59e0b" sparkData={sparkItems.map(s => ({ v: s.v * 0.2 }))} />
+        <MetricCard title="Faa'iido Saafi ah" value={profit?.net_profit || 0} helper="After expenses" icon={WalletCards} color="#10b981" sparkData={sparkItems.map(s => ({ v: s.v * 0.4 }))} />
+      </div>
 
-      {/* 4. CHARTS SECTION (PIE + REVENUE + PROFIT) */}
-      <section className="grid gap-6 lg:grid-cols-3">
-        {/* Pie Chart: Top Products */}
-        <div className="rounded-3xl bg-white p-6 shadow-sm border border-slate-100">
-          <h2 className="text-sm font-black uppercase text-slate-400 mb-4">Good Products Selling</h2>
+      {/* 4. CHARTS IN THE MIDDLE */}
+      <div className="grid gap-6 lg:grid-cols-3">
+        {/* Top Products Pie Chart */}
+        <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-slate-50">
+          <h3 className="text-sm font-black uppercase text-slate-400 mb-6">Alaabta ugu iibka badan</h3>
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
-                <Pie data={state.topProducts?.slice(0,5)} dataKey="revenue" nameKey="product_name" innerRadius={60} outerRadius={80} paddingAngle={5}>
-                  {state.topProducts?.map((_, i) => <Cell key={i} fill={palette[i % palette.length]} />)}
+                <Pie data={top?.slice(0,5)} dataKey="revenue" nameKey="product_name" innerRadius={60} outerRadius={80} paddingAngle={5}>
+                  {top?.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
                 </Pie>
                 <Tooltip />
               </PieChart>
@@ -121,61 +135,68 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Total Revenue Graph */}
-        <div className="rounded-3xl bg-white p-6 shadow-sm border border-slate-100">
-          <h2 className="text-sm font-black uppercase text-slate-400 mb-4">Total Revenue Graph</h2>
+        {/* Revenue Graph */}
+        <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-slate-50">
+          <h3 className="text-sm font-black uppercase text-slate-400 mb-6">Garaafka Dakhliga</h3>
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={state.daily}>
+              <AreaChart data={daily}>
                 <XAxis dataKey="date" hide />
                 <Tooltip />
-                <Area type="monotone" dataKey="total_revenue" stroke="#2f7df6" fill="#2f7df6" fillOpacity={0.1} strokeWidth={3} />
+                <Area type="monotone" dataKey="total_revenue" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.1} strokeWidth={4} />
               </AreaChart>
             </ResponsiveContainer>
           </div>
         </div>
 
         {/* Profit Graph */}
-        <div className="rounded-3xl bg-white p-6 shadow-sm border border-slate-100">
-          <h2 className="text-sm font-black uppercase text-slate-400 mb-4">Profit Graph</h2>
+        <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-slate-50">
+          <h3 className="text-sm font-black uppercase text-slate-400 mb-6">Garaafka Faa'iidada</h3>
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={state.daily}>
+              <AreaChart data={daily}>
                 <XAxis dataKey="date" hide />
                 <Tooltip />
-                <Area type="monotone" dataKey="total_revenue" stroke="#14c6a4" fill="#14c6a4" fillOpacity={0.1} strokeWidth={3} />
+                <Area type="monotone" dataKey="total_revenue" stroke="#10b981" fill="#10b981" fillOpacity={0.1} strokeWidth={4} />
               </AreaChart>
             </ResponsiveContainer>
           </div>
         </div>
-      </section>
+      </div>
 
       {/* 5. RECENT SALES */}
-      <section className="rounded-3xl bg-white shadow-sm border border-slate-100 overflow-hidden">
-        <div className="p-6 border-b border-slate-50"><h2 className="font-black">Recent Sales</h2></div>
+      <div className="bg-white rounded-[2rem] shadow-sm border border-slate-50 overflow-hidden">
+        <div className="p-8 border-b border-slate-50 flex justify-between items-center">
+          <h3 className="text-xl font-black text-slate-900">Iibiyadii u dambeeyey</h3>
+          <button onClick={() => navigate("/reports")} className="text-blue-600 font-bold hover:underline">Eeg dhammaan</button>
+        </div>
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
-            <thead className="bg-slate-50 text-[10px] font-black uppercase text-slate-400">
+            <thead className="bg-slate-50 text-[10px] font-black uppercase text-slate-400 tracking-widest">
               <tr>
-                <th className="px-6 py-4">Product</th>
-                <th className="px-6 py-4">Customer</th>
-                <th className="px-6 py-4">Amount</th>
-                <th className="px-6 py-4">Payment</th>
+                <th className="px-8 py-4">Waqtiga</th>
+                <th className="px-8 py-4">Alaabta</th>
+                <th className="px-8 py-4">Lacagta</th>
+                <th className="px-8 py-4">Nooca</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
-              {state.recentSales.map((s) => (
-                <tr key={s.id} className="hover:bg-slate-50">
-                  <td className="px-6 py-4 font-bold">{s.product_name}</td>
-                  <td className="px-6 py-4">{s.customer_name || "Walk-in"}</td>
-                  <td className="px-6 py-4 font-black text-blue-600">{formatMoney(s.total)}</td>
-                  <td className="px-6 py-4"><span className="px-2 py-1 bg-blue-50 text-blue-600 rounded-lg text-[10px] font-bold">{s.payment_type}</span></td>
+              {recent?.map((s) => (
+                <tr key={s.id} className="hover:bg-slate-50 transition">
+                  <td className="px-8 py-5 text-slate-400 font-medium">
+                    {new Date(s.sale_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </td>
+                  <td className="px-8 py-5 font-bold text-slate-900">{s.product_name}</td>
+                  <td className="px-8 py-5 font-black text-blue-600">{formatMoney(s.total)}</td>
+                  <td className="px-8 py-5">
+                    <span className="bg-blue-50 text-blue-600 px-3 py-1 rounded-full text-[10px] font-black uppercase">{s.payment_type}</span>
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
-      </section>
+      </div>
     </div>
   );
 }
