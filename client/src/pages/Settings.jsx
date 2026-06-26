@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { DollarSign, Languages, Mail, Moon, Plus, Settings as SettingsIcon, Store, Sun, Users, X, Eye, EyeOff } from "lucide-react";
+import { DollarSign, Eye, EyeOff, Languages, Mail, Moon, Plus, Settings as SettingsIcon, Store, Sun, Users, X } from "lucide-react";
 import { getCurrentShop, getCurrentUser, updateLocalShop, saveSession } from "../lib/auth";
 import { getSavedSettings, saveSettings, useLanguage } from "../lib/i18n";
 import { getSavedCurrency, saveCurrency, apiRequest } from "../lib/api";
@@ -30,7 +30,7 @@ export default function Settings() {
   const [currency, setCurrency] = useState(getSavedCurrency);
   const [message, setMessage] = useState({ text: "", type: "success" });
 
-  // Multi-shop state
+  // Multi-shop
   const [myShops, setMyShops] = useState([]);
   const [loadingShops, setLoadingShops] = useState(true);
   const [showAddShop, setShowAddShop] = useState(false);
@@ -39,10 +39,10 @@ export default function Settings() {
   const [switchingShop, setSwitchingShop] = useState(null);
   const [expandedShop, setExpandedShop] = useState(null);
 
-  // Staff state
+  // Staff
   const [shopStaff, setShopStaff] = useState({});
   const [showAddStaff, setShowAddStaff] = useState(null);
-  const [newStaff, setNewStaff] = useState({ email: "", password: "", name: "" });
+  const [newStaff, setNewStaff] = useState({ name: "", email: "", password: "" });
   const [addingStaff, setAddingStaff] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
@@ -77,24 +77,18 @@ export default function Settings() {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error("Not logged in");
-
-      const { data, error } = await supabase
-        .from("shops")
-        .insert({
-          shop_name: newShop.shop_name.trim(),
-          location: newShop.location.trim(),
-          owner_id: session.user.id,
-          status: "active",
-          plan: "free"
-        })
-        .select()
-        .single();
-
+      const { error } = await supabase.from("shops").insert({
+        shop_name: newShop.shop_name.trim(),
+        location: newShop.location.trim(),
+        owner_id: session.user.id,
+        status: "active",
+        plan: "free"
+      });
       if (error) throw error;
       setNewShop({ shop_name: "", location: "" });
       setShowAddShop(false);
       await loadMyShops();
-      showMsg(`Shop "${newShop.shop_name}" created! You can now switch to it.`, "success");
+      showMsg(`Shop "${newShop.shop_name}" created! Click Switch to use it.`, "success");
     } catch (error) {
       showMsg(error.message, "error");
     } finally {
@@ -106,16 +100,7 @@ export default function Settings() {
     if (selectedShop.id === shop?.id) return;
     setSwitchingShop(selectedShop.id);
     try {
-      const response = await apiRequest("/auth/switch-shop", {
-        method: "POST",
-        body: JSON.stringify({ shop_id: selectedShop.id })
-      });
-      saveSession(response.data);
-      showMsg(`Switching to ${selectedShop.shop_name}...`, "success");
-      setTimeout(() => window.location.href = "/dashboard", 800);
-    } catch {
-      // Fallback: save shop directly to localStorage
-      const currentSession = JSON.parse(localStorage.getItem("sahel_user") || "{}");
+      // Save new shop directly to localStorage
       localStorage.setItem("sahel_shop", JSON.stringify({
         id: selectedShop.id,
         shop_name: selectedShop.shop_name,
@@ -125,6 +110,8 @@ export default function Settings() {
       }));
       showMsg(`Switching to ${selectedShop.shop_name}...`, "success");
       setTimeout(() => window.location.href = "/dashboard", 800);
+    } catch (error) {
+      showMsg(error.message, "error");
     } finally {
       setSwitchingShop(null);
     }
@@ -132,37 +119,22 @@ export default function Settings() {
 
   async function handleAddStaff(e, shopId) {
     e.preventDefault();
-    if (!newStaff.email.trim() || !newStaff.password.trim()) return;
+    if (!newStaff.name.trim() || !newStaff.email.trim() || !newStaff.password.trim()) return;
     setAddingStaff(true);
     try {
-      // Create the staff user in Supabase Auth
-      const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-        email: newStaff.email.trim(),
-        password: newStaff.password.trim(),
-        email_confirm: true
+      const { data, error } = await supabase.rpc("create_staff_member", {
+        p_shop_id: shopId,
+        p_name: newStaff.name.trim(),
+        p_email: newStaff.email.trim(),
+        p_password: newStaff.password.trim()
       });
-
-      if (authError) throw authError;
-
-      // Link staff to shop in our users table
-      const { error: dbError } = await supabase
-        .from("users")
-        .upsert({
-          id: authData.user.id,
-          email: newStaff.email.trim(),
-          staff_of_shop_id: shopId,
-          user_role: "staff",
-          status: "active"
-        });
-
-      if (dbError) throw dbError;
-
-      setNewStaff({ email: "", password: "", name: "" });
+      if (error) throw error;
+      setNewStaff({ name: "", email: "", password: "" });
       setShowAddStaff(null);
       await loadShopStaff(shopId);
-      showMsg(`Staff account created for ${newStaff.email}. Share the email and password with them.`, "success");
+      showMsg(`Staff account created! Share this login with them: ${newStaff.email} — mysahelapp.com/staff-login`, "success");
     } catch (error) {
-      showMsg(`Error: ${error.message}`, "error");
+      showMsg(error.message, "error");
     } finally {
       setAddingStaff(false);
     }
@@ -170,7 +142,7 @@ export default function Settings() {
 
   function showMsg(text, type = "success") {
     setMessage({ text, type });
-    setTimeout(() => setMessage({ text: "", type: "success" }), 5000);
+    setTimeout(() => setMessage({ text: "", type: "success" }), 6000);
   }
 
   function changeLanguage(language) {
@@ -206,9 +178,9 @@ export default function Settings() {
       </section>
 
       {message.text ? (
-        <div className={`flex items-center justify-between rounded-lg p-3 text-sm font-semibold ${message.type === "error" ? "bg-rose-50 text-rose-700" : "bg-green-50 text-green-700"}`}>
+        <div className={`flex items-start justify-between gap-3 rounded-lg p-3 text-sm font-semibold ${message.type === "error" ? "bg-rose-50 text-rose-700" : "bg-green-50 text-green-700"}`}>
           <span>{message.text}</span>
-          <button type="button" onClick={() => setMessage({ text: "", type: "success" })}><X className="h-4 w-4" /></button>
+          <button type="button" className="flex-shrink-0" onClick={() => setMessage({ text: "", type: "success" })}><X className="h-4 w-4" /></button>
         </div>
       ) : null}
 
@@ -219,7 +191,7 @@ export default function Settings() {
             <Store className="h-5 w-5 text-blue-600" />
             <div>
               <h3 className="font-bold text-slate-950">My Shops</h3>
-              <p className="text-xs text-slate-500">Create multiple shops and switch between them</p>
+              <p className="text-xs text-slate-500">Create multiple shops and add staff per shop</p>
             </div>
           </div>
           <button type="button" className="btn-primary h-9 rounded-lg px-3 text-xs" onClick={() => setShowAddShop((c) => !c)}>
@@ -254,14 +226,14 @@ export default function Settings() {
               <div key={s.id} className={`rounded-xl border ${s.id === shop?.id ? "border-blue-300 bg-blue-50" : "border-slate-200 bg-white"}`}>
                 <div className="flex items-center justify-between p-3">
                   <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       <p className="font-bold text-slate-950">{s.shop_name}</p>
                       {s.id === shop?.id ? <span className="rounded-full bg-blue-600 px-2 py-0.5 text-xs font-bold text-white">Active</span> : null}
                       <span className={`rounded-full px-2 py-0.5 text-xs font-bold ${s.plan === "paid" ? "bg-amber-100 text-amber-700" : "bg-slate-100 text-slate-500"}`}>{s.plan || "free"}</span>
                     </div>
                     <p className="text-xs text-slate-500">{s.location || "No location"} · {s.product_count || 0} products · {s.sales_count || 0} sales</p>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 pl-2">
                     <button
                       type="button"
                       className="btn-secondary h-8 rounded-lg px-3 text-xs"
@@ -281,7 +253,7 @@ export default function Settings() {
                         onClick={() => handleSwitchShop(s)}
                         disabled={switchingShop === s.id}
                       >
-                        {switchingShop === s.id ? "Switching..." : "Switch"}
+                        {switchingShop === s.id ? "..." : "Switch"}
                       </button>
                     ) : null}
                   </div>
@@ -290,7 +262,7 @@ export default function Settings() {
                 {expandedShop === s.id ? (
                   <div className="border-t border-slate-200 p-3">
                     <div className="mb-3 flex items-center justify-between">
-                      <p className="text-sm font-bold text-slate-700">Staff Accounts</p>
+                      <p className="text-sm font-bold text-slate-700">Staff for {s.shop_name}</p>
                       <button
                         type="button"
                         className="inline-flex items-center gap-1 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-blue-700"
@@ -302,19 +274,39 @@ export default function Settings() {
                     </div>
 
                     {showAddStaff === s.id ? (
-                      <form onSubmit={(e) => handleAddStaff(e, s.id)} className="mb-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
-                        <p className="mb-2 text-xs font-bold text-slate-600">Create staff login for {s.shop_name}</p>
-                        <div className="space-y-2">
-                          <input className="field text-sm" type="email" placeholder="Staff email address" value={newStaff.email} onChange={(e) => setNewStaff({ ...newStaff, email: e.target.value })} required />
-                          <div className="relative">
-                            <input className="field pr-10 text-sm" type={showPassword ? "text" : "password"} placeholder="Password (min 8 characters)" value={newStaff.password} onChange={(e) => setNewStaff({ ...newStaff, password: e.target.value })} required minLength={8} />
-                            <button type="button" className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" onClick={() => setShowPassword((c) => !c)}>
-                              {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                            </button>
-                          </div>
-                          <p className="text-xs text-slate-500">The staff member will use this email and password to log in. They will only see {s.shop_name}.</p>
+                      <form onSubmit={(e) => handleAddStaff(e, s.id)} className="mb-3 rounded-xl border border-slate-200 bg-slate-50 p-3 space-y-2">
+                        <p className="text-xs font-bold text-slate-600">Create a staff login for {s.shop_name}</p>
+                        <input
+                          className="field text-sm"
+                          placeholder="Staff full name"
+                          value={newStaff.name}
+                          onChange={(e) => setNewStaff({ ...newStaff, name: e.target.value })}
+                          required
+                        />
+                        <input
+                          className="field text-sm"
+                          type="email"
+                          placeholder="Staff email address"
+                          value={newStaff.email}
+                          onChange={(e) => setNewStaff({ ...newStaff, email: e.target.value })}
+                          required
+                        />
+                        <div className="relative">
+                          <input
+                            className="field pr-10 text-sm"
+                            type={showPassword ? "text" : "password"}
+                            placeholder="Password (min 8 characters)"
+                            value={newStaff.password}
+                            onChange={(e) => setNewStaff({ ...newStaff, password: e.target.value })}
+                            required
+                            minLength={8}
+                          />
+                          <button type="button" className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" onClick={() => setShowPassword((c) => !c)}>
+                            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                          </button>
                         </div>
-                        <div className="mt-3 flex gap-2">
+                        <p className="text-xs text-slate-500">Staff will log in at <strong>mysahelapp.com/staff-login</strong> using this email and password. They will only see {s.shop_name}.</p>
+                        <div className="flex gap-2 pt-1">
                           <button className="btn-primary h-8 rounded-lg px-3 text-xs" disabled={addingStaff}>{addingStaff ? "Creating..." : "Create Login"}</button>
                           <button type="button" className="btn-secondary h-8 rounded-lg px-3 text-xs" onClick={() => setShowAddStaff(null)}>Cancel</button>
                         </div>
@@ -324,10 +316,10 @@ export default function Settings() {
                     {shopStaff[s.id] && shopStaff[s.id].length > 0 ? (
                       <div className="space-y-2">
                         {shopStaff[s.id].map((staff) => (
-                          <div key={staff.id} className="flex items-center justify-between rounded-lg bg-white p-2 text-sm">
+                          <div key={staff.id} className="flex items-center justify-between rounded-lg bg-white border border-slate-100 p-2.5">
                             <div>
-                              <p className="font-semibold text-slate-800">{staff.email}</p>
-                              <p className="text-xs text-slate-500 capitalize">{staff.user_role}</p>
+                              <p className="text-sm font-bold text-slate-800">{staff.name}</p>
+                              <p className="text-xs text-slate-500">{staff.email} · {staff.role}</p>
                             </div>
                             <span className={`rounded-full px-2 py-0.5 text-xs font-bold ${staff.status === "active" ? "bg-green-50 text-green-700" : "bg-rose-50 text-rose-700"}`}>
                               {staff.status}
@@ -351,3 +343,77 @@ export default function Settings() {
           <div className="mb-4 flex items-center gap-2">
             <Mail className="h-5 w-5 text-blue-600" />
             <h3 className="font-bold text-slate-950">{t("loginDetails")}</h3>
+          </div>
+          <div className="space-y-3">
+            <div className="rounded-lg bg-slate-50 p-4">
+              <p className="text-sm text-slate-500">{t("loggedEmail")}</p>
+              <p className="mt-1 font-bold text-slate-950">{user?.email || t("notAvailable")}</p>
+            </div>
+            <div className="rounded-lg bg-slate-50 p-4">
+              <p className="text-sm text-slate-500">{t("shopId")}</p>
+              <p className="mt-1 break-all font-mono text-xs font-bold text-slate-700">{shop?.id || t("notAvailable")}</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="panel p-5">
+          <div className="mb-4 flex items-center gap-2">
+            <Sun className="h-5 w-5 text-blue-600" />
+            <h3 className="font-bold text-slate-950">{t("appearance")}</h3>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <button type="button" className={`rounded-lg border p-4 text-left transition ${settings.theme === "light" ? "border-blue-500 bg-blue-50" : "border-slate-200 bg-white"}`} onClick={() => setSettings((c) => ({ ...c, theme: "light" }))}>
+              <Sun className="mb-3 h-5 w-5 text-blue-600" />
+              <p className="font-bold text-slate-950">{t("light")}</p>
+            </button>
+            <button type="button" className={`rounded-lg border p-4 text-left transition ${settings.theme === "dark" ? "border-blue-500 bg-blue-50" : "border-slate-200 bg-white"}`} onClick={() => setSettings((c) => ({ ...c, theme: "dark" }))}>
+              <Moon className="mb-3 h-5 w-5 text-blue-600" />
+              <p className="font-bold text-slate-950">{t("dark")}</p>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <section className="grid gap-5 xl:grid-cols-2">
+        <div className="panel p-5">
+          <div className="mb-4 flex items-center gap-2">
+            <Languages className="h-5 w-5 text-blue-600" />
+            <h3 className="font-bold text-slate-950">{t("language")}</h3>
+          </div>
+          <select className="field" value={settings.language} onChange={(e) => changeLanguage(e.target.value)}>
+            <option value="English">English</option>
+            <option value="Somali">Somali</option>
+            <option value="Arabic">العربية</option>
+          </select>
+        </div>
+
+        <div className="panel p-5">
+          <div className="mb-4 flex items-center gap-2">
+            <DollarSign className="h-5 w-5 text-blue-600" />
+            <h3 className="font-bold text-slate-950">Currency</h3>
+          </div>
+          <select className="field" value={currency} onChange={(e) => changeCurrency(e.target.value)}>
+            {CURRENCIES.map((c) => (
+              <option key={c.code} value={c.code}>{c.code} — {c.label} ({c.symbol})</option>
+            ))}
+          </select>
+          <p className="mt-2 text-xs text-slate-500">Applies to all prices across the app.</p>
+        </div>
+      </section>
+
+      <section className="grid gap-5 xl:grid-cols-2">
+        <form onSubmit={saveShopDetails} className="panel p-5">
+          <div className="mb-4 flex items-center gap-2">
+            <Store className="h-5 w-5 text-blue-600" />
+            <h3 className="font-bold text-slate-950">{t("shopDetails")}</h3>
+          </div>
+          <div className="space-y-3">
+            <input className="field" value={shopName} onChange={(e) => setShopName(e.target.value)} placeholder="Shop name" />
+            <input className="field" value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Location" />
+            <button className="btn-primary w-full">{t("saveSettings")}</button>
+          </div>
+        </form>
+      </section>
+    </div>
+  );
+}
