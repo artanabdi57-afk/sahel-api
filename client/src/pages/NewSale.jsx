@@ -50,7 +50,7 @@ const LANGS = {
     total: "Wadarta",
     cartTotal: "Wadarta dambiilka",
     payment: "Lacag bixinta",
-    cash: "Sida",
+    cash: "Cash",
     credit: "Amaah",
     date: "Taariikhda",
     customerName: "Magaca macmiilka",
