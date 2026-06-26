@@ -1,7 +1,7 @@
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState } from "react";
 import { 
   Search, Plus, BarChart3, ShoppingBag, CreditCard, DollarSign, 
-  WalletCards, Bell, Settings, TrendingUp, X, PieChart as PieIcon 
+  WalletCards, Bell, Settings, TrendingUp, Activity, X 
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { 
@@ -13,28 +13,28 @@ import { LoadingState } from "../components/AsyncState";
 import { getCurrentShop } from "../lib/auth";
 import { useLanguage } from "../lib/i18n";
 
-const COLORS = ["#5b3ff2", "#2f7df6", "#14c6a4", "#ffb84d", "#ff6b6b"];
-
-// --- CUSTOM COMPONENTS ---
+const COLORS = ["#3b82f6", "#6366f1", "#10b981", "#f59e0b", "#ef4444"];
 
 function MetricCard({ title, value, helper, icon: Icon, featured = false, color }) {
   return (
-    <div className={`rounded-[1.5rem] p-4 lg:p-6 shadow-sm border transition-all hover:shadow-md ${
-      featured ? "bg-[#2563eb] text-white border-blue-600" : "bg-white text-slate-900 border-slate-200/60"
+    <div className={`rounded-[2rem] p-5 lg:p-7 shadow-xl border transition-all ${
+      featured 
+        ? "bg-[#2563eb] text-white border-blue-700" 
+        : "bg-white text-slate-900 border-slate-200 shadow-slate-200/50"
     }`}>
-      <div className="flex justify-between items-start mb-3 lg:mb-4">
-        <p className={`text-[10px] lg:text-[11px] font-bold uppercase tracking-widest ${featured ? "text-blue-100" : "text-slate-400"}`}>
+      <div className="flex justify-between items-start mb-4">
+        <p className={`text-[10px] lg:text-[12px] font-black uppercase tracking-widest ${featured ? "text-blue-100" : "text-slate-400"}`}>
           {title}
         </p>
-        <div className={`p-2 rounded-lg ${featured ? "bg-white/20" : "bg-slate-50"}`}>
-          <Icon size={16} color={featured ? "white" : color} />
+        <div className={`p-2 rounded-xl ${featured ? "bg-white/20" : "bg-slate-100"}`}>
+          <Icon size={18} color={featured ? "white" : color} />
         </div>
       </div>
-      {/* Dynamic font size to prevent overflow on iPad */}
-      <h2 className="text-xl md:text-2xl lg:text-3xl font-black truncate">
+      {/* Responsive font size specifically for iPad/Mobile to prevent overflow */}
+      <h2 className="text-2xl md:text-xl lg:text-3xl font-black tracking-tight">
         {featured ? "" : "$"}{value.toLocaleString()}
       </h2>
-      <p className={`text-[10px] font-medium mt-1 truncate ${featured ? "text-blue-100" : "text-slate-400"}`}>
+      <p className={`text-[10px] font-bold mt-2 ${featured ? "text-blue-200" : "text-slate-400"}`}>
         {helper}
       </p>
     </div>
@@ -53,14 +53,15 @@ export default function Dashboard() {
       const today = todayISO();
       const month = monthISO();
       try {
-        const [daily, profit, top, recent, credits] = await Promise.all([
+        const [daily, profit, top, recent, credits, products] = await Promise.all([
           apiRequest("/reports/daily").then(r => r.data),
           apiRequest(`/reports/profit?month=${month}`).then(r => r.data),
           apiRequest(`/reports/top-products?from=${month}-01&to=${today}`).then(r => r.data),
-          apiRequest("/sales?limit=6").then(r => r.data),
-          apiRequest("/credits/summary").then(r => r.data)
+          apiRequest("/sales?limit=5").then(r => r.data),
+          apiRequest("/credits/summary").then(r => r.data),
+          apiRequest("/products").then(r => r.data)
         ]);
-        setState({ loading: false, data: { daily, profit, top, recent, credits } });
+        setState({ loading: false, data: { daily, profit, top, recent, credits, products } });
       } catch (e) { console.error("Error:", e); }
     }
     load();
@@ -68,130 +69,129 @@ export default function Dashboard() {
 
   if (state.loading) return <LoadingState />;
 
-  const { daily, profit, top, recent, credits } = state.data;
+  const { daily, profit, top, recent, credits, products } = state.data;
   const todayRevenue = daily[daily.length - 1]?.total_revenue || 0;
-  const totalTopSales = top.reduce((acc, curr) => acc + Number(curr.revenue), 0);
+  const lowStock = products.filter(p => Number(p.quantity) <= Number(p.low_stock_threshold));
 
   return (
-    <div className="min-h-screen bg-[#FAF9F6] p-3 md:p-6 lg:p-8 font-sans" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+    <div className="min-h-screen bg-[#F1F5F9] p-4 lg:p-10 font-sans" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
       
-      {/* 1. COMPACT HEADER (Responsive for Phone/iPad) */}
-      <header className="flex flex-col gap-4 mb-8">
-        <div className="flex items-center justify-between gap-2 md:gap-4">
-          <div className="relative flex-1 max-w-lg">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+      {/* 1. HEADER: Small Search + Functional Icons */}
+      <header className="flex flex-col gap-6 mb-10">
+        <div className="flex items-center justify-between gap-4">
+          <div className="relative flex-1 max-w-sm">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
             <input 
-              className="w-full bg-white rounded-xl py-2.5 pl-10 pr-4 shadow-sm border border-slate-200/50 outline-none focus:ring-2 focus:ring-blue-500 text-sm font-semibold" 
+              className="w-full bg-white rounded-2xl py-3 pl-12 pr-4 shadow-sm border border-slate-200 outline-none focus:ring-2 focus:ring-blue-500 font-bold text-xs" 
               placeholder={t("searchPlaceholder")} 
             />
           </div>
-          <div className="flex items-center gap-2">
-            <button onClick={() => navigate("/settings")} className="p-2.5 bg-white rounded-xl shadow-sm border border-slate-200/50 text-slate-400"><Settings size={18}/></button>
-            <button onClick={() => setShowNotifications(!showNotifications)} className="p-2.5 bg-white rounded-xl shadow-sm border border-slate-200/50 text-slate-400"><Bell size={18}/></button>
-            <div onClick={() => navigate("/profile")} className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white font-black shadow-md cursor-pointer text-sm">SA</div>
+          <div className="flex items-center gap-3">
+            {/* Functional Buttons */}
+            <button onClick={() => navigate("/settings")} className="p-3 bg-white rounded-2xl shadow-md border border-slate-200 text-slate-500 hover:text-blue-600 transition-all active:scale-90"><Settings size={20}/></button>
+            
+            <div className="relative">
+              <button onClick={() => setShowNotifications(!showNotifications)} className="p-3 bg-white rounded-2xl shadow-md border border-slate-200 text-slate-500 hover:text-blue-600 transition-all">
+                <Bell size={20}/>
+                {lowStock.length > 0 && <span className="absolute top-3 right-3 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white"></span>}
+              </button>
+              {showNotifications && (
+                <div className="absolute right-0 mt-4 w-72 bg-white rounded-3xl shadow-2xl border border-slate-200 z-50 p-5">
+                  <p className="font-black text-xs uppercase mb-4 text-slate-400">Stock Alerts</p>
+                  {lowStock.length === 0 ? <p className="text-xs">No alerts</p> : 
+                    lowStock.slice(0,3).map(p => <div key={p.id} className="p-3 bg-slate-50 rounded-xl mb-2 text-[11px] font-bold border border-slate-100">{p.name}: {p.quantity} left</div>)
+                  }
+                </div>
+              )}
+            </div>
+
+            <div onClick={() => navigate("/profile")} className="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center text-white font-black shadow-xl shadow-blue-200 cursor-pointer hover:scale-105 active:scale-95 transition-all">SA</div>
           </div>
         </div>
 
-        {/* Action Buttons on same line for mobile */}
-        <div className="flex flex-row gap-2 overflow-x-auto pb-2 no-scrollbar">
-          <button onClick={() => navigate("/sale")} className="flex-shrink-0 flex items-center gap-2 bg-blue-600 text-white px-5 py-2.5 rounded-xl font-bold text-xs shadow-md">
-            <Plus size={14} strokeWidth={3}/> {t("quickNewSale")}
-          </button>
-          <button onClick={() => navigate("/inventory")} className="flex-shrink-0 flex items-center gap-2 bg-white text-slate-700 px-5 py-2.5 rounded-xl font-bold text-xs border border-slate-200 shadow-sm">
-            <Plus size={14}/> {t("addProduct")}
-          </button>
-          <button onClick={() => navigate("/reports")} className="flex-shrink-0 flex items-center gap-2 bg-white text-slate-700 px-5 py-2.5 rounded-xl font-bold text-xs border border-slate-200 shadow-sm">
-            <BarChart3 size={14}/> {t("viewReports")}
-          </button>
+        {/* Buttons on same line for Phone */}
+        <div className="flex flex-row gap-3 overflow-x-auto no-scrollbar">
+          <button onClick={() => navigate("/sale")} className="flex-shrink-0 bg-blue-600 text-white px-6 py-3 rounded-2xl font-black text-xs shadow-lg shadow-blue-100 flex items-center gap-2"><Plus size={14} strokeWidth={3}/> {t("quickNewSale")}</button>
+          <button onClick={() => navigate("/inventory")} className="flex-shrink-0 bg-white text-slate-700 px-6 py-3 rounded-2xl font-black text-xs border border-slate-200 shadow-sm flex items-center gap-2"><Plus size={14}/> {t("addProduct")}</button>
+          <button onClick={() => navigate("/reports")} className="flex-shrink-0 bg-white text-slate-700 px-6 py-3 rounded-2xl font-black text-xs border border-slate-200 shadow-sm flex items-center gap-2"><BarChart3 size={14}/> {t("viewReports")}</button>
         </div>
       </header>
 
-      {/* 2. METRIC CARDS (Responsive Grid) */}
-      <section className="grid gap-4 grid-cols-2 lg:grid-cols-4">
-        <MetricCard title={t("todaySales")} value={todayRevenue} helper="Gross Sales" icon={ShoppingBag} featured />
-        <MetricCard title={t("totalRevenue")} value={profit?.revenue || 0} helper="Monthly Revenue" icon={DollarSign} color="#2563eb" />
-        <MetricCard title={t("credits")} value={credits?.total_amount_owed || 0} helper="Customer Balance" icon={CreditCard} color="#f59e0b" />
-        <MetricCard title={t("netProfit")} value={profit?.net_profit || 0} helper="After Expenses" icon={WalletCards} color="#10b981" />
+      {/* 2. CARDS: 2 columns on iPad, 4 on Desktop to prevent number overflow */}
+      <section className="grid gap-5 grid-cols-2 lg:grid-cols-4 mb-10">
+        <MetricCard title={t("todaySales")} value={todayRevenue} helper="Real-time" icon={ShoppingBag} featured />
+        <MetricCard title={t("totalRevenue")} value={profit?.revenue || 0} helper="This month" icon={DollarSign} color="#2563eb" />
+        <MetricCard title={t("credits")} value={credits?.total_amount_owed || 0} helper="Pending" icon={CreditCard} color="#f59e0b" />
+        <MetricCard title={t("netProfit")} value={profit?.net_profit || 0} helper="Final earnings" icon={WalletCards} color="#10b981" />
       </section>
 
-      {/* 3. BIG GRAPHS SIDE-BY-SIDE (iPad View) */}
-      <section className="grid gap-6 lg:grid-cols-2 mt-8">
-        <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-slate-200/50">
-          <h3 className="text-[10px] font-bold uppercase text-slate-400 tracking-widest mb-6">{t("totalRevenue")}</h3>
-          <div className="h-[250px] md:h-[350px]">
+      {/* 3. CHARTS: Added borders for separation */}
+      <section className="grid gap-6 lg:grid-cols-2">
+        <div className="bg-white rounded-[2.5rem] p-8 shadow-sm border border-slate-200">
+          <h3 className="text-[11px] font-black uppercase text-slate-400 tracking-widest mb-10">{t("totalRevenue")} Garaafka</h3>
+          <div className="h-[300px] lg:h-[400px]">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={daily}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                 <XAxis dataKey="date" hide />
-                <Tooltip cursor={{fill: '#f8faff'}} contentStyle={{borderRadius: '12px', border: 'none'}} />
-                <Bar dataKey="total_revenue" fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={24} />
+                <Tooltip cursor={{fill: '#f8faff'}} contentStyle={{borderRadius: '16px', border: 'none'}} />
+                <Bar dataKey="total_revenue" fill="#3b82f6" radius={[6, 6, 0, 0]} barSize={35} />
               </BarChart>
             </ResponsiveContainer>
           </div>
         </div>
 
-        <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-slate-200/50">
-          <h3 className="text-[10px] font-bold uppercase text-slate-400 tracking-widest mb-6">{t("netProfit")}</h3>
-          <div className="h-[250px] md:h-[350px]">
+        <div className="bg-white rounded-[2.5rem] p-8 shadow-sm border border-slate-200">
+          <h3 className="text-[11px] font-black uppercase text-slate-400 tracking-widest mb-10">{t("netProfit")} Garaafka</h3>
+          <div className="h-[300px] lg:h-[400px]">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={daily}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                 <XAxis dataKey="date" hide />
-                <Tooltip contentStyle={{borderRadius: '12px', border: 'none'}} />
-                <Area type="monotone" dataKey="total_revenue" stroke="#10b981" strokeWidth={3} fill="rgba(16, 185, 129, 0.05)" />
+                <Tooltip contentStyle={{borderRadius: '16px', border: 'none'}} />
+                <Area type="monotone" dataKey="total_revenue" stroke="#10b981" strokeWidth={4} fill="rgba(16, 185, 129, 0.08)" />
               </AreaChart>
             </ResponsiveContainer>
           </div>
         </div>
       </section>
 
-      {/* 4. PIE CHART & TABLE (Responsive) */}
-      <section className="grid gap-6 lg:grid-cols-3 mt-8">
-        {/* Redesigned Donut Chart */}
-        <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-slate-200/50 flex flex-col items-center">
-          <h3 className="text-[10px] font-bold uppercase text-slate-400 tracking-widest mb-4 self-start">Top Selling Products</h3>
-          <div className="h-56 w-full relative">
+      {/* 4. PIE & TABLE: High Contrast Separation */}
+      <section className="grid gap-6 lg:grid-cols-3 mt-10">
+        <div className="bg-white rounded-[2.5rem] p-8 shadow-sm border border-slate-200 flex flex-col items-center">
+          <h3 className="text-[11px] font-black uppercase text-slate-400 tracking-widest mb-8 self-start">Products Selling</h3>
+          <div className="h-64 w-full relative">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
-                <Pie data={top?.slice(0,5)} dataKey="revenue" nameKey="product_name" innerRadius={60} outerRadius={80} paddingAngle={6}>
+                <Pie data={top?.slice(0,5)} dataKey="revenue" nameKey="product_name" innerRadius={75} outerRadius={100} paddingAngle={8}>
                   {top?.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} stroke="none" />)}
                 </Pie>
                 <Tooltip />
               </PieChart>
             </ResponsiveContainer>
             <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                <span className="text-xl font-black text-slate-900">${(totalTopSales/1000).toFixed(1)}k</span>
-                <span className="text-[9px] font-bold text-slate-400 uppercase">Sales</span>
+              <span className="text-2xl font-black text-slate-900">${(top.reduce((a,b)=>a+b.revenue,0)/1000).toFixed(1)}k</span>
+              <span className="text-[10px] font-bold text-slate-400">TOTAL</span>
             </div>
-          </div>
-          <div className="w-full mt-4 space-y-2">
-             {top?.slice(0,3).map((p, i) => (
-               <div key={i} className="flex justify-between items-center text-[11px] font-bold">
-                 <span className="text-slate-500 truncate max-w-[100px]">{p.product_name}</span>
-                 <span className="text-slate-900">${p.revenue.toLocaleString()}</span>
-               </div>
-             ))}
           </div>
         </div>
 
-        {/* Recent Sales Table */}
-        <div className="lg:col-span-2 bg-white rounded-[2rem] shadow-sm border border-slate-200/50 overflow-hidden">
-          <div className="p-6 border-b border-slate-100 flex justify-between items-center">
-            <h3 className="text-sm font-black text-slate-900">{t("recentSales")}</h3>
+        <div className="lg:col-span-2 bg-white rounded-[2.5rem] shadow-sm border border-slate-200 overflow-hidden">
+          <div className="p-8 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+            <h3 className="text-lg font-black text-slate-900">{t("recentSales")}</h3>
+            <button onClick={() => navigate("/reports")} className="text-blue-600 font-black text-xs uppercase tracking-widest hover:underline">View All</button>
           </div>
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs lg:text-sm">
-              <thead className="bg-slate-50 text-[10px] font-bold uppercase text-slate-400 tracking-widest">
-                <tr><th className="px-6 py-4">Product</th><th className="px-6 py-4">Amount</th><th className="px-6 py-4">Type</th></tr>
+            <table className="w-full text-left text-sm">
+              <thead className="bg-slate-50/80 text-[10px] font-black uppercase text-slate-400 tracking-[0.2em]">
+                <tr><th className="px-8 py-5">Product</th><th className="px-8 py-5">Amount</th><th className="px-8 py-5 text-right">Type</th></tr>
               </thead>
-              <tbody className="divide-y divide-slate-50">
+              <tbody className="divide-y divide-slate-100">
                 {recent?.map((s) => (
                   <tr key={s.id} className="hover:bg-slate-50 transition-colors">
-                    <td className="px-6 py-4 font-bold text-slate-900">{s.product_name}</td>
-                    <td className="px-6 py-4 font-extrabold text-blue-600">{formatMoney(s.total)}</td>
-                    <td className="px-6 py-4">
-                      <span className="bg-blue-50 text-blue-600 px-3 py-1 rounded-full text-[9px] font-black uppercase">{s.payment_type}</span>
-                    </td>
+                    <td className="px-8 py-6 font-bold text-slate-900">{s.product_name}</td>
+                    <td className="px-8 py-6 font-black text-blue-600">{formatMoney(s.total)}</td>
+                    <td className="px-8 py-6 text-right"><span className="bg-blue-50 text-blue-700 px-4 py-1.5 rounded-full text-[10px] font-black uppercase">{s.payment_type}</span></td>
                   </tr>
                 ))}
               </tbody>
