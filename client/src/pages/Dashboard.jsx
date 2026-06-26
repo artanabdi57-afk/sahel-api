@@ -1,7 +1,7 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState } from "react";
 import {
-  Search, Plus, BarChart3, ShoppingBag, CreditCard, DollarSign,
-  Wallet, Bell, Settings, TrendingUp, AlertCircle, Package, Users
+  Search, Plus, ShoppingBag, CreditCard, DollarSign,
+  Wallet, Bell, Settings, TrendingUp, BarChart3, Users, Package
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -14,7 +14,6 @@ import { useLanguage } from "../lib/i18n";
 
 const COLORS = ["#1E40AF", "#3B82F6", "#F97316", "#FB923C", "#60A5FA"];
 
-// Animated count-up hook
 function useCountUp(target, duration = 800) {
   const [value, setValue] = useState(0);
   useEffect(() => {
@@ -31,53 +30,6 @@ function useCountUp(target, duration = 800) {
   return value;
 }
 
-function MetricCard({ title, value, sub, icon: Icon, chip, chipStyle, featured, orange }) {
-  const animated = useCountUp(value);
-  return (
-    <div
-      style={{
-        background: featured ? "#1E40AF" : "#fff",
-        border: `1px solid ${orange ? "#FDCBA4" : featured ? "#1E40AF" : "#E2EBFF"}`,
-        borderRadius: 14,
-        padding: "16px",
-        display: "flex",
-        flexDirection: "column",
-        cursor: "pointer",
-        transition: "transform 0.15s, box-shadow 0.15s",
-      }}
-      onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "0 8px 24px rgba(30,64,175,0.10)"; }}
-      onMouseLeave={e => { e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = ""; }}
-    >
-      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 10 }}>
-        <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: "1px", textTransform: "uppercase", color: featured ? "rgba(255,255,255,0.65)" : orange ? "#C2550A" : "#6B87C4" }}>
-          {title}
-        </span>
-        <div style={{ width: 32, height: 32, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", background: featured ? "rgba(255,255,255,0.18)" : orange ? "#FFF2E8" : "#EEF2FF", flexShrink: 0 }}>
-          <Icon size={16} color={featured ? "#fff" : orange ? "#F97316" : "#1E40AF"} />
-        </div>
-      </div>
-      <div style={{ fontSize: 22, fontWeight: 700, color: featured ? "#fff" : "#0F1F45", letterSpacing: "-0.8px", marginBottom: 3 }}>
-        ${animated.toLocaleString()}
-      </div>
-      <div style={{ fontSize: 10, color: featured ? "rgba(255,255,255,0.55)" : "#A0B3D6", fontWeight: 500, marginBottom: 10 }}>
-        {sub}
-      </div>
-      {chip && (
-        <div style={{
-          display: "inline-flex", alignItems: "center", gap: 4,
-          fontSize: 10, fontWeight: 600, padding: "3px 8px", borderRadius: 20,
-          ...(chipStyle === "white" ? { background: "rgba(255,255,255,0.18)", color: "#fff" }
-            : chipStyle === "warn" ? { background: "#FFF2E8", color: "#C2550A" }
-            : { background: "#E6F5EE", color: "#15803D" }),
-          width: "fit-content"
-        }}>
-          {chip}
-        </div>
-      )}
-    </div>
-  );
-}
-
 const CustomTooltip = ({ active, payload, label }) => {
   if (active && payload?.length) {
     return (
@@ -90,11 +42,76 @@ const CustomTooltip = ({ active, payload, label }) => {
   return null;
 };
 
+const payChipStyle = (type) => {
+  const t = (type || "").toLowerCase();
+  if (t === "cash") return { background: "#E6F5EE", color: "#15803D" };
+  if (t === "credit") return { background: "#FFF2E8", color: "#C2550A" };
+  return { background: "#EEF2FF", color: "#1E40AF" };
+};
+
+// ─── Shared card components ───────────────────────────────────────────────────
+
+function FeaturedCard({ value, t }) {
+  const animated = useCountUp(value);
+  return (
+    <div style={{ background: "#1E40AF", borderRadius: 14, padding: 16, marginBottom: 10 }}>
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 8 }}>
+        <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: "1px", textTransform: "uppercase", color: "rgba(255,255,255,0.65)" }}>
+          {t("todaySales") || "Today's Sales"}
+        </span>
+        <div style={{ width: 32, height: 32, borderRadius: 8, background: "rgba(255,255,255,0.18)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <ShoppingBag size={16} color="#fff" />
+        </div>
+      </div>
+      <div style={{ fontSize: 28, fontWeight: 700, color: "#fff", letterSpacing: "-1px", marginBottom: 3 }}>
+        ${animated.toLocaleString()}
+      </div>
+      <div style={{ fontSize: 10, color: "rgba(255,255,255,0.55)", marginBottom: 10 }}>Live volume</div>
+      <div style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 10, fontWeight: 600, padding: "3px 8px", borderRadius: 20, background: "rgba(255,255,255,0.18)", color: "#fff" }}>
+        <TrendingUp size={11} /> +12% vs yesterday
+      </div>
+    </div>
+  );
+}
+
+function SmallCard({ title, value, sub, chip, chipStyle, icon: Icon, orange, greenIcon, fullWidth }) {
+  const animated = useCountUp(value);
+  const chipColors =
+    chipStyle === "warn" ? { background: "#FFF2E8", color: "#C2550A" } :
+    { background: "#E6F5EE", color: "#15803D" };
+  return (
+    <div style={{
+      background: "#fff",
+      border: `1px solid ${orange ? "#FDCBA4" : "#E2EBFF"}`,
+      borderRadius: 14,
+      padding: 14,
+      ...(fullWidth ? { gridColumn: "1 / -1" } : {})
+    }}>
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 6 }}>
+        <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: "1px", textTransform: "uppercase", color: orange ? "#C2550A" : "#6B87C4" }}>
+          {title}
+        </span>
+        <div style={{ width: 28, height: 28, borderRadius: 7, background: greenIcon ? "#EDFCF2" : orange ? "#FFF2E8" : "#EEF2FF", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+          <Icon size={14} color={greenIcon ? "#15803D" : orange ? "#F97316" : "#1E40AF"} />
+        </div>
+      </div>
+      <div style={{ fontSize: 18, fontWeight: 700, color: "#0F1F45", letterSpacing: "-0.5px", marginBottom: 2 }}>
+        ${animated.toLocaleString()}
+      </div>
+      <div style={{ fontSize: 9, color: "#A0B3D6", fontWeight: 500, marginBottom: 8 }}>{sub}</div>
+      <div style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 9, fontWeight: 600, padding: "2px 7px", borderRadius: 20, ...chipColors }}>
+        {chip}
+      </div>
+    </div>
+  );
+}
+
+// ─── Main Dashboard ───────────────────────────────────────────────────────────
+
 export default function Dashboard() {
   const { t } = useLanguage();
   const navigate = useNavigate();
   const [state, setState] = useState({ loading: true, data: null });
-  const [showNotifications, setShowNotifications] = useState(false);
 
   useEffect(() => {
     async function load() {
@@ -117,7 +134,7 @@ export default function Dashboard() {
   }, []);
 
   if (state.loading) return <LoadingState />;
-  if (!state.data) return <div style={{ padding: 40, color: "#6B87C4", textAlign: "center" }}>Could not load dashboard data.</div>;
+  if (!state.data) return <div style={{ padding: 40, color: "#6B87C4", textAlign: "center" }}>Could not load dashboard.</div>;
 
   const { daily, profit, top, recent, credits, products } = state.data;
   const lowStock = products.filter(p => Number(p.quantity) <= Number(p.low_stock_threshold));
@@ -128,185 +145,308 @@ export default function Dashboard() {
   const margin = monthRevenue > 0 ? Math.round((netProfit / monthRevenue) * 100) : 0;
   const topTotal = (top || []).reduce((a, b) => a + b.revenue, 0);
 
-  const payChipStyle = (type) => {
-    const t = (type || "").toLowerCase();
-    if (t === "cash") return { background: "#E6F5EE", color: "#15803D" };
-    if (t === "credit") return { background: "#FFF2E8", color: "#C2550A" };
-    return { background: "#EEF2FF", color: "#1E40AF" };
+  const iconBtn = {
+    background: "#fff", border: "1px solid #D6E0FF", borderRadius: 10,
+    width: 36, height: 36, display: "flex", alignItems: "center",
+    justifyContent: "center", cursor: "pointer", color: "#2B5CE6", flexShrink: 0
   };
 
-  return (
-    <div style={{ background: "#F0F4FF", minHeight: "100vh", padding: "18px", fontFamily: "'Inter', 'Plus Jakarta Sans', sans-serif" }}>
+  const chartCard = (children, extra = {}) => ({
+    background: "#fff", border: "1px solid #E2EBFF", borderRadius: 14, padding: 18, ...extra
+  });
 
-      {/* Header */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20, gap: 12 }}>
-        <div style={{ position: "relative", flex: 1, maxWidth: 300 }}>
-          <Search size={14} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "#6B87C4" }} />
-          <input
-            style={{ width: "100%", background: "#fff", border: "1px solid #D6E0FF", borderRadius: 10, padding: "9px 14px 9px 36px", fontSize: 12, fontFamily: "inherit", color: "#1a2340", outline: "none" }}
-            placeholder={t("searchPlaceholder") || "Search products, sales…"}
-          />
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <button onClick={() => navigate("/settings")} style={{ background: "#fff", border: "1px solid #D6E0FF", borderRadius: 10, width: 36, height: 36, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#2B5CE6" }}>
-            <Settings size={16} />
-          </button>
-          <div style={{ position: "relative" }}>
-            <button onClick={() => setShowNotifications(!showNotifications)} style={{ background: "#fff", border: "1px solid #D6E0FF", borderRadius: 10, width: 36, height: 36, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#2B5CE6" }}>
-              <Bell size={16} />
-            </button>
-            {lowStock.length > 0 && (
-              <span style={{ position: "absolute", top: 7, right: 7, width: 7, height: 7, background: "#F97316", borderRadius: "50%", border: "1.5px solid #fff" }} />
-            )}
-          </div>
-          <div onClick={() => navigate("/profile")} style={{ width: 36, height: 36, background: "#1E40AF", borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>
-            SA
-          </div>
-        </div>
+  const Badge = ({ label, orange }) => (
+    <span style={{ fontSize: 10, fontWeight: 600, background: orange ? "#FFF2E8" : "#EEF2FF", color: orange ? "#C2550A" : "#2B5CE6", padding: "3px 9px", borderRadius: 20 }}>
+      {label}
+    </span>
+  );
+
+  const ChartHeader = ({ title, badge, orange }) => (
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+      <span style={{ fontSize: 12, fontWeight: 700, color: "#0F1F45" }}>{title}</span>
+      <Badge label={badge} orange={orange} />
+    </div>
+  );
+
+  const barChartEl = (height) => (
+    <ResponsiveContainer width="100%" height={height}>
+      <BarChart data={daily} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
+        <CartesianGrid strokeDasharray="4 4" vertical={false} stroke="#EEF2FF" />
+        <XAxis dataKey="date" hide />
+        <YAxis hide />
+        <Tooltip content={<CustomTooltip />} cursor={{ fill: "#F7F9FF" }} />
+        <Bar dataKey="total_revenue" fill="#1E40AF" radius={[6, 6, 0, 0]} barSize={28} />
+      </BarChart>
+    </ResponsiveContainer>
+  );
+
+  const areaChartEl = (height) => (
+    <ResponsiveContainer width="100%" height={height}>
+      <AreaChart data={daily} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
+        <defs>
+          <linearGradient id="profitGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="5%" stopColor="#F97316" stopOpacity={0.12} />
+            <stop offset="95%" stopColor="#F97316" stopOpacity={0} />
+          </linearGradient>
+        </defs>
+        <CartesianGrid strokeDasharray="4 4" vertical={false} stroke="#EEF2FF" />
+        <XAxis dataKey="date" hide />
+        <YAxis hide />
+        <Tooltip content={<CustomTooltip />} />
+        <Area type="monotone" dataKey="total_revenue" stroke="#F97316" strokeWidth={2} fill="url(#profitGrad)" dot={{ r: 3, fill: "#F97316", strokeWidth: 0 }} />
+      </AreaChart>
+    </ResponsiveContainer>
+  );
+
+  const donutEl = (size) => (
+    <div style={{ position: "relative", width: size, height: size, flexShrink: 0 }}>
+      <ResponsiveContainer width="100%" height="100%">
+        <PieChart>
+          <Pie data={top?.slice(0, 5)} dataKey="revenue" nameKey="product_name" innerRadius={size * 0.35} outerRadius={size * 0.48} paddingAngle={6}>
+            {top?.slice(0, 5).map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} stroke="none" />)}
+          </Pie>
+          <Tooltip formatter={(v) => formatMoney(v)} />
+        </PieChart>
+      </ResponsiveContainer>
+      <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", pointerEvents: "none" }}>
+        <span style={{ fontSize: size > 150 ? 16 : 13, fontWeight: 700, color: "#0F1F45" }}>${(topTotal / 1000).toFixed(1)}k</span>
+        <span style={{ fontSize: 9, fontWeight: 700, color: "#F97316", textTransform: "uppercase" }}>Top Sales</span>
       </div>
+    </div>
+  );
 
-      {/* Greeting */}
-      <div style={{ marginBottom: 16 }}>
-        <h1 style={{ fontSize: 18, fontWeight: 700, color: "#0F1F45", margin: 0 }}>Good morning 👋</h1>
-        <p style={{ fontSize: 12, color: "#6B87C4", marginTop: 3 }}>Here's your shop overview for today</p>
-      </div>
+  const legendEl = top?.slice(0, 5).map((item, i) => (
+    <div key={i} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: "#6B87C4", marginBottom: 5 }}>
+      <span style={{ width: 8, height: 8, borderRadius: 2, background: COLORS[i], flexShrink: 0 }} />
+      {item.product_name}
+    </div>
+  ));
 
-      {/* Quick Actions */}
-      <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
-        {[
-          { label: t("quickNewSale") || "New Sale", path: "/sale", style: { background: "#1E40AF", color: "#fff", border: "none" } },
-          { label: t("addProduct") || "Add Product", path: "/inventory", style: { background: "#fff", color: "#1E40AF", border: "1.5px solid #D6E0FF" } },
-          { label: t("viewReports") || "View Reports", path: "/reports", style: { background: "#F97316", color: "#fff", border: "none" } },
-          { label: "Customers", path: "/credits", style: { background: "#fff", color: "#1E40AF", border: "1.5px solid #D6E0FF" } },
-        ].map(btn => (
-          <button
-            key={btn.path}
-            onClick={() => navigate(btn.path)}
-            style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "9px 0", borderRadius: 10, fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", transition: "opacity 0.15s", ...btn.style }}
-            onMouseEnter={e => e.currentTarget.style.opacity = "0.85"}
-            onMouseLeave={e => e.currentTarget.style.opacity = "1"}
+  const salesTableEl = (
+    <table style={{ width: "100%", borderCollapse: "collapse" }}>
+      <thead>
+        <tr style={{ background: "#FAFBFF" }}>
+          {["Product", "Amount", "Payment"].map((h, i) => (
+            <th key={h} style={{ fontSize: 9, fontWeight: 700, color: "#A0B3D6", textTransform: "uppercase", letterSpacing: "0.8px", padding: "10px 14px", textAlign: i === 2 ? "right" : "left" }}>{h}</th>
+          ))}
+        </tr>
+      </thead>
+      <tbody>
+        {recent?.map((s) => (
+          <tr key={s.id} style={{ borderTop: "1px solid #F0F4FF" }}
+            onMouseEnter={e => e.currentTarget.style.background = "#F7F9FF"}
+            onMouseLeave={e => e.currentTarget.style.background = ""}
           >
-            <Plus size={12} /> {btn.label}
-          </button>
+            <td style={{ padding: "11px 14px", fontSize: 12, color: "#0F1F45", fontWeight: 500 }}>{s.product_name}</td>
+            <td style={{ padding: "11px 14px", fontSize: 12, color: "#1E40AF", fontWeight: 700 }}>{formatMoney(s.total)}</td>
+            <td style={{ padding: "11px 14px", textAlign: "right" }}>
+              <span style={{ fontSize: 10, fontWeight: 700, padding: "3px 9px", borderRadius: 20, ...payChipStyle(s.payment_type) }}>
+                {s.payment_type}
+              </span>
+            </td>
+          </tr>
         ))}
-      </div>
+      </tbody>
+    </table>
+  );
 
-      {/* Metric Cards */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 20 }}>
-        <MetricCard title={t("todaySales") || "Today's Sales"} value={todayRevenue} sub="Live volume" icon={ShoppingBag} chip="↑ +12% vs yesterday" chipStyle="white" featured />
-        <MetricCard title={t("totalRevenue") || "Monthly Revenue"} value={monthRevenue} sub="Gross income" icon={DollarSign} chip="↑ +8% vs last month" chipStyle="green" />
-        <MetricCard title={t("credits") || "Outstanding Credits"} value={totalCredits} sub="Pending collection" icon={CreditCard} chip="⚠ 3 overdue" chipStyle="warn" orange />
-        <MetricCard title={t("netProfit") || "Net Profit"} value={netProfit} sub="Actual earnings" icon={Wallet} chip={`Margin ${margin}%`} chipStyle="green" />
-      </div>
+  // ── Shared action buttons data ──
+  const actions = [
+    { label: t("quickNewSale") || "New Sale", path: "/sale", bg: "#1E40AF", color: "#fff", border: "none" },
+    { label: t("addProduct") || "Add Product", path: "/inventory", bg: "#fff", color: "#1E40AF", border: "1.5px solid #D6E0FF" },
+    { label: t("viewReports") || "View Reports", path: "/reports", bg: "#F97316", color: "#fff", border: "none" },
+    { label: "Customers", path: "/credits", bg: "#fff", color: "#1E40AF", border: "1.5px solid #D6E0FF" },
+  ];
 
-      {/* Charts Row */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 20 }}>
-        <div style={{ background: "#fff", border: "1px solid #E2EBFF", borderRadius: 14, padding: 18 }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
-            <span style={{ fontSize: 12, fontWeight: 700, color: "#0F1F45" }}>{t("totalRevenue") || "Revenue"} Performance</span>
-            <span style={{ fontSize: 10, fontWeight: 600, background: "#EEF2FF", color: "#2B5CE6", padding: "3px 9px", borderRadius: 20 }}>This month</span>
+  return (
+    <div style={{ background: "#F0F4FF", minHeight: "100vh", fontFamily: "'Inter', 'Plus Jakarta Sans', sans-serif" }}>
+
+      {/* ─── RESPONSIVE STYLES ─── */}
+      <style>{`
+        .dash-inner { padding: 18px; }
+        .dash-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; gap: 12px; }
+        .dash-search { position: relative; flex: 1; max-width: 300px; }
+        .dash-search input { width: 100%; background: #fff; border: 1px solid #D6E0FF; border-radius: 10px; padding: 9px 14px 9px 36px; font-size: 12px; font-family: inherit; color: #1a2340; outline: none; }
+        .dash-search .s-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #6B87C4; }
+
+        /* Desktop/iPad: 4-col cards, 2-col charts, donut+table side by side */
+        .cards-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px; }
+        .featured-full { display: none; }
+        .cards-3small { display: contents; }
+        .card-featured-desktop { display: flex; flex-direction: column; }
+        .charts-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+        .bottom-row { display: grid; grid-template-columns: 1fr 2fr; gap: 12px; }
+        .actions-row { display: flex; gap: 8px; margin-bottom: 20px; }
+        .actions-row button { flex: 1; }
+
+        /* ── MOBILE ── */
+        @media (max-width: 640px) {
+          .dash-inner { padding: 14px; }
+          .dash-header { margin-bottom: 14px; }
+          .dash-search { max-width: none; }
+
+          /* Hide settings on mobile to save space */
+          .btn-settings { display: none; }
+
+          /* Actions: 2x2 grid */
+          .actions-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+
+          /* Cards: hide desktop 4-col, show mobile layout */
+          .cards-grid { display: block; margin-bottom: 0; }
+          .card-featured-desktop { display: none !important; }
+          .featured-full { display: block; background: #1E40AF; border-radius: 14px; padding: 16px; margin-bottom: 10px; }
+          .cards-3small { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+
+          /* Charts: stacked */
+          .charts-row { grid-template-columns: 1fr; gap: 10px; margin-bottom: 10px; }
+
+          /* Bottom: stacked */
+          .bottom-row { grid-template-columns: 1fr; gap: 10px; }
+          .donut-side { flex-direction: row !important; align-items: center; gap: 16px; }
+          .donut-side-inner { width: 140px !important; height: 140px !important; }
+        }
+      `}</style>
+
+      <div className="dash-inner">
+
+        {/* Header */}
+        <div className="dash-header">
+          <div className="dash-search">
+            <Search size={14} className="s-icon" style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "#6B87C4" }} />
+            <input placeholder={t("searchPlaceholder") || "Search products, sales…"} />
           </div>
-          <ResponsiveContainer width="100%" height={180}>
-            <BarChart data={daily} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="4 4" vertical={false} stroke="#EEF2FF" />
-              <XAxis dataKey="date" hide />
-              <YAxis hide />
-              <Tooltip content={<CustomTooltip />} cursor={{ fill: "#F7F9FF" }} />
-              <Bar dataKey="total_revenue" fill="#1E40AF" radius={[6, 6, 0, 0]} barSize={28} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-
-        <div style={{ background: "#fff", border: "1px solid #E2EBFF", borderRadius: 14, padding: 18 }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
-            <span style={{ fontSize: 12, fontWeight: 700, color: "#0F1F45" }}>{t("netProfit") || "Profit"} Trend</span>
-            <span style={{ fontSize: 10, fontWeight: 600, background: "#FFF2E8", color: "#C2550A", padding: "3px 9px", borderRadius: 20 }}>30-day view</span>
-          </div>
-          <ResponsiveContainer width="100%" height={180}>
-            <AreaChart data={daily} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
-              <defs>
-                <linearGradient id="profitGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#F97316" stopOpacity={0.12} />
-                  <stop offset="95%" stopColor="#F97316" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="4 4" vertical={false} stroke="#EEF2FF" />
-              <XAxis dataKey="date" hide />
-              <YAxis hide />
-              <Tooltip content={<CustomTooltip />} />
-              <Area type="monotone" dataKey="total_revenue" stroke="#F97316" strokeWidth={2} fill="url(#profitGrad)" dot={{ r: 3, fill: "#F97316", strokeWidth: 0 }} />
-            </AreaChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
-
-      {/* Bottom Row: Donut + Table */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: 12 }}>
-
-        {/* Donut */}
-        <div style={{ background: "#fff", border: "1px solid #E2EBFF", borderRadius: 14, padding: 18 }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
-            <span style={{ fontSize: 12, fontWeight: 700, color: "#0F1F45" }}>Top Products</span>
-            <span style={{ fontSize: 10, fontWeight: 600, background: "#EEF2FF", color: "#2B5CE6", padding: "3px 9px", borderRadius: 20 }}>by revenue</span>
-          </div>
-          <div style={{ position: "relative" }}>
-            <ResponsiveContainer width="100%" height={160}>
-              <PieChart>
-                <Pie data={top?.slice(0, 5)} dataKey="revenue" nameKey="product_name" innerRadius={55} outerRadius={75} paddingAngle={6}>
-                  {top?.slice(0, 5).map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} stroke="none" />)}
-                </Pie>
-                <Tooltip formatter={(v) => formatMoney(v)} />
-              </PieChart>
-            </ResponsiveContainer>
-            <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", pointerEvents: "none" }}>
-              <span style={{ fontSize: 16, fontWeight: 700, color: "#0F1F45" }}>${(topTotal / 1000).toFixed(1)}k</span>
-              <span style={{ fontSize: 9, fontWeight: 700, color: "#F97316", textTransform: "uppercase", letterSpacing: "0.5px" }}>Top Sales</span>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <button className="btn-settings" onClick={() => navigate("/settings")} style={iconBtn}>
+              <Settings size={16} />
+            </button>
+            <div style={{ position: "relative" }}>
+              <button onClick={() => {}} style={iconBtn}><Bell size={16} /></button>
+              {lowStock.length > 0 && <span style={{ position: "absolute", top: 7, right: 7, width: 7, height: 7, background: "#F97316", borderRadius: "50%", border: "1.5px solid #fff" }} />}
+            </div>
+            <div onClick={() => navigate("/profile")} style={{ width: 36, height: 36, background: "#1E40AF", borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>
+              SA
             </div>
           </div>
-          <div style={{ marginTop: 12 }}>
-            {COLORS.map((c, i) => (
-              <div key={i} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: "#6B87C4", marginBottom: 5 }}>
-                <span style={{ width: 8, height: 8, borderRadius: 2, background: c, flexShrink: 0 }} />
-                {top?.[i]?.product_name || "—"}
+        </div>
+
+        {/* Greeting */}
+        <div style={{ marginBottom: 14 }}>
+          <h1 style={{ fontSize: 18, fontWeight: 700, color: "#0F1F45", margin: 0 }}>Good morning 👋</h1>
+          <p style={{ fontSize: 12, color: "#6B87C4", marginTop: 3 }}>Here's your shop overview for today</p>
+        </div>
+
+        {/* Quick Actions */}
+        <div className="actions-row">
+          {actions.map(btn => (
+            <button key={btn.path} onClick={() => navigate(btn.path)} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 5, padding: "10px 8px", borderRadius: 10, fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", background: btn.bg, color: btn.color, border: btn.border }}>
+              <Plus size={12} /> {btn.label}
+            </button>
+          ))}
+        </div>
+
+        {/* ── MOBILE: Featured card full-width ── */}
+        <div className="featured-full">
+          <FeaturedCard value={todayRevenue} t={t} />
+        </div>
+
+        {/* ── MOBILE: 3 small cards 2-col ── */}
+        <div className="cards-3small">
+          <SmallCard title={t("totalRevenue") || "Monthly Revenue"} value={monthRevenue} sub="Gross income" icon={DollarSign} chip="↑ +8% last month" chipStyle="up" />
+          <SmallCard title={t("credits") || "Credits"} value={totalCredits} sub="Pending" icon={CreditCard} chip="⚠ 3 overdue" chipStyle="warn" orange />
+          <SmallCard title={t("netProfit") || "Net Profit"} value={netProfit} sub="Actual earnings" icon={Wallet} chip={`Margin ${margin}%`} chipStyle="up" greenIcon fullWidth />
+        </div>
+
+        {/* ── DESKTOP: 4-col cards ── */}
+        <div className="cards-grid">
+          {/* Today's Sales - featured */}
+          <div className="card-featured-desktop" style={{ background: "#1E40AF", border: "1px solid #1E40AF", borderRadius: 14, padding: 16, cursor: "pointer" }}>
+            <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 10 }}>
+              <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: "1px", textTransform: "uppercase", color: "rgba(255,255,255,0.65)" }}>
+                {t("todaySales") || "Today's Sales"}
+              </span>
+              <div style={{ width: 32, height: 32, borderRadius: 8, background: "rgba(255,255,255,0.18)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <ShoppingBag size={16} color="#fff" />
               </div>
-            ))}
+            </div>
+            <AnimatedValue value={todayRevenue} style={{ fontSize: 22, fontWeight: 700, color: "#fff", letterSpacing: "-0.8px", marginBottom: 3 }} />
+            <div style={{ fontSize: 10, color: "rgba(255,255,255,0.55)", marginBottom: 10 }}>Live volume</div>
+            <div style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 10, fontWeight: 600, padding: "3px 8px", borderRadius: 20, background: "rgba(255,255,255,0.18)", color: "#fff" }}>
+              <TrendingUp size={11} /> +12% vs yesterday
+            </div>
+          </div>
+
+          {/* Revenue */}
+          <DesktopCard title={t("totalRevenue") || "Monthly Revenue"} value={monthRevenue} sub="Gross income" icon={DollarSign} chip="↑ +8% vs last month" />
+          {/* Credits */}
+          <DesktopCard title={t("credits") || "Outstanding Credits"} value={totalCredits} sub="Pending collection" icon={CreditCard} chip="⚠ 3 overdue" chipWarn orange />
+          {/* Net Profit */}
+          <DesktopCard title={t("netProfit") || "Net Profit"} value={netProfit} sub="Actual earnings" icon={Wallet} chip={`Margin ${margin}%`} greenIcon />
+        </div>
+
+        {/* Charts Row */}
+        <div className="charts-row">
+          <div style={chartCard({})}>
+            <ChartHeader title={`${t("totalRevenue") || "Revenue"} Performance`} badge="This month" />
+            <div style={{ position: "relative", width: "100%", height: 180 }}>{barChartEl(180)}</div>
+          </div>
+          <div style={chartCard({})}>
+            <ChartHeader title={`${t("netProfit") || "Profit"} Trend`} badge="30-day view" orange />
+            <div style={{ position: "relative", width: "100%", height: 180 }}>{areaChartEl(180)}</div>
           </div>
         </div>
 
-        {/* Recent Sales Table */}
-        <div style={{ background: "#fff", border: "1px solid #E2EBFF", borderRadius: 14, overflow: "hidden" }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "15px 18px", borderBottom: "1px solid #F0F4FF" }}>
-            <span style={{ fontSize: 12, fontWeight: 700, color: "#0F1F45" }}>{t("recentSales") || "Recent Sales"}</span>
-            <button onClick={() => navigate("/reports")} style={{ fontSize: 10, fontWeight: 600, color: "#F97316", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit" }}>
-              Full report →
-            </button>
+        {/* Bottom Row */}
+        <div className="bottom-row">
+          {/* Donut */}
+          <div style={chartCard({})}>
+            <ChartHeader title="Top Products" badge="by revenue" />
+            <div className="donut-side" style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+              <div className="donut-side-inner" style={{ width: "100%", height: 160 }}>{donutEl(160)}</div>
+              <div style={{ marginTop: 12, width: "100%" }}>{legendEl}</div>
+            </div>
           </div>
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
-            <thead>
-              <tr style={{ background: "#FAFBFF" }}>
-                <th style={{ fontSize: 9, fontWeight: 700, color: "#A0B3D6", textTransform: "uppercase", letterSpacing: "0.8px", padding: "10px 18px", textAlign: "left" }}>Product</th>
-                <th style={{ fontSize: 9, fontWeight: 700, color: "#A0B3D6", textTransform: "uppercase", letterSpacing: "0.8px", padding: "10px 18px", textAlign: "left" }}>Amount</th>
-                <th style={{ fontSize: 9, fontWeight: 700, color: "#A0B3D6", textTransform: "uppercase", letterSpacing: "0.8px", padding: "10px 18px", textAlign: "right" }}>Payment</th>
-              </tr>
-            </thead>
-            <tbody>
-              {recent?.map((s) => (
-                <tr key={s.id} style={{ borderTop: "1px solid #F0F4FF" }}
-                  onMouseEnter={e => e.currentTarget.style.background = "#F7F9FF"}
-                  onMouseLeave={e => e.currentTarget.style.background = ""}
-                >
-                  <td style={{ padding: "12px 18px", fontSize: 12, color: "#0F1F45", fontWeight: 500 }}>{s.product_name}</td>
-                  <td style={{ padding: "12px 18px", fontSize: 12, color: "#1E40AF", fontWeight: 700 }}>{formatMoney(s.total)}</td>
-                  <td style={{ padding: "12px 18px", textAlign: "right" }}>
-                    <span style={{ fontSize: 10, fontWeight: 700, padding: "3px 10px", borderRadius: 20, ...payChipStyle(s.payment_type) }}>
-                      {s.payment_type}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+
+          {/* Table */}
+          <div style={{ background: "#fff", border: "1px solid #E2EBFF", borderRadius: 14, overflow: "hidden" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "15px 14px", borderBottom: "1px solid #F0F4FF" }}>
+              <span style={{ fontSize: 12, fontWeight: 700, color: "#0F1F45" }}>{t("recentSales") || "Recent Sales"}</span>
+              <button onClick={() => navigate("/reports")} style={{ fontSize: 10, fontWeight: 600, color: "#F97316", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit" }}>
+                Full report →
+              </button>
+            </div>
+            {salesTableEl}
+          </div>
         </div>
+
+      </div>
+    </div>
+  );
+}
+
+// ── Helper sub-components ──────────────────────────────────────────────────────
+
+function AnimatedValue({ value, style }) {
+  const animated = useCountUp(value);
+  return <div style={style}>${animated.toLocaleString()}</div>;
+}
+
+function DesktopCard({ title, value, sub, icon: Icon, chip, chipWarn, orange, greenIcon }) {
+  const animated = useCountUp(value);
+  return (
+    <div style={{ background: "#fff", border: `1px solid ${orange ? "#FDCBA4" : "#E2EBFF"}`, borderRadius: 14, padding: 16, cursor: "pointer" }}
+      onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "0 8px 24px rgba(30,64,175,0.09)"; }}
+      onMouseLeave={e => { e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = ""; }}
+    >
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 10 }}>
+        <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: "1px", textTransform: "uppercase", color: orange ? "#C2550A" : "#6B87C4" }}>{title}</span>
+        <div style={{ width: 32, height: 32, borderRadius: 8, background: greenIcon ? "#EDFCF2" : orange ? "#FFF2E8" : "#EEF2FF", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+          <Icon size={16} color={greenIcon ? "#15803D" : orange ? "#F97316" : "#1E40AF"} />
+        </div>
+      </div>
+      <div style={{ fontSize: 22, fontWeight: 700, color: "#0F1F45", letterSpacing: "-0.8px", marginBottom: 3 }}>${animated.toLocaleString()}</div>
+      <div style={{ fontSize: 10, color: "#A0B3D6", fontWeight: 500, marginBottom: 10 }}>{sub}</div>
+      <div style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 10, fontWeight: 600, padding: "3px 8px", borderRadius: 20, background: chipWarn ? "#FFF2E8" : "#E6F5EE", color: chipWarn ? "#C2550A" : "#15803D" }}>
+        {chip}
       </div>
     </div>
   );
