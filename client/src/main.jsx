@@ -20,6 +20,7 @@ const Onboarding = lazy(() => import("./pages/Onboarding.jsx"));
 const AuthPage = lazy(() => import("./pages/AuthPage.jsx"));
 const Admin = lazy(() => import("./pages/Admin.jsx"));
 const Landing = lazy(() => import("./pages/Landing.jsx"));
+const StaffLogin = lazy(() => import("./pages/StaffLogin.jsx"));
 const ForgotPassword = lazy(() => import("./pages/ForgotPassword.jsx"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword.jsx"));
 function lazyPage(element, variant = "route") {
