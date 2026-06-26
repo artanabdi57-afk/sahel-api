@@ -1,11 +1,8 @@
-import React, { useRef, useEffect, useState } from "react";
-import { 
-  Check, Download, Menu, Plus, Search, Upload, X, 
-  Package, AlertTriangle, FileSpreadsheet, Settings2
-} from "lucide-react";
+import React, { useRef } from "react";
+import { useEffect, useState } from "react";
+import { Check, Download, Menu, Plus, Search, Upload, X } from "lucide-react";
 import { apiRequest, formatMoney } from "../lib/api";
-import { EmptyState, LoadingState } from "../components/AsyncState";
-import { useLanguage } from "../lib/i18n";
+import { EmptyState, ErrorState, LoadingState } from "../components/AsyncState";
 
 const UNITS = ["piece", "kg", "g", "litre", "ml", "box", "dozen"];
 
@@ -19,233 +16,419 @@ const emptyForm = {
   low_stock_threshold: ""
 };
 
-// Translations Dictionary
-const labels = {
-  en: { inv: "Inventory", add: "Add Product", search: "Search products...", stock: "Stock", unit: "Unit", price: "Price", total: "Total Value", import: "Import Excel", export: "Export Excel" },
-  so: { inv: "Alaabta", add: "Ku dar Alaab", search: "Raadi alaab...", stock: "Khadka", unit: "Cabirka", price: "Qiimaha", total: "Qiimaha Guud", import: "Soo geli Excel", export: "Saar Excel" },
-  ar: { inv: "المخزون", add: "إضافة منتج", search: "بحث عن منتج...", stock: "الكمية", unit: "الوحدة", price: "السعر", total: "القيمة الإجمالية", import: "استيراد اكسل", export: "تصدير اكسل" }
+const columnAliases = {
+  item_id: ["itemid", "productid", "productcode", "sku", "barcode", "code", "id"],
+  name: ["name", "product", "productname", "item", "itemname", "description"],
+  quantity: ["quantity", "qty", "stock", "currentstock", "onhand", "units"],
+  unit: ["unit", "uom", "unitofmeasure", "measure"],
+  cost_price: ["costprice", "cost", "buyingprice", "purchaseprice", "wholesaleprice"],
+  selling_price: ["sellingprice", "selling", "price", "retailprice", "saleprice"],
+  low_stock_threshold: ["lowstockthreshold", "threshold", "lowstock", "reorderlevel", "minimumstock", "minstock"]
 };
 
-export default function Inventory() {
-  const { language } = useLanguage(); // "en", "so", or "ar"
-  const t = labels[language] || labels.en;
-  const isRTL = language === 'ar';
+function normalizeHeader(value) {
+  return String(value || "").trim().toLowerCase().replace(/[^a-z0-9]/g, "");
+}
 
+function normalizeName(value) {
+  return String(value || "").trim().toLowerCase();
+}
+
+function isSimilarName(a, b) {
+  const normA = normalizeName(a);
+  const normB = normalizeName(b);
+  if (!normA || !normB) return false;
+  if (normA === normB) return false;
+  return normA.includes(normB) || normB.includes(normA);
+}
+
+function toNumber(value) {
+  const cleaned = String(value || "").replace(/,/g, "").replace(/[^0-9.-]/g, "");
+  return Number(cleaned || 0);
+}
+
+function findColumnIndex(headers, field) {
+  const normalizedHeaders = headers.map(normalizeHeader);
+  return normalizedHeaders.findIndex((header) => columnAliases[field].includes(header));
+}
+
+function parseInventoryRows(sheetRows) {
+  const nonEmptyRows = sheetRows.filter((row) => row.some((cell) => String(cell || "").trim() !== ""));
+  const headerRowIndex = nonEmptyRows.findIndex((row) => findColumnIndex(row, "name") !== -1);
+
+  if (headerRowIndex === -1) {
+    return nonEmptyRows.map((row) => ({
+      item_id: String(row[0] || "").trim(),
+      name: String(row[1] || "").trim(),
+      quantity: toNumber(row[2]),
+      unit: String(row[3] || "piece").trim(),
+      cost_price: toNumber(row[4]),
+      selling_price: toNumber(row[5]),
+      low_stock_threshold: toNumber(row[6])
+    }));
+  }
+
+  const headers = nonEmptyRows[headerRowIndex];
+  const dataRows = nonEmptyRows.slice(headerRowIndex + 1);
+  const indexes = {
+    item_id: findColumnIndex(headers, "item_id"),
+    name: findColumnIndex(headers, "name"),
+    quantity: findColumnIndex(headers, "quantity"),
+    unit: findColumnIndex(headers, "unit"),
+    cost_price: findColumnIndex(headers, "cost_price"),
+    selling_price: findColumnIndex(headers, "selling_price"),
+    low_stock_threshold: findColumnIndex(headers, "low_stock_threshold")
+  };
+
+  return dataRows.map((row) => ({
+    item_id: indexes.item_id === -1 ? "" : String(row[indexes.item_id] || "").trim(),
+    name: String(row[indexes.name] || "").trim(),
+    quantity: indexes.quantity === -1 ? 0 : toNumber(row[indexes.quantity]),
+    unit: indexes.unit === -1 ? "piece" : String(row[indexes.unit] || "piece").trim(),
+    cost_price: indexes.cost_price === -1 ? 0 : toNumber(row[indexes.cost_price]),
+    selling_price: indexes.selling_price === -1 ? 0 : toNumber(row[indexes.selling_price]),
+    low_stock_threshold: indexes.low_stock_threshold === -1 ? 0 : toNumber(row[indexes.low_stock_threshold])
+  }));
+}
+
+function EditableCell({ value, type = "text", onSave, className = "", formatDisplay }) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(value);
+
+  useEffect(() => { setDraft(value); }, [value]);
+
+  function commit() {
+    setEditing(false);
+    const finalValue = type === "number" ? Number(draft) : draft;
+    if (finalValue !== value) onSave(finalValue);
+  }
+
+  if (editing) {
+    return (
+      <input
+        autoFocus
+        type={type}
+        className="w-full rounded border border-blue-400 bg-blue-50/40 px-2 py-1 text-sm outline-none ring-2 ring-blue-100"
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={commit}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") commit();
+          if (e.key === "Escape") { setDraft(value); setEditing(false); }
+        }}
+      />
+    );
+  }
+
+  return (
+    <button type="button" onClick={() => setEditing(true)} className={`block w-full rounded px-2 py-1 text-left transition hover:bg-blue-50 ${className}`} title="Click to edit">
+      {formatDisplay ? formatDisplay(value) : value}
+    </button>
+  );
+}
+
+function EditableUnitCell({ value, onSave }) {
+  const [editing, setEditing] = useState(false);
+
+  if (editing) {
+    return (
+      <select
+        autoFocus
+        className="w-full rounded border border-blue-400 bg-blue-50/40 px-2 py-1 text-sm outline-none ring-2 ring-blue-100"
+        value={value}
+        onChange={(e) => { onSave(e.target.value); setEditing(false); }}
+        onBlur={() => setEditing(false)}
+      >
+        {UNITS.map((u) => <option key={u} value={u}>{u}</option>)}
+      </select>
+    );
+  }
+
+  return (
+    <button type="button" onClick={() => setEditing(true)} className="block w-full rounded px-2 py-1 text-left text-xs font-semibold text-slate-500 transition hover:bg-blue-50" title="Click to edit unit">
+      {value || "piece"}
+    </button>
+  );
+}
+
+export default function Inventory() {
   const [products, setProducts] = useState([]);
   const [form, setForm] = useState(emptyForm);
   const [status, setStatus] = useState({ loading: true, saving: false, importing: false, error: "", success: "" });
   const [showAddForm, setShowAddForm] = useState(false);
-  const [showTools, setShowTools] = useState(false);
+  const [showToolsMenu, setShowToolsMenu] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [duplicatePrompt, setDuplicatePrompt] = useState(null);
   const fileInputRef = useRef(null);
 
-  const loadProducts = async () => {
+  async function loadProducts() {
     const response = await apiRequest("/products");
     setProducts(response.data || []);
-  };
+  }
 
   useEffect(() => {
-    loadProducts().finally(() => setStatus(s => ({ ...s, loading: false })));
+    loadProducts()
+      .catch((error) => setStatus((current) => ({ ...current, error: error.message })))
+      .finally(() => setStatus((current) => ({ ...current, loading: false })));
   }, []);
 
-  // --- EXCEL LOGIC ---
-  const exportToExcel = async () => {
-    const XLSX = await import("xlsx");
-    const data = products.map(p => ({
-      "Product Name": p.name,
-      "Quantity": p.quantity,
-      "Unit": p.unit, // Liter/Kg now included
-      "Cost": p.cost_price,
-      "Selling": p.selling_price
-    }));
-    const ws = XLSX.utils.json_to_sheet(data);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Inventory");
-    XLSX.writeFile(wb, `Sahel_Inventory_${new Date().toLocaleDateString()}.xlsx`);
-  };
+  async function createProduct(productData) {
+    await apiRequest("/products", { method: "POST", body: JSON.stringify(productData) });
+  }
 
-  const importExcel = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setStatus(s => ({ ...s, importing: true }));
+  async function restockExisting(existingProduct, addedQuantity) {
+    await apiRequest(`/products/${existingProduct.id}`, {
+      method: "PUT",
+      body: JSON.stringify({ ...existingProduct, quantity: Number(existingProduct.quantity || 0) + Number(addedQuantity || 0) })
+    });
+  }
+
+  async function handleSubmit(event) {
+    event.preventDefault();
+    setStatus((current) => ({ ...current, saving: true, error: "" }));
     try {
-      const XLSX = await import("xlsx");
-      const buffer = await file.arrayBuffer();
-      const wb = XLSX.read(buffer);
-      const ws = wb.Sheets[wb.SheetNames[0]];
-      const rows = XLSX.utils.sheet_to_json(ws);
-      
-      for (const row of rows) {
-        const payload = {
-          name: row["Product Name"] || row["Name"],
-          quantity: Number(row["Quantity"] || 0),
-          unit: (row["Unit"] || "piece").toLowerCase(), // FIXED: Capturing Liter/Kg from Excel
-          cost_price: Number(row["Cost"] || 0),
-          selling_price: Number(row["Selling"] || 0),
-        };
-        await apiRequest("/products", { method: "POST", body: JSON.stringify(payload) });
+      const newName = form.name.trim();
+      const exactMatch = products.find((p) => normalizeName(p.name) === normalizeName(newName));
+      if (exactMatch) {
+        await restockExisting(exactMatch, form.quantity);
+        setForm(emptyForm);
+        setShowAddForm(false);
+        await loadProducts();
+        setStatus((current) => ({ ...current, success: `Added ${form.quantity} to existing stock of "${exactMatch.name}".` }));
+        return;
       }
-      await loadProducts();
-      setStatus(s => ({ ...s, success: "Import Successful!" }));
-    } catch (err) { setStatus(s => ({ ...s, error: "Import Failed" })); }
-    finally { setStatus(s => ({ ...s, importing: false })); }
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setStatus(s => ({ ...s, saving: true }));
-    try {
-      // FIXED: Liter/Kg unit is explicitly sent
-      await apiRequest("/products", { method: "POST", body: JSON.stringify({
-        ...form,
-        quantity: Number(form.quantity),
-        cost_price: Number(form.cost_price),
-        selling_price: Number(form.selling_price),
-        unit: form.unit 
-      })});
+      const similarMatch = products.find((p) => isSimilarName(p.name, newName));
+      if (similarMatch) {
+        setDuplicatePrompt({ similarMatch, draft: { ...form, name: newName } });
+        setStatus((current) => ({ ...current, saving: false }));
+        return;
+      }
+      await createProduct({ ...form, name: newName, item_id: form.item_id || undefined, quantity: Number(form.quantity), cost_price: Number(form.cost_price), selling_price: Number(form.selling_price), low_stock_threshold: Number(form.low_stock_threshold) });
       setForm(emptyForm);
       setShowAddForm(false);
       await loadProducts();
-    } catch (err) { setStatus(s => ({ ...s, error: err.message })); }
-    finally { setStatus(s => ({ ...s, saving: false })); }
-  };
+    } catch (error) {
+      setStatus((current) => ({ ...current, error: error.message }));
+    } finally {
+      setStatus((current) => ({ ...current, saving: false }));
+    }
+  }
 
-  const updateProduct = async (p, field, val) => {
-    await apiRequest(`/products/${p.id}`, { method: "PUT", body: JSON.stringify({ ...p, [field]: val }) });
-    await loadProducts();
-  };
+  async function resolveDuplicatePrompt(action) {
+    const { similarMatch, draft } = duplicatePrompt;
+    setDuplicatePrompt(null);
+    setStatus((current) => ({ ...current, saving: true, error: "" }));
+    try {
+      if (action === "merge") {
+        await restockExisting(similarMatch, draft.quantity);
+        setStatus((current) => ({ ...current, success: `Added ${draft.quantity} to existing stock of "${similarMatch.name}".` }));
+      } else {
+        await createProduct({ ...draft, item_id: draft.item_id || undefined, quantity: Number(draft.quantity), cost_price: Number(draft.cost_price), selling_price: Number(draft.selling_price), low_stock_threshold: Number(draft.low_stock_threshold) });
+        setStatus((current) => ({ ...current, success: `Created "${draft.name}" as a new product.` }));
+      }
+      setForm(emptyForm);
+      setShowAddForm(false);
+      await loadProducts();
+    } catch (error) {
+      setStatus((current) => ({ ...current, error: error.message }));
+    } finally {
+      setStatus((current) => ({ ...current, saving: false }));
+    }
+  }
 
-  const filtered = products.filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase()));
+  async function updateProductField(product, field, value) {
+    try {
+      await apiRequest(`/products/${product.id}`, { method: "PUT", body: JSON.stringify({ ...product, [field]: value }) });
+      await loadProducts();
+    } catch (error) {
+      setStatus((current) => ({ ...current, error: error.message }));
+    }
+  }
 
-  if (status.loading) return <LoadingState />;
+  async function exportInventoryToExcel() {
+    const XLSX = await import("xlsx");
+    const rows = products.map((p) => ({
+      "Item ID": p.item_id || "",
+      Product: p.name,
+      Stock: Number(p.quantity || 0),
+      Unit: p.unit || "piece",
+      "Cost Price": Number(p.cost_price || 0),
+      "Selling Price": Number(p.selling_price || 0),
+      "Low Stock Threshold": Number(p.low_stock_threshold || 0),
+      "Inventory Value": Number(p.quantity || 0) * Number(p.cost_price || 0)
+    }));
+    const worksheet = XLSX.utils.json_to_sheet(rows);
+    worksheet["!cols"] = [{ wch: 18 }, { wch: 28 }, { wch: 12 }, { wch: 10 }, { wch: 14 }, { wch: 14 }, { wch: 22 }, { wch: 16 }];
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Inventory");
+    XLSX.writeFile(workbook, `sahel-inventory-${new Date().toISOString().slice(0, 10)}.xlsx`);
+  }
+
+  async function importInventoryFromExcel(event) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    setStatus((current) => ({ ...current, importing: true, error: "", success: "" }));
+    try {
+      const XLSX = await import("xlsx");
+      const buffer = await file.arrayBuffer();
+      const workbook = XLSX.read(buffer);
+      const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: "" });
+      const productsToImport = parseInventoryRows(rows).filter((p) => p.name);
+      if (productsToImport.length === 0) throw new Error("No products found. Use a first column called Product, Name, Item, or Product Name.");
+      let mergedCount = 0;
+      let createdCount = 0;
+      for (const product of productsToImport) {
+        const existing = products.find((ep) => normalizeName(ep.name) === normalizeName(product.name));
+        if (existing) { await restockExisting(existing, product.quantity); mergedCount += 1; }
+        else { await createProduct(product); createdCount += 1; }
+      }
+      await loadProducts();
+      setStatus((current) => ({ ...current, success: `Imported: ${createdCount} new product${createdCount === 1 ? "" : "s"}, ${mergedCount} restocked.` }));
+    } catch (error) {
+      setStatus((current) => ({ ...current, error: error.message }));
+    } finally {
+      setStatus((current) => ({ ...current, importing: false }));
+      event.target.value = "";
+    }
+  }
+
+  const filteredProducts = products.filter((p) => {
+    const query = searchTerm.trim().toLowerCase();
+    if (!query) return true;
+    return [p.name, p.item_id, p.unit, p.quantity, p.cost_price, p.selling_price].join(" ").toLowerCase().includes(query);
+  });
+
+  const totalInventoryValue = products.reduce((sum, p) => sum + Number(p.quantity || 0) * Number(p.cost_price || 0), 0);
 
   return (
-    <div className={`space-y-6 pb-10 min-h-screen p-4 md:p-8 bg-[#FAF9F6]`} dir={isRTL ? "rtl" : "ltr"}>
-      
-      {/* 1. TOP HEADER */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-          <h1 className="text-4xl font-black text-blue-900 tracking-tight">{t.inv}</h1>
-          <p className="text-slate-500 font-bold text-sm">Sahel Business Management</p>
-        </div>
-
-        <div className="flex items-center gap-3">
-          {/* Excel Tools Menu */}
-          <div className="relative">
-            <button onClick={() => setShowTools(!showTools)} className="bg-orange-500 hover:bg-orange-600 text-white p-3 rounded-2xl shadow-lg transition-all">
-              <FileSpreadsheet size={24} />
+    <div className="space-y-4">
+      <section className="panel overflow-visible">
+        <div className="flex flex-col gap-3 border-b border-slate-200 p-4 sm:flex-row sm:items-start sm:justify-between">
+          <div><h2 className="text-base font-bold text-slate-950">Inventory</h2></div>
+          <div className="flex items-center gap-2">
+            <button className="btn-primary h-11 w-11 rounded-xl px-0" type="button" title="Add product" onClick={() => setShowAddForm((c) => !c)}>
+              {showAddForm ? <X className="h-5 w-5" /> : <Plus className="h-5 w-5" />}
             </button>
-            {showTools && (
-              <div className={`absolute ${isRTL ? 'left-0' : 'right-0'} mt-3 w-48 bg-white rounded-2xl shadow-2xl border border-slate-100 z-50 p-2`}>
-                <button onClick={() => {fileInputRef.current.click(); setShowTools(false)}} className="flex w-full items-center gap-3 p-3 hover:bg-blue-50 rounded-xl text-sm font-bold text-slate-700">
-                  <Upload size={16} /> {t.import}
-                </button>
-                <button onClick={() => {exportToExcel(); setShowTools(false)}} className="flex w-full items-center gap-3 p-3 hover:bg-blue-50 rounded-xl text-sm font-bold text-slate-700">
-                  <Download size={16} /> {t.export}
-                </button>
-              </div>
-            )}
+            <div className="relative">
+              <button className="btn-secondary h-11 w-11 rounded-xl px-0" type="button" title="Inventory tools" onClick={() => setShowToolsMenu((c) => !c)}>
+                <Menu className="h-5 w-5" />
+              </button>
+              {showToolsMenu ? (
+                <div className="absolute right-0 top-12 z-30 w-52 rounded-xl border border-slate-200 bg-white p-2 shadow-[0_18px_45px_rgba(15,23,42,0.14)]">
+                  <button className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-slate-700 hover:bg-blue-50 hover:text-blue-700" type="button" onClick={() => { setShowToolsMenu(false); fileInputRef.current?.click(); }}>
+                    <Upload className="h-4 w-4" />
+                    {status.importing ? "Importing..." : "Import Excel"}
+                  </button>
+                  <button className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-slate-700 hover:bg-blue-50 hover:text-blue-700 disabled:cursor-not-allowed disabled:opacity-50" type="button" onClick={() => { setShowToolsMenu(false); exportInventoryToExcel(); }} disabled={products.length === 0}>
+                    <Download className="h-4 w-4" />
+                    Export Excel
+                  </button>
+                </div>
+              ) : null}
+            </div>
+            <input ref={fileInputRef} className="hidden" type="file" accept=".xlsx,.xls,.csv" onChange={importInventoryFromExcel} />
           </div>
-          <input ref={fileInputRef} type="file" className="hidden" onChange={importExcel} />
-
-          <button onClick={() => setShowAddForm(!showAddForm)} className="bg-blue-700 hover:bg-blue-800 text-white px-6 py-3 rounded-2xl font-black flex items-center gap-2 shadow-xl shadow-blue-200">
-            {showAddForm ? <X size={20}/> : <Plus size={20}/>} {t.add}
-          </button>
         </div>
-      </div>
 
-      {/* 2. ADD FORM */}
-      {showAddForm && (
-        <form onSubmit={handleSubmit} className="bg-white border-2 border-blue-100 rounded-[2.5rem] p-8 shadow-2xl animate-in fade-in zoom-in duration-200">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-            <div className="md:col-span-2">
-              <label className="text-[10px] font-black uppercase text-blue-400 mb-2 block tracking-widest">Product Name</label>
-              <input required className="w-full bg-slate-50 border-none rounded-2xl px-5 py-4 font-bold text-blue-900 focus:ring-2 focus:ring-blue-500 outline-none" value={form.name} onChange={e => setForm({...form, name: e.target.value})} />
-            </div>
-            <div>
-              <label className="text-[10px] font-black uppercase text-blue-400 mb-2 block tracking-widest">Quantity</label>
-              <input type="number" required className="w-full bg-slate-50 border-none rounded-2xl px-5 py-4 font-bold text-blue-900 focus:ring-2 focus:ring-blue-500 outline-none" value={form.quantity} onChange={e => setForm({...form, quantity: e.target.value})} />
-            </div>
-            <div>
-              <label className="text-[10px] font-black uppercase text-blue-400 mb-2 block tracking-widest">Unit</label>
-              <select className="w-full bg-slate-50 border-none rounded-2xl px-5 py-4 font-bold text-blue-900 focus:ring-2 focus:ring-blue-500 outline-none cursor-pointer" value={form.unit} onChange={e => setForm({...form, unit: e.target.value})}>
-                {UNITS.map(u => <option key={u} value={u}>{u}</option>)}
+        {showAddForm ? (
+          <form onSubmit={handleSubmit} className="border-b border-slate-200 bg-slate-50/70 p-4">
+            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-7">
+              <input className="field" placeholder="Item ID / SKU" value={form.item_id} onChange={(e) => setForm({ ...form, item_id: e.target.value })} />
+              <input className="field" placeholder="Product name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
+              <input className="field" type="number" placeholder="Quantity" value={form.quantity} onChange={(e) => setForm({ ...form, quantity: e.target.value })} required />
+              <select className="field" value={form.unit} onChange={(e) => setForm({ ...form, unit: e.target.value })}>
+                {UNITS.map((u) => <option key={u} value={u}>{u}</option>)}
               </select>
+              <input className="field" type="number" placeholder="Cost price" value={form.cost_price} onChange={(e) => setForm({ ...form, cost_price: e.target.value })} />
+              <input className="field" type="number" placeholder="Selling price" value={form.selling_price} onChange={(e) => setForm({ ...form, selling_price: e.target.value })} />
+              <input className="field" type="number" placeholder="Low stock threshold" value={form.low_stock_threshold} onChange={(e) => setForm({ ...form, low_stock_threshold: e.target.value })} />
             </div>
-            <div className="md:col-span-4 flex justify-end">
-              <button disabled={status.saving} className="bg-blue-700 text-white px-12 py-4 rounded-2xl font-black hover:bg-blue-800 shadow-lg disabled:bg-slate-300">
-                {status.saving ? "Saving..." : "Lock in Stock"}
+            <div className="mt-3 flex justify-end">
+              <button className="btn-primary" disabled={status.saving}>
+                <Plus className="h-4 w-4" />
+                {status.saving ? "Saving..." : "Add product"}
               </button>
             </div>
+          </form>
+        ) : null}
+
+        {duplicatePrompt ? (
+          <div className="border-b border-amber-200 bg-amber-50 p-4">
+            <p className="text-sm font-semibold text-amber-800">"{duplicatePrompt.draft.name}" looks similar to "{duplicatePrompt.similarMatch.name}" ({duplicatePrompt.similarMatch.quantity} in stock).</p>
+            <p className="mt-1 text-sm text-amber-700">Is this a restock or a different product?</p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <button type="button" className="btn-primary" onClick={() => resolveDuplicatePrompt("merge")}><Check className="h-4 w-4" />Add to "{duplicatePrompt.similarMatch.name}"</button>
+              <button type="button" className="btn-secondary" onClick={() => resolveDuplicatePrompt("create")}><Plus className="h-4 w-4" />Create as new</button>
+              <button type="button" className="rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-500 hover:bg-slate-100" onClick={() => setDuplicatePrompt(null)}>Cancel</button>
+            </div>
           </div>
-        </form>
-      )}
+        ) : null}
 
-      {/* 3. SEARCH */}
-      <div className="relative">
-        <Search className={`absolute ${isRTL ? 'right-4' : 'left-4'} top-1/2 -translate-y-1/2 text-blue-300`} size={20} />
-        <input 
-          className={`w-full bg-white border-2 border-blue-50 rounded-2xl py-5 ${isRTL ? 'pr-12 pl-4' : 'pl-12 pr-4'} shadow-sm outline-none focus:border-blue-500 font-bold text-blue-900`}
-          placeholder={t.search}
-          value={searchTerm}
-          onChange={e => setSearchTerm(e.target.value)}
-        />
-      </div>
+        {status.error ? <p className="px-4 pt-4 text-sm text-red-600">{status.error}</p> : null}
+        {status.success ? <p className="px-4 pt-4 text-sm text-green-600">{status.success}</p> : null}
 
-      {/* 4. TABLE */}
-      <div className="bg-white rounded-[2.5rem] shadow-2xl border border-blue-50 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left">
-            <thead>
-              <tr className="bg-blue-700 text-white">
-                <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest">{t.inv}</th>
-                <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest">{t.stock}</th>
-                <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest">{t.unit}</th>
-                <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest">{t.price}</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-blue-50">
-              {filtered.map(p => {
-                const isLow = Number(p.quantity) <= Number(p.low_stock_threshold);
-                return (
-                  <tr key={p.id} className="hover:bg-blue-50/50 transition-colors group">
-                    <td className="px-8 py-6">
-                      <div className="flex items-center gap-3">
-                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${isLow ? 'bg-orange-100 text-orange-600' : 'bg-blue-100 text-blue-700'}`}>
-                          <Package size={20} />
-                        </div>
-                        <span className="font-black text-blue-900">{p.name}</span>
-                      </div>
+        <div className="border-b border-slate-100 p-4">
+          <label className="flex h-11 max-w-md items-center gap-3 rounded-xl border border-slate-200 bg-white px-3 shadow-sm transition focus-within:border-blue-500 focus-within:ring-4 focus-within:ring-blue-100">
+            <Search className="h-4 w-4 text-slate-400" />
+            <input className="w-full bg-transparent text-sm font-medium text-slate-700 outline-none" placeholder="Search by name, unit, ID..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+            {searchTerm ? <button className="text-slate-400 hover:text-slate-700" type="button" onClick={() => setSearchTerm("")}><X className="h-4 w-4" /></button> : null}
+          </label>
+        </div>
+
+        {status.loading ? (
+          <div className="p-4"><LoadingState /></div>
+        ) : products.length === 0 ? (
+          <div className="p-4"><EmptyState title="No products yet" description="Add your first product to start tracking stock." /></div>
+        ) : filteredProducts.length === 0 ? (
+          <div className="p-4"><EmptyState title="No matching products" description="Try another product name, unit, or price." /></div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[860px] border-collapse text-left text-sm">
+              <thead className="sticky top-0 z-10 bg-slate-100 text-xs uppercase tracking-wide text-slate-600">
+                <tr>
+                  <th className="border border-slate-200 px-4 py-3">Item ID</th>
+                  <th className="border border-slate-200 px-4 py-3">Product</th>
+                  <th className="border border-slate-200 px-4 py-3">Stock</th>
+                  <th className="border border-slate-200 px-4 py-3">Unit</th>
+                  <th className="border border-slate-200 px-4 py-3">Cost</th>
+                  <th className="border border-slate-200 px-4 py-3">Selling</th>
+                  <th className="border border-slate-200 px-4 py-3">Threshold</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredProducts.map((product, rowIndex) => (
+                  <tr key={product.id} className={rowIndex % 2 === 0 ? "bg-white" : "bg-slate-50/70"}>
+                    <td className="border border-slate-200 px-2 py-1 font-mono text-xs font-semibold text-slate-500">{product.item_id || "-"}</td>
+                    <td className="border border-slate-200 px-2 py-1 font-semibold text-slate-950">
+                      <EditableCell value={product.name} onSave={(v) => updateProductField(product, "name", v)} />
                     </td>
-                    <td className="px-8 py-6 font-black text-slate-700">
-                      <div className="flex items-center gap-2">
-                        {p.quantity}
-                        {isLow && <AlertTriangle size={14} className="text-orange-500 animate-bounce" />}
-                      </div>
+                    <td className="border border-slate-200 px-2 py-1">
+                      <EditableCell value={product.quantity} type="number" onSave={(v) => updateProductField(product, "quantity", v)} />
                     </td>
-                    <td className="px-8 py-6">
-                      <select 
-                        className="bg-slate-100 border-none rounded-lg px-3 py-1 text-xs font-black text-blue-700 cursor-pointer"
-                        value={p.unit}
-                        onChange={e => updateProduct(p, "unit", e.target.value)}
-                      >
-                        {UNITS.map(u => <option key={u} value={u}>{u}</option>)}
-                      </select>
+                    <td className="border border-slate-200 px-2 py-1">
+                      <EditableUnitCell value={product.unit || "piece"} onSave={(v) => updateProductField(product, "unit", v)} />
                     </td>
-                    <td className="px-8 py-6 font-black text-blue-700">{formatMoney(p.selling_price)}</td>
+                    <td className="border border-slate-200 px-2 py-1">
+                      <EditableCell value={product.cost_price} type="number" onSave={(v) => updateProductField(product, "cost_price", v)} formatDisplay={formatMoney} />
+                    </td>
+                    <td className="border border-slate-200 px-2 py-1">
+                      <EditableCell value={product.selling_price} type="number" onSave={(v) => updateProductField(product, "selling_price", v)} formatDisplay={formatMoney} />
+                    </td>
+                    <td className="border border-slate-200 px-2 py-1">
+                      <EditableCell value={product.low_stock_threshold} type="number" onSave={(v) => updateProductField(product, "low_stock_threshold", v)} />
+                    </td>
                   </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-        
-        {/* Total Value Bar */}
-        <div className="bg-blue-50 p-6 flex justify-between items-center border-t-2 border-blue-100">
-           <span className="text-xs font-black text-blue-400 uppercase tracking-widest">{products.length} Products</span>
-           <span className="text-lg font-black text-blue-900">{t.total}: <span className="text-orange-500">{formatMoney(products.reduce((a,b)=>a+(b.quantity*b.cost_price),0))}</span></span>
-        </div>
-      </div>
+                ))}
+              </tbody>
+            </table>
+            <div className="flex items-center justify-between border-t border-slate-200 bg-slate-50 px-4 py-3">
+              <p className="text-xs text-slate-500">{products.length} product{products.length === 1 ? "" : "s"} total</p>
+              <p className="text-sm font-semibold text-slate-700">Total inventory value: <span className="text-slate-950">{formatMoney(totalInventoryValue)}</span></p>
+            </div>
+          </div>
+        )}
+      </section>
     </div>
   );
 }
