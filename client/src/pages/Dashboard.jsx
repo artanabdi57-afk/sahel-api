@@ -19,8 +19,7 @@ const palette = ["#5b3ff2", "#2f7df6", "#14c6a4", "#ffb84d", "#ff6b6b", "#8b5cf6
 const DASHBOARD_CACHE_KEY = "sahel_dashboard_cache_v1";
 const DASHBOARD_CACHE_TTL = 60 * 1000;
 
-// --- DATA HELPERS ---
-
+// --- HELPERS ---
 const emptyDashboardState = {
   loading: true, error: "", refreshing: false, products: [],
   currentProfit: null, previousProfit: null, credits: null,
@@ -113,7 +112,7 @@ function MetricCard({ title, value, trend, helper, icon: Icon, featured = false,
     <button
       type="button"
       className={`group relative overflow-hidden rounded-[2.5rem] p-6 text-left transition-all duration-500 hover:-translate-y-2 hover:shadow-2xl ${
-        featured ? "bg-gradient-to-br from-[#5b3ff2] to-[#1e40af] text-white" : "border border-slate-100 bg-white text-slate-950"
+        featured ? "bg-gradient-to-br from-[#5b3ff2] to-[#1e40af] text-white" : "border border-slate-100 bg-white text-slate-950 shadow-sm"
       }`}
       onClick={onClick}
     >
@@ -190,17 +189,113 @@ export default function Dashboard() {
   if (state.loading) return <LoadingState variant="dashboard" />;
   if (state.error) return <ErrorState message={state.error} />;
 
+  const filteredSales = state.recentSales;
+  const lowStockProducts = state.products.filter((p) => Number(p.quantity || 0) <= Number(p.low_stock_threshold || 0));
+
   return (
     <div className="min-h-screen space-y-6 bg-[#f8faff] p-4 sm:p-8">
-      {/* Metrics Section */}
+       {/* Header */}
+       <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between bg-white p-4 rounded-3xl shadow-sm">
+        <div className="relative flex-1 max-w-md">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+          <input className="w-full bg-slate-50 border-none rounded-xl pl-10 pr-4 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500" placeholder={t("searchPlaceholder")} value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+        </div>
+        <div className="flex items-center gap-3">
+          <button className="p-2 rounded-xl bg-slate-50 text-slate-500" onClick={() => navigate("/settings")}><Settings size={20} /></button>
+          <button className="p-2 rounded-xl bg-slate-50 text-slate-500 relative" onClick={() => setShowNotifications(!showNotifications)}>
+            <Bell size={20} />
+            {lowStockProducts.length > 0 && <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white" />}
+          </button>
+          <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold cursor-pointer" onClick={() => navigate("/profile")}>SA</div>
+        </div>
+      </header>
+
+      {/* Metrics Row */}
       <section className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
         {metrics.map((m, i) => (
           <MetricCard key={m.title} {...m} delay={i * 100} onClick={() => (m.action === "today-sales" ? setShowTodaySales(true) : navigate(m.path))} />
         ))}
       </section>
 
-      {/* Your existing Charts and Table would go below here... */}
-      <div className="text-center py-10 text-slate-400 font-bold">Interactive Dashboard Loaded Successfully.</div>
+      {/* Quick Actions */}
+      <div className="flex flex-wrap gap-3">
+        <button className="bg-blue-600 text-white px-6 py-3 rounded-2xl font-bold flex items-center gap-2 hover:bg-blue-700" onClick={() => navigate("/sale")}><Plus size={20}/> {t("quickNewSale")}</button>
+        <button className="bg-white border border-slate-200 px-6 py-3 rounded-2xl font-bold hover:bg-slate-50" onClick={() => navigate("/inventory")}>{t("addProduct")}</button>
+        <button className="bg-white border border-slate-200 px-6 py-3 rounded-2xl font-bold hover:bg-slate-50" onClick={() => navigate("/reports")}>{t("viewReports")}</button>
+      </div>
+
+      {/* Recent Sales Table */}
+      <section className="bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden">
+        <div className="p-6 border-b border-slate-50">
+          <h2 className="text-lg font-black">{t("recentSales")}</h2>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-sm">
+            <thead className="bg-slate-50 text-[10px] uppercase font-black tracking-widest text-slate-400">
+              <tr>
+                <th className="px-6 py-4">{t("time")}</th>
+                <th className="px-6 py-4">{t("product")}</th>
+                <th className="px-6 py-4">{t("amount")}</th>
+                <th className="px-6 py-4">{t("payment")}</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-50">
+              {filteredSales.map((s) => (
+                <tr key={s.id} className="hover:bg-slate-50 cursor-pointer" onClick={() => setSelectedSale(s)}>
+                  <td className="px-6 py-4 text-slate-400">{formatTime(s.sale_date)}</td>
+                  <td className="px-6 py-4 font-black">{s.product_name}</td>
+                  <td className="px-6 py-4 font-black text-blue-600">{formatMoney(s.total)}</td>
+                  <td className="px-6 py-4">
+                    <span className="px-3 py-1 rounded-full bg-blue-50 text-blue-600 text-[10px] font-black uppercase">{s.payment_type}</span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      {/* Modals */}
+      <SalesDrawer open={showTodaySales} sales={state.todaySales} onClose={() => setShowTodaySales(false)} onSaleClick={setSelectedSale} />
+      <SaleDetailModal sale={selectedSale} onClose={() => setSelectedSale(null)} />
+    </div>
+  );
+}
+
+// --- MODALS (Keeping your existing logic) ---
+function SalesDrawer({ open, sales, onClose, onSaleClick }) {
+  if (!open) return null;
+  return (
+    <div className="fixed inset-0 z-50 flex justify-end bg-black/20">
+      <div className="w-full max-w-md bg-white h-full p-6 shadow-2xl overflow-y-auto">
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-xl font-black">Today's Sales</h2>
+          <button onClick={onClose}><X /></button>
+        </div>
+        {sales.map(s => (
+          <div key={s.id} className="p-4 border-b hover:bg-slate-50 cursor-pointer" onClick={() => onSaleClick(s)}>
+            <p className="font-bold">{s.product_name}</p>
+            <p className="text-blue-600 font-black">{formatMoney(s.total)}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function SaleDetailModal({ sale, onClose }) {
+  if (!sale) return null;
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+      <div className="bg-white rounded-[2rem] p-8 max-w-md w-full shadow-2xl">
+        <h2 className="text-2xl font-black mb-4">Sale Details</h2>
+        <div className="space-y-2 mb-6">
+          <p><strong>Product:</strong> {sale.product_name}</p>
+          <p><strong>Total:</strong> {formatMoney(sale.total)}</p>
+          <p><strong>Payment:</strong> {sale.payment_type}</p>
+        </div>
+        <button className="w-full bg-slate-100 py-3 rounded-xl font-bold" onClick={onClose}>Close</button>
+      </div>
     </div>
   );
 }
