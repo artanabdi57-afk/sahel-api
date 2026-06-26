@@ -1,271 +1,217 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Award, BookOpen, CheckCircle, Play, Users, BarChart3, ChevronRight } from "lucide-react";
+import { 
+  TrendingUp, 
+  Package, 
+  BarChart3, 
+  PlayCircle, 
+  ChevronRight, 
+  ArrowRight,
+  MousePointer2
+} from "lucide-react";
+import { 
+  AreaChart, 
+  Area, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip, 
+  ResponsiveContainer 
+} from "recharts";
+
+// Simulated Dynamic Data for the Demo Graph
+const demoData = [
+  { name: "Mon", sales: 400, stock: 240 },
+  { name: "Tue", sales: 300, stock: 139 },
+  { name: "Wed", sales: 900, stock: 980 },
+  { name: "Thu", sales: 1480, stock: 390 },
+  { name: "Fri", sales: 1890, stock: 480 },
+  { name: "Sat", sales: 2390, stock: 380 },
+  { name: "Sun", sales: 3490, stock: 430 },
+];
 
 const styles = `
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap');
+
 :root {
-  --lms-blue: #2563eb;
-  --lms-blue-dark: #1e40af;
-  --lms-blue-light: #dbeafe;
-  --white: #ffffff;
-  --slate-50: #f8fafc;
-  --slate-200: #e2e8f0;
-  --slate-600: #475569;
-  --slate-900: #0f172a;
-  --glass: rgba(255, 255, 255, 0.8);
+  --primary: #2563eb;
+  --primary-glow: rgba(37, 99, 235, 0.15);
+  --bg: #ffffff;
+  --text-main: #0f172a;
+  --text-sub: #64748b;
 }
 
-.lms-page { 
-  background: var(--slate-50); 
-  color: var(--slate-900); 
-  font-family: 'Inter', system-ui, sans-serif;
-  min-height: 100vh;
+.sahel-pro {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  background-color: var(--bg);
+  color: var(--text-main);
+  scroll-behavior: smooth;
 }
 
-/* --- THE NEW LEARNING BADGE --- */
-.badge-container {
-  position: relative;
-  width: 120px;
-  height: 120px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 20px;
+.nav-blur {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  backdrop-filter: blur(12px);
+  background: rgba(255, 255, 255, 0.8);
+  border-bottom: 1px solid #e2e8f0;
 }
 
-.badge-glow {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  background: var(--lms-blue);
-  filter: blur(25px);
-  opacity: 0.2;
-  border-radius: 50%;
-  animation: pulse-glow 3s infinite;
+.hero-gradient {
+  background: radial-gradient(circle at 50% 0%, #eff6ff 0%, #ffffff 50%);
 }
 
-.professional-badge {
-  position: relative;
-  width: 80px;
-  height: 90px;
-  background: linear-gradient(135deg, var(--lms-blue), var(--lms-blue-dark));
-  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.btn-main {
+  background: var(--primary);
   color: white;
-  box-shadow: 0 10px 20px rgba(37, 99, 235, 0.3);
-  z-index: 2;
-}
-
-@keyframes pulse-glow {
-  0% { transform: scale(1); opacity: 0.2; }
-  50% { transform: scale(1.2); opacity: 0.4; }
-  100% { transform: scale(1); opacity: 0.2; }
-}
-
-/* --- HERO & UI ELEMENTS --- */
-.lms-hero {
-  padding: 100px 0;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 40px;
-  align-items: center;
-}
-
-.hero-title {
-  font-size: 64px;
-  font-weight: 800;
-  line-height: 1.1;
-  letter-spacing: -0.03em;
-  color: var(--slate-900);
-}
-
-.hero-title span {
-  color: var(--lms-blue);
-}
-
-.btn-lms-primary {
-  background: var(--lms-blue);
-  color: white;
-  padding: 16px 32px;
-  border-radius: 12px;
+  padding: 14px 28px;
+  border-radius: 10px;
   font-weight: 600;
+  text-decoration: none;
+  transition: all 0.3s ease;
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  transition: all 0.3s ease;
-  text-decoration: none;
 }
 
-.btn-lms-primary:hover {
-  background: var(--lms-blue-dark);
+.btn-main:hover {
+  background: #1d4ed8;
   transform: translateY(-2px);
-  box-shadow: 0 10px 20px rgba(37, 99, 235, 0.2);
+  box-shadow: 0 10px 25px var(--primary-glow);
 }
 
-/* --- LMS DASHBOARD PREVIEW CARD --- */
-.lms-card-preview {
-  background: var(--white);
-  border: 1px solid var(--slate-200);
+.btn-outline {
+  border: 1px solid #e2e8f0;
+  padding: 14px 28px;
+  border-radius: 10px;
+  font-weight: 600;
+  text-decoration: none;
+  color: var(--text-main);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s;
+}
+
+.btn-outline:hover {
+  background: #f8fafc;
+}
+
+.glass-card {
+  background: white;
+  border: 1px solid #e2e8f0;
   border-radius: 24px;
-  padding: 24px;
-  box-shadow: 0 40px 80px rgba(15, 23, 42, 0.1);
-  backdrop-filter: blur(10px);
-  position: relative;
-}
-
-.progress-bar-container {
-  width: 100%;
-  height: 8px;
-  background: var(--lms-blue-light);
-  border-radius: 4px;
-  margin: 12px 0;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.08);
   overflow: hidden;
 }
 
-.progress-fill {
-  width: 75%;
-  height: 100%;
-  background: var(--lms-blue);
-  border-radius: 4px;
+.floating {
+  animation: floating 4s ease-in-out infinite;
 }
 
-.stat-chip {
-  background: var(--lms-blue-light);
-  color: var(--lms-blue-dark);
-  padding: 4px 12px;
-  border-radius: 20px;
-  font-size: 12px;
-  font-weight: 700;
+@keyframes floating {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-15px); }
+  100% { transform: translateY(0px); }
 }
 
-@media (max-width: 960px) {
-  .lms-hero { grid-template-columns: 1fr; text-align: center; }
-  .hero-title { font-size: 44px; }
-  .badge-container { margin: 0 auto 20px; }
+.reveal-on-scroll {
+  opacity: 0;
+  transform: translateY(30px);
+  transition: all 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.reveal-on-scroll.active {
+  opacity: 1;
+  transform: translateY(0);
 }
 `;
 
-export default function LandingPro() {
+export default function SahelInsightsLanding() {
+  const [scrolled, setScrolled] = useState(false);
+
+  // Intersection Observer for scroll animations
+  useEffect(() => {
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) entry.target.classList.add('active');
+      });
+    }, { threshold: 0.1 });
+
+    document.querySelectorAll('.reveal-on-scroll').forEach(el => observer.observe(el));
+    
+    const handleScroll = () => setScrolled(window.scrollY > 20);
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
   return (
-    <div className="lms-page">
+    <div className="sahel-pro">
       <style>{styles}</style>
-      
-      <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "0 24px" }}>
-        
-        {/* Navigation */}
-        <nav style={{ display: "flex", justifyContent: "space-between", padding: "32px 0", alignItems: "center" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "8px", fontWeight: 800, fontSize: "24px", color: "var(--lms-blue)" }}>
-            <div className="professional-badge" style={{ width: "32px", height: "36px" }}>
-              <Award size={18} />
+
+      {/* Navigation */}
+      <nav className={`nav-blur ${scrolled ? 'py-4' : 'py-6'} transition-all`}>
+        <div className="max-w-7xl mx-auto px-6 flex justify-between items-center">
+          <div className="flex items-center gap-3">
+            {/* LOGO POSITION */}
+            <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center shadow-lg">
+               <TrendingUp className="text-white w-6 h-6" />
             </div>
-            Sahel LMS
+            <span className="text-2xl font-extrabold tracking-tight">Sahel<span className="text-blue-600">Insights</span></span>
           </div>
-          <div style={{ display: "flex", gap: "32px", alignItems: "center" }}>
-            <Link to="/login" style={{ color: "var(--slate-600)", textDecoration: "none", fontWeight: 600 }}>Login</Link>
-            <Link to="/signup" className="btn-lms-primary" style={{ padding: "10px 20px" }}>Get Started</Link>
+          <div className="hidden md:flex gap-8 font-semibold text-slate-600">
+            <a href="#features" className="hover:text-blue-600 transition">Features</a>
+            <a href="#demo" className="hover:text-blue-600 transition">Demo</a>
+            <Link to="/login" className="hover:text-blue-600 transition">Log In</Link>
           </div>
-        </nav>
-
-        {/* Hero Section */}
-        <section className="lms-hero">
-          <div>
-            {/* THE NEW EYE-CATCHING BADGE */}
-            <div className="badge-container">
-              <div className="badge-glow"></div>
-              <div className="professional-badge">
-                <Award size={40} strokeWidth={2.5} />
-              </div>
-            </div>
-
-            <h1 className="hero-title">
-              Empower Your <span>Success</span> with Sahel Pro.
-            </h1>
-            <p style={{ fontSize: "20px", color: "var(--slate-600)", margin: "24px 0 40px", lineHeight: "1.5" }}>
-              The #1 Professional Learning Management System designed for the next generation of Somali entrepreneurs. Master your business today.
-            </p>
-            <div style={{ display: "flex", gap: "16px" }}>
-              <Link to="/signup" className="btn-lms-primary">
-                Explore Courses <ChevronRight size={20} />
-              </Link>
-              <button style={{ background: "none", border: "1px solid var(--slate-200)", padding: "16px 32px", borderRadius: "12px", fontWeight: "600", cursor: "pointer" }}>
-                View Demo
-              </button>
-            </div>
-          </div>
-
-          {/* Visual UI Elements */}
-          <div style={{ position: "relative" }}>
-            <div className="lms-card-preview">
-              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "20px" }}>
-                <span className="stat-chip">Active Learning</span>
-                <Users size={20} color="var(--slate-600)" />
-              </div>
-              <h3 style={{ fontSize: "22px", fontWeight: 700, marginBottom: "8px" }}>Inventory Management 101</h3>
-              <p style={{ color: "var(--slate-600)", fontSize: "14px" }}>Module 4: Stock Optimization</p>
-              
-              <div className="progress-bar-container">
-                <div className="progress-fill"></div>
-              </div>
-              
-              <div style={{ display: "flex", justifyContent: "space-between", fontSize: "12px", fontWeight: 700 }}>
-                <span>75% Completed</span>
-                <span style={{ color: "var(--lms-blue)" }}>Next: Final Exam</span>
-              </div>
-
-              <div style={{ marginTop: "24px", paddingTop: "24px", borderTop: "1px solid var(--slate-200)", display: "flex", gap: "12px" }}>
-                <div style={{ width: "40px", height: "40px", background: "var(--lms-blue-light)", borderRadius: "8px", display: "flex", alignItems: "center", justifyCenter: "center", color: "var(--lms-blue)" }}>
-                   <Play size={20} style={{marginLeft: '12px', marginTop: '10px'}}/>
-                </div>
-                <div>
-                  <p style={{ fontWeight: 700, fontSize: "14px", margin: 0 }}>Resume Lecture</p>
-                  <p style={{ fontSize: "12px", color: "var(--slate-600)", margin: 0 }}>Video · 12 minutes left</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Smaller Floating Stat Card */}
-            <div style={{
-              position: "absolute",
-              bottom: "-30px",
-              left: "-20px",
-              background: "var(--white)",
-              padding: "16px",
-              borderRadius: "16px",
-              boxShadow: "0 20px 40px rgba(0,0,0,0.1)",
-              display: "flex",
-              alignItems: "center",
-              gap: "12px",
-              border: "1px solid var(--slate-200)"
-            }}>
-              <div style={{ background: "#22c55e", color: "white", padding: "8px", borderRadius: "10px" }}>
-                <CheckCircle size={20} />
-              </div>
-              <div>
-                <p style={{ fontSize: "10px", fontWeight: 700, color: "var(--slate-600)", textTransform: "uppercase" }}>Certificate</p>
-                <p style={{ fontSize: "14px", fontWeight: 800 }}>Verified & Issued</p>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* Feature Grid */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))", gap: "24px", marginTop: "80px" }}>
-           {[
-             { icon: <BookOpen />, title: "Curated Content", desc: "Expertly designed courses for Somali markets." },
-             { icon: <BarChart3 />, title: "Analytics", desc: "Track your progress with detailed performance data." },
-             { icon: <Award />, title: "Certifications", desc: "Earn badges recognized by industry leaders." }
-           ].map((feat, i) => (
-             <div key={i} style={{ background: "white", padding: "32px", borderRadius: "20px", border: "1px solid var(--slate-200)" }}>
-                <div style={{ color: "var(--lms-blue)", marginBottom: "16px" }}>{feat.icon}</div>
-                <h4 style={{ fontWeight: 800, marginBottom: "8px" }}>{feat.title}</h4>
-                <p style={{ color: "var(--slate-600)", fontSize: "14px" }}>{feat.desc}</p>
-             </div>
-           ))}
+          <Link to="/signup" className="btn-main text-sm py-3">Start with free trial</Link>
         </div>
+      </nav>
 
-      </div>
-    </div>
-  );
-}
+      {/* Hero Section */}
+      <section className="hero-gradient pt-20 pb-32">
+        <div className="max-w-7xl mx-auto px-6 grid lg:grid-cols-2 gap-16 items-center">
+          <div className="reveal-on-scroll">
+            <div className="inline-flex items-center gap-2 bg-blue-50 text-blue-700 px-4 py-2 rounded-full text-sm font-bold mb-6">
+              <BarChart3 size={16} />
+              Next-Gen Business Intelligence
+            </div>
+            <h1 className="text-6xl md:text-7xl font-extrabold leading-tight mb-8">
+              Visualize your <span className="text-blue-600">Growth</span> in real-time.
+            </h1>
+            <p className="text-xl text-slate-500 mb-10 max-w-lg leading-relaxed">
+              Track sales, manage inventory, and optimize your shop with high-fidelity graphics. Data clarity for modern shop owners.
+            </p>
+            <div className="flex flex-wrap gap-4">
+              <Link to="/signup" className="btn-main text-lg px-10">
+                Start with free trial
+              </Link>
+              <a href="#demo" className="btn-outline text-lg px-10">
+                <PlayCircle size={20} />
+                Viewable demo
+              </a>
+            </div>
+          </div>
+
+          {/* DYNAMIC GRAPH DEMO */}
+          <div className="reveal-on-scroll floating" id="demo">
+            <div className="glass-card">
+              <div className="p-6 bg-slate-50 border-bottom border-slate-200 flex justify-between items-center">
+                <div className="flex gap-2">
+                  <div className="w-3 h-3 rounded-full bg-red-400" />
+                  <div className="w-3 h-3 rounded-full bg-yellow-400" />
+                  <div className="w-3 h-3 rounded-full bg-green-400" />
+                </div>
+                <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Sahel Dashboard Preview</span>
+              </div>
+              <div className="p-8">
+                <div className="mb-8">
+                  <h3 className="text-sm font-bold text-slate-400 mb-1">WEEKLY REVENUE</h3>
+                  <p className="text-3xl font-black text-slate-900">$12,480.00</p>
+                </div>
+                <div className="h-64 w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={demoData}>
+                      <defs>
+                        <linearGradient id="colorSales" x1="0" y1="0" x2="0" y2="1">
+                          <
