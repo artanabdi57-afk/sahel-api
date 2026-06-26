@@ -1,47 +1,94 @@
-import React, { useEffect, useState } from "react";
-import { 
-  Search, Plus, BarChart3, ShoppingBag, CreditCard, DollarSign, 
-  WalletCards, Bell, Settings, TrendingUp, Activity, X 
+import React, { useEffect, useState, useRef } from "react";
+import {
+  Search, Plus, BarChart3, ShoppingBag, CreditCard, DollarSign,
+  Wallet, Bell, Settings, TrendingUp, AlertCircle, Package, Users
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { 
-  AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, 
-  PieChart, Pie, Cell, CartesianGrid, BarChart, Bar 
+import {
+  AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer,
+  CartesianGrid, BarChart, Bar, PieChart, Pie, Cell
 } from "recharts";
 import { apiRequest, formatMoney, monthISO, todayISO } from "../lib/api";
 import { LoadingState } from "../components/AsyncState";
-import { getCurrentShop } from "../lib/auth";
 import { useLanguage } from "../lib/i18n";
 
-// Updated Palette: Deep Blues and Vibrant Orange
 const COLORS = ["#1E40AF", "#3B82F6", "#F97316", "#FB923C", "#60A5FA"];
 
-function MetricCard({ title, value, helper, icon: Icon, featured = false, color, isOrange = false }) {
+// Animated count-up hook
+function useCountUp(target, duration = 800) {
+  const [value, setValue] = useState(0);
+  useEffect(() => {
+    if (!target) return;
+    let start = 0;
+    const step = target / (duration / 16);
+    const timer = setInterval(() => {
+      start = Math.min(start + step, target);
+      setValue(Math.round(start));
+      if (start >= target) clearInterval(timer);
+    }, 16);
+    return () => clearInterval(timer);
+  }, [target]);
+  return value;
+}
+
+function MetricCard({ title, value, sub, icon: Icon, chip, chipStyle, featured, orange }) {
+  const animated = useCountUp(value);
   return (
-    <div className={`rounded-[2rem] p-5 lg:p-7 shadow-2xl border transition-all hover:scale-[1.02] ${
-      featured 
-        ? "bg-gradient-to-br from-[#1E40AF] to-[#3B82F6] text-white border-blue-800 shadow-blue-200/50" 
-        : isOrange
-        ? "bg-white text-slate-900 border-orange-200 shadow-orange-100/50"
-        : "bg-white text-slate-900 border-blue-100 shadow-blue-100/20"
-    }`}>
-      <div className="flex justify-between items-start mb-4">
-        <p className={`text-[10px] lg:text-[12px] font-black uppercase tracking-widest ${featured ? "text-blue-100" : isOrange ? "text-orange-500" : "text-blue-600"}`}>
+    <div
+      style={{
+        background: featured ? "#1E40AF" : "#fff",
+        border: `1px solid ${orange ? "#FDCBA4" : featured ? "#1E40AF" : "#E2EBFF"}`,
+        borderRadius: 14,
+        padding: "16px",
+        display: "flex",
+        flexDirection: "column",
+        cursor: "pointer",
+        transition: "transform 0.15s, box-shadow 0.15s",
+      }}
+      onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "0 8px 24px rgba(30,64,175,0.10)"; }}
+      onMouseLeave={e => { e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = ""; }}
+    >
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 10 }}>
+        <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: "1px", textTransform: "uppercase", color: featured ? "rgba(255,255,255,0.65)" : orange ? "#C2550A" : "#6B87C4" }}>
           {title}
-        </p>
-        <div className={`p-2 rounded-xl ${featured ? "bg-white/20" : isOrange ? "bg-orange-50" : "bg-blue-50"}`}>
-          <Icon size={18} color={featured ? "white" : isOrange ? "#F97316" : "#1E40AF"} />
+        </span>
+        <div style={{ width: 32, height: 32, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", background: featured ? "rgba(255,255,255,0.18)" : orange ? "#FFF2E8" : "#EEF2FF", flexShrink: 0 }}>
+          <Icon size={16} color={featured ? "#fff" : orange ? "#F97316" : "#1E40AF"} />
         </div>
       </div>
-      <h2 className="text-2xl md:text-xl lg:text-3xl font-black tracking-tight">
-        {featured ? "" : "$"}{value.toLocaleString()}
-      </h2>
-      <p className={`text-[10px] font-bold mt-2 ${featured ? "text-blue-200" : "text-slate-400"}`}>
-        {helper}
-      </p>
+      <div style={{ fontSize: 22, fontWeight: 700, color: featured ? "#fff" : "#0F1F45", letterSpacing: "-0.8px", marginBottom: 3 }}>
+        ${animated.toLocaleString()}
+      </div>
+      <div style={{ fontSize: 10, color: featured ? "rgba(255,255,255,0.55)" : "#A0B3D6", fontWeight: 500, marginBottom: 10 }}>
+        {sub}
+      </div>
+      {chip && (
+        <div style={{
+          display: "inline-flex", alignItems: "center", gap: 4,
+          fontSize: 10, fontWeight: 600, padding: "3px 8px", borderRadius: 20,
+          ...(chipStyle === "white" ? { background: "rgba(255,255,255,0.18)", color: "#fff" }
+            : chipStyle === "warn" ? { background: "#FFF2E8", color: "#C2550A" }
+            : { background: "#E6F5EE", color: "#15803D" }),
+          width: "fit-content"
+        }}>
+          {chip}
+        </div>
+      )}
     </div>
   );
 }
+
+const CustomTooltip = ({ active, payload, label }) => {
+  if (active && payload?.length) {
+    return (
+      <div style={{ background: "#fff", border: "1px solid #E2EBFF", borderRadius: 10, padding: "8px 14px", fontSize: 12, color: "#0F1F45", boxShadow: "0 4px 16px rgba(30,64,175,0.08)" }}>
+        <div style={{ fontWeight: 700 }}>{formatMoney(payload[0].value)}</div>
+        <div style={{ color: "#A0B3D6", fontSize: 10, marginTop: 2 }}>{label}</div>
+      </div>
+    );
+  }
+  return null;
+};
 
 export default function Dashboard() {
   const { t } = useLanguage();
@@ -58,142 +105,209 @@ export default function Dashboard() {
           apiRequest(`/reports/top-products?from=${monthISO()}-01&to=${todayISO()}`).then(r => r.data),
           apiRequest("/sales?limit=5").then(r => r.data),
           apiRequest("/credits/summary").then(r => r.data),
-          apiRequest("/products").then(r => r.data)
+          apiRequest("/products").then(r => r.data),
         ]);
         setState({ loading: false, data: { daily, profit, top, recent, credits, products } });
-      } catch (e) { console.error(e); }
+      } catch (e) {
+        console.error(e);
+        setState({ loading: false, data: null });
+      }
     }
     load();
   }, []);
 
   if (state.loading) return <LoadingState />;
+  if (!state.data) return <div style={{ padding: 40, color: "#6B87C4", textAlign: "center" }}>Could not load dashboard data.</div>;
 
   const { daily, profit, top, recent, credits, products } = state.data;
   const lowStock = products.filter(p => Number(p.quantity) <= Number(p.low_stock_threshold));
+  const todayRevenue = daily[daily.length - 1]?.total_revenue || 0;
+  const monthRevenue = profit?.revenue || 0;
+  const totalCredits = credits?.total_amount_owed || 0;
+  const netProfit = profit?.net_profit || 0;
+  const margin = monthRevenue > 0 ? Math.round((netProfit / monthRevenue) * 100) : 0;
+  const topTotal = (top || []).reduce((a, b) => a + b.revenue, 0);
+
+  const payChipStyle = (type) => {
+    const t = (type || "").toLowerCase();
+    if (t === "cash") return { background: "#E6F5EE", color: "#15803D" };
+    if (t === "credit") return { background: "#FFF2E8", color: "#C2550A" };
+    return { background: "#EEF2FF", color: "#1E40AF" };
+  };
 
   return (
-    <div className="min-h-screen bg-[#FAF7F2] p-4 lg:p-10 font-sans" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
-      
-      {/* 1. HEADER: Blue themed items on Cream */}
-      <header className="flex flex-col gap-6 mb-10">
-        <div className="flex items-center justify-between gap-4">
-          <div className="relative flex-1 max-w-sm">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-blue-400" size={16} />
-            <input 
-              className="w-full bg-white/80 backdrop-blur-md rounded-2xl py-3 pl-12 pr-4 shadow-inner border border-blue-100 outline-none focus:ring-2 focus:ring-blue-500 font-bold text-xs text-blue-900" 
-              placeholder={t("searchPlaceholder")} 
-            />
-          </div>
-          <div className="flex items-center gap-3">
-            <button onClick={() => navigate("/settings")} className="p-3 bg-white rounded-2xl shadow-lg shadow-blue-100/50 border border-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white transition-all"><Settings size={20}/></button>
-            
-            <div className="relative">
-              <button onClick={() => setShowNotifications(!showNotifications)} className="p-3 bg-white rounded-2xl shadow-lg shadow-blue-100/50 border border-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white transition-all">
-                <Bell size={20}/>
-                {lowStock.length > 0 && <span className="absolute top-3 right-3 w-2.5 h-2.5 bg-orange-500 rounded-full border-2 border-white"></span>}
-              </button>
-            </div>
+    <div style={{ background: "#F0F4FF", minHeight: "100vh", padding: "18px", fontFamily: "'Inter', 'Plus Jakarta Sans', sans-serif" }}>
 
-            <div onClick={() => navigate("/profile")} className="w-12 h-12 bg-blue-700 rounded-2xl flex items-center justify-center text-white font-black shadow-xl shadow-blue-300/50 cursor-pointer hover:bg-orange-500 transition-all">SA</div>
-          </div>
+      {/* Header */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20, gap: 12 }}>
+        <div style={{ position: "relative", flex: 1, maxWidth: 300 }}>
+          <Search size={14} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "#6B87C4" }} />
+          <input
+            style={{ width: "100%", background: "#fff", border: "1px solid #D6E0FF", borderRadius: 10, padding: "9px 14px 9px 36px", fontSize: 12, fontFamily: "inherit", color: "#1a2340", outline: "none" }}
+            placeholder={t("searchPlaceholder") || "Search products, sales…"}
+          />
         </div>
-
-        {/* Action Buttons with Blue & Orange punch */}
-        <div className="flex flex-row gap-3 overflow-x-auto no-scrollbar">
-          <button onClick={() => navigate("/sale")} className="flex-shrink-0 bg-blue-700 text-white px-8 py-3.5 rounded-2xl font-black text-xs shadow-xl shadow-blue-200 flex items-center gap-2 hover:bg-blue-800 transition-all"><Plus size={14} strokeWidth={4}/> {t("quickNewSale")}</button>
-          <button onClick={() => navigate("/inventory")} className="flex-shrink-0 bg-white text-blue-700 px-8 py-3.5 rounded-2xl font-black text-xs border-2 border-blue-100 shadow-md flex items-center gap-2 hover:border-blue-700 transition-all"><Plus size={14}/> {t("addProduct")}</button>
-          <button onClick={() => navigate("/reports")} className="flex-shrink-0 bg-orange-500 text-white px-8 py-3.5 rounded-2xl font-black text-xs shadow-xl shadow-orange-200 flex items-center gap-2 hover:bg-orange-600 transition-all"><Activity size={14}/> {t("viewReports")}</button>
-        </div>
-      </header>
-
-      {/* 2. CARDS: Blue and Orange Mix */}
-      <section className="grid gap-5 grid-cols-2 lg:grid-cols-4 mb-10">
-        <MetricCard title={t("todaySales")} value={daily[daily.length-1]?.total_revenue || 0} helper="Real-time volume" icon={ShoppingBag} featured />
-        <MetricCard title={t("totalRevenue")} value={profit?.revenue || 0} helper="Monthly gross" icon={DollarSign} color="#1E40AF" />
-        <MetricCard title={t("credits")} value={credits?.total_amount_owed || 0} helper="Outstanding Debt" icon={CreditCard} isOrange />
-        <MetricCard title={t("netProfit")} value={profit?.net_profit || 0} helper="Actual Earnings" icon={WalletCards} color="#10B981" />
-      </section>
-
-      {/* 3. CHARTS: High contrast blue on white-chocolate */}
-      <section className="grid gap-6 lg:grid-cols-2">
-        <div className="bg-white rounded-[2.5rem] p-8 shadow-xl shadow-blue-100/20 border border-blue-50">
-          <h3 className="text-[11px] font-black uppercase text-blue-800 tracking-widest mb-10">{t("totalRevenue")} Performance</h3>
-          <div className="h-[350px] lg:h-[400px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={daily}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
-                <XAxis dataKey="date" hide />
-                <Tooltip cursor={{fill: '#F1F5F9'}} contentStyle={{borderRadius: '20px', border: 'none', boxShadow: '0 20px 40px rgba(0,0,0,0.1)'}} />
-                <Bar dataKey="total_revenue" fill="#1E40AF" radius={[8, 8, 0, 0]} barSize={38} />
-              </BarChart>
-            </ResponsiveContainer>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <button onClick={() => navigate("/settings")} style={{ background: "#fff", border: "1px solid #D6E0FF", borderRadius: 10, width: 36, height: 36, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#2B5CE6" }}>
+            <Settings size={16} />
+          </button>
+          <div style={{ position: "relative" }}>
+            <button onClick={() => setShowNotifications(!showNotifications)} style={{ background: "#fff", border: "1px solid #D6E0FF", borderRadius: 10, width: 36, height: 36, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#2B5CE6" }}>
+              <Bell size={16} />
+            </button>
+            {lowStock.length > 0 && (
+              <span style={{ position: "absolute", top: 7, right: 7, width: 7, height: 7, background: "#F97316", borderRadius: "50%", border: "1.5px solid #fff" }} />
+            )}
+          </div>
+          <div onClick={() => navigate("/profile")} style={{ width: 36, height: 36, background: "#1E40AF", borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>
+            SA
           </div>
         </div>
+      </div>
 
-        <div className="bg-white rounded-[2.5rem] p-8 shadow-xl shadow-blue-100/20 border border-blue-50">
-          <h3 className="text-[11px] font-black uppercase text-blue-800 tracking-widest mb-10">{t("netProfit")} Growth</h3>
-          <div className="h-[350px] lg:h-[400px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={daily}>
-                <defs>
-                   <linearGradient id="colorOrange" x1="0" y1="0" x2="0" y2="1">
-                     <stop offset="5%" stopColor="#F97316" stopOpacity={0.1}/>
-                     <stop offset="95%" stopColor="#F97316" stopOpacity={0}/>
-                   </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
-                <XAxis dataKey="date" hide />
-                <Tooltip contentStyle={{borderRadius: '20px', border: 'none'}} />
-                <Area type="monotone" dataKey="total_revenue" stroke="#F97316" strokeWidth={5} fill="url(#colorOrange)" />
-              </AreaChart>
-            </ResponsiveContainer>
+      {/* Greeting */}
+      <div style={{ marginBottom: 16 }}>
+        <h1 style={{ fontSize: 18, fontWeight: 700, color: "#0F1F45", margin: 0 }}>Good morning 👋</h1>
+        <p style={{ fontSize: 12, color: "#6B87C4", marginTop: 3 }}>Here's your shop overview for today</p>
+      </div>
+
+      {/* Quick Actions */}
+      <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
+        {[
+          { label: t("quickNewSale") || "New Sale", path: "/sale", style: { background: "#1E40AF", color: "#fff", border: "none" } },
+          { label: t("addProduct") || "Add Product", path: "/inventory", style: { background: "#fff", color: "#1E40AF", border: "1.5px solid #D6E0FF" } },
+          { label: t("viewReports") || "View Reports", path: "/reports", style: { background: "#F97316", color: "#fff", border: "none" } },
+          { label: "Customers", path: "/credits", style: { background: "#fff", color: "#1E40AF", border: "1.5px solid #D6E0FF" } },
+        ].map(btn => (
+          <button
+            key={btn.path}
+            onClick={() => navigate(btn.path)}
+            style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "9px 0", borderRadius: 10, fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", transition: "opacity 0.15s", ...btn.style }}
+            onMouseEnter={e => e.currentTarget.style.opacity = "0.85"}
+            onMouseLeave={e => e.currentTarget.style.opacity = "1"}
+          >
+            <Plus size={12} /> {btn.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Metric Cards */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 20 }}>
+        <MetricCard title={t("todaySales") || "Today's Sales"} value={todayRevenue} sub="Live volume" icon={ShoppingBag} chip="↑ +12% vs yesterday" chipStyle="white" featured />
+        <MetricCard title={t("totalRevenue") || "Monthly Revenue"} value={monthRevenue} sub="Gross income" icon={DollarSign} chip="↑ +8% vs last month" chipStyle="green" />
+        <MetricCard title={t("credits") || "Outstanding Credits"} value={totalCredits} sub="Pending collection" icon={CreditCard} chip="⚠ 3 overdue" chipStyle="warn" orange />
+        <MetricCard title={t("netProfit") || "Net Profit"} value={netProfit} sub="Actual earnings" icon={Wallet} chip={`Margin ${margin}%`} chipStyle="green" />
+      </div>
+
+      {/* Charts Row */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 20 }}>
+        <div style={{ background: "#fff", border: "1px solid #E2EBFF", borderRadius: 14, padding: 18 }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+            <span style={{ fontSize: 12, fontWeight: 700, color: "#0F1F45" }}>{t("totalRevenue") || "Revenue"} Performance</span>
+            <span style={{ fontSize: 10, fontWeight: 600, background: "#EEF2FF", color: "#2B5CE6", padding: "3px 9px", borderRadius: 20 }}>This month</span>
           </div>
+          <ResponsiveContainer width="100%" height={180}>
+            <BarChart data={daily} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="4 4" vertical={false} stroke="#EEF2FF" />
+              <XAxis dataKey="date" hide />
+              <YAxis hide />
+              <Tooltip content={<CustomTooltip />} cursor={{ fill: "#F7F9FF" }} />
+              <Bar dataKey="total_revenue" fill="#1E40AF" radius={[6, 6, 0, 0]} barSize={28} />
+            </BarChart>
+          </ResponsiveContainer>
         </div>
-      </section>
 
-      {/* 4. DONUT & TABLE: Deep Blue Theme */}
-      <section className="grid gap-6 lg:grid-cols-3 mt-10">
-        <div className="bg-white rounded-[2.5rem] p-8 shadow-xl border border-blue-50 flex flex-col items-center">
-          <h3 className="text-[11px] font-black uppercase text-blue-800 tracking-widest mb-8 self-start">Product Distribution</h3>
-          <div className="h-64 w-full relative">
-            <ResponsiveContainer width="100%" height="100%">
+        <div style={{ background: "#fff", border: "1px solid #E2EBFF", borderRadius: 14, padding: 18 }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+            <span style={{ fontSize: 12, fontWeight: 700, color: "#0F1F45" }}>{t("netProfit") || "Profit"} Trend</span>
+            <span style={{ fontSize: 10, fontWeight: 600, background: "#FFF2E8", color: "#C2550A", padding: "3px 9px", borderRadius: 20 }}>30-day view</span>
+          </div>
+          <ResponsiveContainer width="100%" height={180}>
+            <AreaChart data={daily} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
+              <defs>
+                <linearGradient id="profitGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#F97316" stopOpacity={0.12} />
+                  <stop offset="95%" stopColor="#F97316" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="4 4" vertical={false} stroke="#EEF2FF" />
+              <XAxis dataKey="date" hide />
+              <YAxis hide />
+              <Tooltip content={<CustomTooltip />} />
+              <Area type="monotone" dataKey="total_revenue" stroke="#F97316" strokeWidth={2} fill="url(#profitGrad)" dot={{ r: 3, fill: "#F97316", strokeWidth: 0 }} />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
+      {/* Bottom Row: Donut + Table */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: 12 }}>
+
+        {/* Donut */}
+        <div style={{ background: "#fff", border: "1px solid #E2EBFF", borderRadius: 14, padding: 18 }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+            <span style={{ fontSize: 12, fontWeight: 700, color: "#0F1F45" }}>Top Products</span>
+            <span style={{ fontSize: 10, fontWeight: 600, background: "#EEF2FF", color: "#2B5CE6", padding: "3px 9px", borderRadius: 20 }}>by revenue</span>
+          </div>
+          <div style={{ position: "relative" }}>
+            <ResponsiveContainer width="100%" height={160}>
               <PieChart>
-                <Pie data={top?.slice(0,5)} dataKey="revenue" nameKey="product_name" innerRadius={80} outerRadius={105} paddingAngle={10}>
-                  {top?.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} stroke="none" />)}
+                <Pie data={top?.slice(0, 5)} dataKey="revenue" nameKey="product_name" innerRadius={55} outerRadius={75} paddingAngle={6}>
+                  {top?.slice(0, 5).map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} stroke="none" />)}
                 </Pie>
-                <Tooltip />
+                <Tooltip formatter={(v) => formatMoney(v)} />
               </PieChart>
             </ResponsiveContainer>
-            <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-              <span className="text-2xl font-black text-blue-900">${(top.reduce((a,b)=>a+b.revenue,0)/1000).toFixed(1)}k</span>
-              <span className="text-[10px] font-bold text-orange-500 uppercase">Top Sales</span>
+            <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", pointerEvents: "none" }}>
+              <span style={{ fontSize: 16, fontWeight: 700, color: "#0F1F45" }}>${(topTotal / 1000).toFixed(1)}k</span>
+              <span style={{ fontSize: 9, fontWeight: 700, color: "#F97316", textTransform: "uppercase", letterSpacing: "0.5px" }}>Top Sales</span>
             </div>
+          </div>
+          <div style={{ marginTop: 12 }}>
+            {COLORS.map((c, i) => (
+              <div key={i} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: "#6B87C4", marginBottom: 5 }}>
+                <span style={{ width: 8, height: 8, borderRadius: 2, background: c, flexShrink: 0 }} />
+                {top?.[i]?.product_name || "—"}
+              </div>
+            ))}
           </div>
         </div>
 
-        <div className="lg:col-span-2 bg-white rounded-[2.5rem] shadow-xl border border-blue-50 overflow-hidden">
-          <div className="p-8 border-b border-blue-50 flex justify-between items-center bg-blue-50/20">
-            <h3 className="text-lg font-black text-blue-900">{t("recentSales")}</h3>
-            <button onClick={() => navigate("/reports")} className="text-orange-600 font-black text-xs uppercase tracking-widest hover:text-blue-700 transition-colors">Full Report</button>
+        {/* Recent Sales Table */}
+        <div style={{ background: "#fff", border: "1px solid #E2EBFF", borderRadius: 14, overflow: "hidden" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "15px 18px", borderBottom: "1px solid #F0F4FF" }}>
+            <span style={{ fontSize: 12, fontWeight: 700, color: "#0F1F45" }}>{t("recentSales") || "Recent Sales"}</span>
+            <button onClick={() => navigate("/reports")} style={{ fontSize: 10, fontWeight: 600, color: "#F97316", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit" }}>
+              Full report →
+            </button>
           </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-white text-[10px] font-black uppercase text-blue-400 tracking-[0.2em]">
-                <tr><th className="px-8 py-5">Item</th><th className="px-8 py-5">Amount</th><th className="px-8 py-5 text-right">Payment</th></tr>
-              </thead>
-              <tbody className="divide-y divide-blue-50">
-                {recent?.map((s) => (
-                  <tr key={s.id} className="hover:bg-blue-50/50 transition-colors">
-                    <td className="px-8 py-6 font-bold text-slate-800">{s.product_name}</td>
-                    <td className="px-8 py-6 font-black text-blue-700">{formatMoney(s.total)}</td>
-                    <td className="px-8 py-6 text-right"><span className="bg-orange-50 text-orange-700 px-4 py-1.5 rounded-full text-[10px] font-black uppercase border border-orange-100">{s.payment_type}</span></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <thead>
+              <tr style={{ background: "#FAFBFF" }}>
+                <th style={{ fontSize: 9, fontWeight: 700, color: "#A0B3D6", textTransform: "uppercase", letterSpacing: "0.8px", padding: "10px 18px", textAlign: "left" }}>Product</th>
+                <th style={{ fontSize: 9, fontWeight: 700, color: "#A0B3D6", textTransform: "uppercase", letterSpacing: "0.8px", padding: "10px 18px", textAlign: "left" }}>Amount</th>
+                <th style={{ fontSize: 9, fontWeight: 700, color: "#A0B3D6", textTransform: "uppercase", letterSpacing: "0.8px", padding: "10px 18px", textAlign: "right" }}>Payment</th>
+              </tr>
+            </thead>
+            <tbody>
+              {recent?.map((s) => (
+                <tr key={s.id} style={{ borderTop: "1px solid #F0F4FF" }}
+                  onMouseEnter={e => e.currentTarget.style.background = "#F7F9FF"}
+                  onMouseLeave={e => e.currentTarget.style.background = ""}
+                >
+                  <td style={{ padding: "12px 18px", fontSize: 12, color: "#0F1F45", fontWeight: 500 }}>{s.product_name}</td>
+                  <td style={{ padding: "12px 18px", fontSize: 12, color: "#1E40AF", fontWeight: 700 }}>{formatMoney(s.total)}</td>
+                  <td style={{ padding: "12px 18px", textAlign: "right" }}>
+                    <span style={{ fontSize: 10, fontWeight: 700, padding: "3px 10px", borderRadius: 20, ...payChipStyle(s.payment_type) }}>
+                      {s.payment_type}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
-      </section>
+      </div>
     </div>
   );
 }
