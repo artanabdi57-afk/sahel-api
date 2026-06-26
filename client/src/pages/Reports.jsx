@@ -1,27 +1,23 @@
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState } from "react";
 import { 
   BarChart3, 
   Receipt as ReceiptIcon, 
   Trash2, 
   Trophy, 
   TrendingUp, 
-  TrendingDown, 
   ShoppingBag, 
   CreditCard, 
   Wallet,
-  ArrowUpRight
+  ArrowUpRight,
+  Package // Added this missing import to fix the error
 } from "lucide-react";
 import { 
   AreaChart, 
   Area, 
   XAxis, 
   YAxis, 
-  CartesianGrid, 
   Tooltip, 
-  ResponsiveContainer,
-  BarChart,
-  Bar,
-  Cell
+  ResponsiveContainer
 } from "recharts";
 import { apiRequest, formatMoney, todayISO } from "../lib/api";
 import { EmptyState } from "../components/AsyncState";
@@ -119,7 +115,6 @@ export default function Reports() {
 
   return (
     <div className="mx-auto max-w-7xl space-y-6 pb-10">
-      {/* HEADER CONTROLS */}
       <section className="flex flex-col gap-4 rounded-3xl bg-white p-6 shadow-sm border border-slate-100 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-black text-slate-900 tracking-tight">Business Intelligence</h1>
@@ -133,7 +128,6 @@ export default function Reports() {
         </div>
       </section>
 
-      {/* TOP ROW STATS (INTERACTIVE) */}
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <InteractiveStat label="Monthly Revenue" value={formatMoney(profit?.revenue)} helper={`${reportDate.slice(0, 7)} Summary`} icon={TrendingUp} colorClass="bg-blue-50 text-blue-600" delay={0} />
         <InteractiveStat label="Cost of Goods" value={formatMoney(profit?.cost_of_goods_sold)} helper="Inventory Costs" icon={Package} colorClass="bg-slate-100 text-slate-600" delay={100} />
@@ -141,7 +135,6 @@ export default function Reports() {
         <InteractiveStat label="Net Profit" value={formatMoney(profit?.net_profit)} helper="Real Earnings" icon={ArrowUpRight} colorClass="bg-emerald-50 text-emerald-600" delay={300} />
       </section>
 
-      {/* SECOND ROW STATS */}
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <InteractiveStat label="Transactions" value={dailySales.length} helper="Sales Count" icon={ReceiptIcon} colorClass="bg-purple-50 text-purple-600" delay={400} />
         <InteractiveStat label="Items Handled" value={totalItemsSold} helper="Total units sold" icon={ShoppingBag} colorClass="bg-orange-50 text-orange-600" delay={500} />
@@ -149,9 +142,7 @@ export default function Reports() {
         <InteractiveStat label="On Credit" value={formatMoney(creditRevenue)} helper="Pending Collection" icon={CreditCard} colorClass="bg-amber-50 text-amber-600" delay={700} />
       </section>
 
-      {/* MAIN CHART SECTION */}
       <section className="grid gap-6 xl:grid-cols-2">
-        {/* REVENUE PITCH GRAPH */}
         <div className="rounded-3xl border border-slate-100 bg-white p-6 shadow-sm transition-all hover:shadow-md">
           <div className="mb-6 flex items-center justify-between">
             <h2 className="text-lg font-black text-slate-900">Revenue Pitch (7 Days)</h2>
@@ -177,7 +168,6 @@ export default function Reports() {
           </div>
         </div>
 
-        {/* TOP PRODUCTS PROGRESS */}
         <div className="rounded-3xl border border-slate-100 bg-white p-6 shadow-sm transition-all hover:shadow-md">
           <div className="mb-6 flex items-center gap-2">
             <Trophy className="h-5 w-5 text-blue-600" />
@@ -205,7 +195,6 @@ export default function Reports() {
         </div>
       </section>
 
-      {/* SALES TABLE PANEL */}
       <section className="rounded-3xl border border-slate-100 bg-white overflow-hidden shadow-sm">
         <div className="flex flex-col gap-4 border-b border-slate-50 p-6 sm:flex-row sm:items-center sm:justify-between bg-slate-50/30">
           <div>
