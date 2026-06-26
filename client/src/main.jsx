@@ -41,6 +41,7 @@ const router = createBrowserRouter([
   { path: "/admin", element: lazyPage(<Admin />) },
   { path: "/auth/callback", element: lazyPage(<AuthCallback />) },
   { path: "/forgot-password", element: lazyPage(<ForgotPassword />) },
+  { path: "/staff-login", element: lazyPage(<StaffLogin />) },
   { path: "/reset-password", element: lazyPage(<ResetPassword />) },
   {
     path: "/",
