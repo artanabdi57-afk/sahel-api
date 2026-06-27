@@ -1,410 +1,284 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { AlertTriangle, Check, CheckCircle2, ChevronDown, ChevronRight, CreditCard, Phone, Plus, Search, X } from "lucide-react";
+import {
+  AlertTriangle, Check, CheckCircle2, ChevronDown, ChevronRight,
+  CreditCard, Phone, Plus, Search, X
+} from "lucide-react";
 import { apiRequest, formatMoney } from "../lib/api";
 import { EmptyState, ErrorState, LoadingState } from "../components/AsyncState";
+import { useLanguage } from "../lib/LanguageContext";
 
+// ── Helpers ────────────────────────────────────────────────────────────────────
 function getCustomerKey(credit) {
   return `${credit.customer_name || "Unknown customer"}|${credit.customer_phone || "N/A"}`.toLowerCase();
 }
-
 function formatDateTime(value) {
-  if (!value) return "Not recorded";
-  return new Date(value).toLocaleString("en", {
-    month: "long",
-    day: "numeric",
-    year: "numeric",
-    hour: "numeric",
-    minute: "2-digit"
-  });
+  if (!value) return "—";
+  return new Date(value).toLocaleString("en", { month: "long", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" });
 }
-
 function formatShortDate(value) {
-  if (!value) return "Unknown date";
-  return new Date(value).toLocaleString("en", { month: "long", day: "numeric" });
+  if (!value) return "—";
+  return new Date(value).toLocaleString("en", { month: "short", day: "numeric" });
 }
-
-function paymentLabel(method) {
-  return method === "bank" ? "Bank Transfer" : "Cash";
+function paymentLabel(method, t) {
+  return method === "bank" ? t.bankTransfer : t.cash;
 }
 
 function buildCustomers(credits, search) {
   const groups = new Map();
-
   credits.forEach((credit) => {
     const key = getCustomerKey(credit);
     const existing = groups.get(key) || {
       key,
       customer_name: credit.customer_name || "Unknown customer",
       customer_phone: credit.customer_phone || "N/A",
-      credits: [],
-      items: [],
-      payments: [],
-      total_amount_owed: 0,
-      total_original_amount: 0,
-      total_paid: 0,
-      latest_date: credit.created_at,
-      paid_on: null,
-      status: "unpaid",
-      has_overdue: false,
-      max_days_outstanding: 0
+      credits: [], items: [], payments: [],
+      total_amount_owed: 0, total_original_amount: 0, total_paid: 0,
+      latest_date: credit.created_at, paid_on: null, status: "unpaid",
+      has_overdue: false, max_days_outstanding: 0
     };
-
     const creditPayments = credit.payments || [];
-    const itemAmount = (credit.items || []).reduce((sum, item) => sum + Number(item.amount || 0), 0);
-
+    const itemAmount = (credit.items || []).reduce((s, i) => s + Number(i.amount || 0), 0);
     existing.credits.push(credit);
-    existing.payments.push(...creditPayments.map((payment) => ({ ...payment, credit })));
+    existing.payments.push(...creditPayments.map((p) => ({ ...p, credit })));
     existing.total_amount_owed += Number(credit.amount_owed || 0);
     existing.total_original_amount += itemAmount;
     existing.total_paid += Number(credit.total_paid || 0);
-
     if (credit.is_overdue) existing.has_overdue = true;
-    if (Number(credit.days_outstanding || 0) > existing.max_days_outstanding) {
+    if (Number(credit.days_outstanding || 0) > existing.max_days_outstanding)
       existing.max_days_outstanding = Number(credit.days_outstanding || 0);
-    }
-
     (credit.items || []).forEach((item) => {
       existing.items.push({
-        credit_id: credit.id,
-        credit_status: credit.status,
+        credit_id: credit.id, credit_status: credit.status,
         product_name: item.product_name || "Unknown product",
-        quantity: Number(item.quantity || 1),
-        amount: Number(item.amount || 0),
-        remaining: Number(credit.amount_owed || 0),
-        date: credit.created_at,
-        paid_on: credit.paid_on,
-        payments: creditPayments,
-        is_overdue: credit.is_overdue,
-        days_outstanding: credit.days_outstanding
+        quantity: Number(item.quantity || 1), amount: Number(item.amount || 0),
+        remaining: Number(credit.amount_owed || 0), date: credit.created_at,
+        paid_on: credit.paid_on, payments: creditPayments,
+        is_overdue: credit.is_overdue, days_outstanding: credit.days_outstanding
       });
     });
-
-    if (credit.created_at && (!existing.latest_date || new Date(credit.created_at) > new Date(existing.latest_date))) {
+    if (credit.created_at && (!existing.latest_date || new Date(credit.created_at) > new Date(existing.latest_date)))
       existing.latest_date = credit.created_at;
-    }
-
-    if (credit.paid_on && (!existing.paid_on || new Date(credit.paid_on) > new Date(existing.paid_on))) {
+    if (credit.paid_on && (!existing.paid_on || new Date(credit.paid_on) > new Date(existing.paid_on)))
       existing.paid_on = credit.paid_on;
-    }
-
     groups.set(key, existing);
   });
-
   const query = search.trim().toLowerCase();
   return [...groups.values()]
-    .map((customer) => {
-      const allPaid = customer.credits.length > 0 && customer.credits.every((credit) => credit.status === "paid");
-      const hasPartial = customer.credits.some((credit) => credit.status === "partial");
-      return {
-        ...customer,
-        payments: customer.payments.sort((a, b) => new Date(a.payment_date || 0) - new Date(b.payment_date || 0)),
-        status: allPaid ? "paid" : hasPartial ? "partial" : "unpaid"
-      };
+    .map((c) => {
+      const allPaid = c.credits.length > 0 && c.credits.every((cr) => cr.status === "paid");
+      const hasPartial = c.credits.some((cr) => cr.status === "partial");
+      return { ...c, payments: c.payments.sort((a, b) => new Date(a.payment_date || 0) - new Date(b.payment_date || 0)), status: allPaid ? "paid" : hasPartial ? "partial" : "unpaid" };
     })
-    .filter((customer) => {
-      if (!query) return true;
-      return customer.customer_name.toLowerCase().includes(query) || customer.customer_phone.toLowerCase().includes(query);
-    })
-    .sort((a, b) => {
-      // Overdue customers float to the top
-      if (a.has_overdue && !b.has_overdue) return -1;
-      if (!a.has_overdue && b.has_overdue) return 1;
-      return a.customer_name.localeCompare(b.customer_name);
-    });
+    .filter((c) => !query || c.customer_name.toLowerCase().includes(query) || c.customer_phone.toLowerCase().includes(query))
+    .sort((a, b) => { if (a.has_overdue && !b.has_overdue) return -1; if (!a.has_overdue && b.has_overdue) return 1; return a.customer_name.localeCompare(b.customer_name); });
 }
 
-function OverdueBadge({ days }) {
+// ── Styles ─────────────────────────────────────────────────────────────────────
+const card = { background: "#fff", border: "1px solid #E2EBFF", borderRadius: 16, overflow: "hidden" };
+const cardOverdue = { ...card, border: "1px solid #FECACA" };
+const labelSm = { fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.8px", color: "#6B87C4" };
+const inputStyle = { width: "100%", background: "#F7F9FF", border: "1px solid #E2EBFF", borderRadius: 10, padding: "10px 14px", fontSize: 13, fontFamily: "inherit", color: "#0F1F45", outline: "none", boxSizing: "border-box" };
+const orangeBtn = { display: "inline-flex", alignItems: "center", gap: 6, padding: "10px 18px", borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", background: "#F97316", color: "#fff", border: "none" };
+const outlineBtn = { ...orangeBtn, background: "#fff", color: "#1E40AF", border: "1.5px solid #D6E0FF" };
+const blueBtn = { ...orangeBtn, background: "#1E40AF" };
+
+// ── Sub-components ──────────────────────────────────────────────────────────────
+function StatusBadge({ status, t }) {
+  const styles = {
+    paid: { background: "#ECFDF5", color: "#065F46" },
+    partial: { background: "#FFFBEB", color: "#92400E" },
+    unpaid: { background: "#FEF2F2", color: "#991B1B" },
+  };
+  const labels = { paid: t.paid, partial: "Partial", unpaid: t.open };
+  const s = styles[status] || styles.unpaid;
+  return <span style={{ ...s, fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.6px", padding: "3px 10px", borderRadius: 20 }}>{labels[status]}</span>;
+}
+
+function OverdueBadge({ days, t }) {
   return (
-    <span className="inline-flex items-center gap-1 rounded-full bg-rose-50 px-3 py-1 text-xs font-black uppercase text-rose-700">
-      <AlertTriangle className="h-3.5 w-3.5" />
-      Overdue - {days}d
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 4, background: "#FEF2F2", color: "#B91C1C", fontSize: 10, fontWeight: 700, textTransform: "uppercase", padding: "3px 10px", borderRadius: 20 }}>
+      <AlertTriangle style={{ width: 11, height: 11 }} />
+      {t.overdueLabel} {days}d
     </span>
   );
 }
 
-function PaymentTimeline({ payments, remaining, compact = false }) {
-  if (!payments.length) {
-    return <p className="text-sm font-medium text-slate-400">No payments recorded yet.</p>;
-  }
-
+function PaymentTimeline({ payments, remaining, t }) {
+  if (!payments.length) return <p style={{ fontSize: 13, color: "#A0B3D6" }}>{t.noPayments}</p>;
   return (
-    <div className="space-y-2">
-      {payments.map((payment) => (
-        <div key={payment.id} className={compact ? "text-sm text-slate-600" : "rounded-lg bg-slate-50 p-3 text-sm"}>
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <p className="font-bold text-slate-950">
-              {compact ? formatShortDate(payment.payment_date) : formatDateTime(payment.payment_date)}
-            </p>
-            <p className="font-black text-green-700">paid {formatMoney(payment.amount_paid)}</p>
+    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+      {payments.map((p) => (
+        <div key={p.id} style={{ background: "#F7F9FF", borderRadius: 10, padding: "10px 12px" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+            <span style={{ fontSize: 12, fontWeight: 700, color: "#0F1F45" }}>{formatShortDate(p.payment_date)}</span>
+            <span style={{ fontSize: 13, fontWeight: 700, color: "#15803D" }}>+{formatMoney(p.amount_paid)}</span>
           </div>
-          <p className="mt-1 text-xs font-semibold text-slate-500">
-            {paymentLabel(payment.payment_method)}
-            {payment.notes ? ` - ${payment.notes}` : ""}
-          </p>
+          <p style={{ fontSize: 11, color: "#6B87C4", marginTop: 2 }}>{paymentLabel(p.payment_method, t)}{p.notes ? ` · ${p.notes}` : ""}</p>
         </div>
       ))}
-      {typeof remaining === "number" ? (
-        <p className="pt-1 text-sm font-black text-blue-700">Remaining: {formatMoney(remaining)}</p>
-      ) : null}
+      {typeof remaining === "number" && (
+        <div style={{ background: "#EEF2FF", borderRadius: 10, padding: "8px 12px", display: "flex", justifyContent: "space-between" }}>
+          <span style={{ fontSize: 12, fontWeight: 700, color: "#1E40AF" }}>{t.remaining}</span>
+          <span style={{ fontSize: 13, fontWeight: 700, color: "#1E40AF" }}>{formatMoney(remaining)}</span>
+        </div>
+      )}
     </div>
   );
 }
 
-function PaymentModal({ paymentTarget, onClose, onSaved }) {
-  if (!paymentTarget || !paymentTarget.customer) return null;
-
+function PaymentModal({ paymentTarget, onClose, onSaved, t }) {
+  if (!paymentTarget?.customer) return null;
   const customer = paymentTarget.customer;
-  const mode = paymentTarget?.mode || "partial";
-  const targetCreditId = paymentTarget?.creditId || null;
+  const mode = paymentTarget.mode || "partial";
+  const targetCreditId = paymentTarget.creditId || null;
   const targetCredits = targetCreditId
-    ? (customer.credits || []).filter((credit) => credit.id === targetCreditId)
-    : (customer.credits || []).filter((credit) => credit.status !== "paid");
-  const amountDue = targetCredits.reduce((sum, credit) => sum + Number(credit.amount_owed || 0), 0);
-  const payments = targetCreditId
-    ? (customer.payments || []).filter((payment) => payment.credit_id === targetCreditId)
-    : (customer.payments || []);
+    ? customer.credits.filter((c) => c.id === targetCreditId)
+    : customer.credits.filter((c) => c.status !== "paid");
+  const amountDue = targetCredits.reduce((s, c) => s + Number(c.amount_owed || 0), 0);
+  const payments = targetCreditId ? customer.payments.filter((p) => p.credit_id === targetCreditId) : customer.payments;
 
-  const [form, setForm] = useState({
-    amount_paid: mode === "full" ? String(amountDue) : "",
-    payment_method: "cash",
-    notes: ""
-  });
+  const [form, setForm] = useState({ amount_paid: mode === "full" ? String(amountDue) : "", payment_method: "cash", notes: "" });
   const [status, setStatus] = useState({ saving: false, error: "", success: "" });
 
-  async function savePayment(event) {
-    event.preventDefault();
-    let remainingPayment = Number(form.amount_paid);
-
-    if (!remainingPayment || remainingPayment <= 0) {
-      setStatus({ saving: false, error: "Enter a payment amount greater than 0.", success: "" });
-      return;
-    }
-
+  async function savePayment(e) {
+    e.preventDefault();
+    let remaining = Number(form.amount_paid);
+    if (!remaining || remaining <= 0) { setStatus({ saving: false, error: t.enterPaymentError, success: "" }); return; }
     setStatus({ saving: true, error: "", success: "" });
-
     try {
-      let lastPaymentDate = new Date().toISOString();
-      const orderedCredits = [...targetCredits].sort((a, b) => new Date(a.created_at || 0) - new Date(b.created_at || 0));
-
-      for (const credit of orderedCredits) {
-        if (remainingPayment <= 0) break;
-        const owed = Number(credit.amount_owed || 0);
-        const amountForCredit = Math.min(remainingPayment, owed);
-        if (amountForCredit <= 0) continue;
-
-        const endpoint = amountForCredit >= owed ? `/credits/${credit.id}/paid` : `/credits/${credit.id}/partial`;
-        const response = await apiRequest(endpoint, {
-          method: "PUT",
-          body: JSON.stringify({
-            amount_paid: amountForCredit,
-            payment_method: form.payment_method,
-            notes: form.notes
-          })
-        });
-
-        lastPaymentDate = response.data?.payment?.payment_date || lastPaymentDate;
-        remainingPayment -= amountForCredit;
+      const ordered = [...targetCredits].sort((a, b) => new Date(a.created_at || 0) - new Date(b.created_at || 0));
+      let lastDate = new Date().toISOString();
+      for (const c of ordered) {
+        if (remaining <= 0) break;
+        const owed = Number(c.amount_owed || 0);
+        const amount = Math.min(remaining, owed);
+        if (amount <= 0) continue;
+        const endpoint = amount >= owed ? `/credits/${c.id}/paid` : `/credits/${c.id}/partial`;
+        const res = await apiRequest(endpoint, { method: "PUT", body: JSON.stringify({ amount_paid: amount, payment_method: form.payment_method, notes: form.notes }) });
+        lastDate = res.data?.payment?.payment_date || lastDate;
+        remaining -= amount;
       }
-
-      setStatus({
-        saving: false,
-        error: "",
-        success: `Payment recorded on ${formatDateTime(lastPaymentDate)}`
-      });
+      setStatus({ saving: false, error: "", success: `✓ ${t.savePayment}` });
       await onSaved();
-      setTimeout(onClose, 900);
-    } catch (error) {
-      setStatus({ saving: false, error: error.message, success: "" });
-    }
+      setTimeout(onClose, 800);
+    } catch (err) { setStatus({ saving: false, error: err.message, success: "" }); }
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-4">
-      <div className="max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-2xl bg-white shadow-2xl">
-        <div className="flex items-start justify-between border-b border-slate-100 p-5">
+    <div style={{ position: "fixed", inset: 0, zIndex: 200, background: "rgba(15,31,69,0.45)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
+      <div style={{ background: "#fff", borderRadius: 20, width: "100%", maxWidth: 480, maxHeight: "90vh", overflowY: "auto", boxShadow: "0 24px 64px rgba(15,31,69,0.18)" }}>
+        {/* Modal header */}
+        <div style={{ background: "#1E40AF", borderRadius: "20px 20px 0 0", padding: "18px 20px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <div>
-            <h3 className="text-xl font-black text-slate-950">
-              {mode === "full" ? "Mark as Paid" : "Partial Payment"}
-            </h3>
-            <p className="mt-1 text-sm font-semibold text-slate-500">{customer.customer_name}</p>
+            <p style={{ fontSize: 16, fontWeight: 700, color: "#fff" }}>{mode === "full" ? t.markAsPaid : t.partialPayment}</p>
+            <p style={{ fontSize: 12, color: "rgba(255,255,255,0.65)", marginTop: 2 }}>{customer.customer_name}</p>
           </div>
-          <button className="rounded-lg p-2 text-slate-400 hover:bg-slate-100" onClick={onClose}>
-            <X className="h-5 w-5" />
+          <button onClick={onClose} style={{ background: "rgba(255,255,255,0.15)", border: "none", borderRadius: 8, width: 32, height: 32, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#fff" }}>
+            <X style={{ width: 16, height: 16 }} />
           </button>
         </div>
 
-        <form onSubmit={savePayment} className="space-y-5 p-5">
-          <section>
-            <p className="mb-2 text-sm font-black text-slate-950">Payment history</p>
-            <PaymentTimeline payments={payments} remaining={amountDue} />
-          </section>
-
-          <div className="rounded-xl border border-blue-100 bg-blue-50 p-4">
-            <p className="text-sm font-bold text-slate-600">Amount due</p>
-            <p className="mt-1 text-2xl font-black text-blue-700">{formatMoney(amountDue)}</p>
+        <div style={{ padding: 20, display: "flex", flexDirection: "column", gap: 16 }}>
+          {/* Amount due */}
+          <div style={{ background: "#FFF7ED", border: "1px solid #FDCBA4", borderRadius: 12, padding: "12px 16px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <span style={{ fontSize: 12, fontWeight: 600, color: "#C2550A" }}>{t.amountDue}</span>
+            <span style={{ fontSize: 20, fontWeight: 700, color: "#F97316" }}>{formatMoney(amountDue)}</span>
           </div>
 
-          <label className="block">
-            <span className="text-sm font-bold text-slate-700">Amount being paid now</span>
-            <input
-              className="field mt-2"
-              type="number"
-              min="0.01"
-              step="0.01"
-              value={form.amount_paid}
-              onChange={(event) => setForm({ ...form, amount_paid: event.target.value })}
-              required
-            />
-          </label>
+          {/* Payment history */}
+          {payments.length > 0 && (
+            <div>
+              <p style={{ ...labelSm, marginBottom: 8 }}>{t.paymentTimeline}</p>
+              <PaymentTimeline payments={payments} t={t} />
+            </div>
+          )}
 
-          <label className="block">
-            <span className="text-sm font-bold text-slate-700">Payment method</span>
-            <select
-              className="field mt-2"
-              value={form.payment_method}
-              onChange={(event) => setForm({ ...form, payment_method: event.target.value })}
-            >
-              <option value="cash">Cash</option>
-              <option value="bank">Bank Transfer</option>
-            </select>
-          </label>
-
-          <label className="block">
-            <span className="text-sm font-bold text-slate-700">Notes optional</span>
-            <textarea
-              className="field mt-2 min-h-[90px]"
-              value={form.notes}
-              onChange={(event) => setForm({ ...form, notes: event.target.value })}
-              placeholder="Example: paid by bank transfer receipt"
-            />
-          </label>
-
-          {status.error ? <p className="rounded-lg bg-rose-50 p-3 text-sm font-bold text-rose-700">{status.error}</p> : null}
-          {status.success ? <p className="rounded-lg bg-green-50 p-3 text-sm font-bold text-green-700">{status.success}</p> : null}
-
-          <button className="btn-primary w-full" disabled={status.saving}>
-            <Check className="h-4 w-4" />
-            {status.saving ? "Saving..." : "Save payment"}
-          </button>
-        </form>
+          {/* Form */}
+          <form onSubmit={savePayment} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+            <div>
+              <label style={{ ...labelSm, display: "block", marginBottom: 6 }}>{t.amountPaidNow}</label>
+              <input style={inputStyle} type="number" min="0.01" step="0.01" value={form.amount_paid} onChange={(e) => setForm({ ...form, amount_paid: e.target.value })} required />
+            </div>
+            <div>
+              <label style={{ ...labelSm, display: "block", marginBottom: 6 }}>{t.paymentMethod}</label>
+              <select style={inputStyle} value={form.payment_method} onChange={(e) => setForm({ ...form, payment_method: e.target.value })}>
+                <option value="cash">{t.cash}</option>
+                <option value="bank">{t.bankTransfer}</option>
+              </select>
+            </div>
+            <div>
+              <label style={{ ...labelSm, display: "block", marginBottom: 6 }}>{t.notesOptional}</label>
+              <textarea style={{ ...inputStyle, minHeight: 72, resize: "vertical" }} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
+            </div>
+            {status.error && <p style={{ background: "#FEF2F2", borderRadius: 8, padding: "10px 14px", fontSize: 13, color: "#B91C1C", fontWeight: 500 }}>{status.error}</p>}
+            {status.success && <p style={{ background: "#ECFDF5", borderRadius: 8, padding: "10px 14px", fontSize: 13, color: "#065F46", fontWeight: 500 }}>{status.success}</p>}
+            <button style={{ ...orangeBtn, justifyContent: "center", padding: "12px 0", width: "100%", fontSize: 14 }} disabled={status.saving}>
+              <Check style={{ width: 16, height: 16 }} />
+              {status.saving ? t.saving : t.savePayment}
+            </button>
+          </form>
+        </div>
       </div>
     </div>
   );
 }
 
-function GiveMoneyModal({ open, onClose, onSaved }) {
+function GiveMoneyModal({ open, onClose, onSaved, t }) {
   const [form, setForm] = useState({ customer_name: "", customer_phone: "", amount_owed: "", notes: "" });
   const [status, setStatus] = useState({ saving: false, error: "", success: "" });
 
   useEffect(() => {
-    if (open) {
-      setForm({ customer_name: "", customer_phone: "", amount_owed: "", notes: "" });
-      setStatus({ saving: false, error: "", success: "" });
-    }
+    if (open) { setForm({ customer_name: "", customer_phone: "", amount_owed: "", notes: "" }); setStatus({ saving: false, error: "", success: "" }); }
   }, [open]);
 
   if (!open) return null;
 
-  async function saveDebt(event) {
-    event.preventDefault();
-
-    if (!form.customer_name.trim()) {
-      setStatus({ saving: false, error: "Enter the person's name.", success: "" });
-      return;
-    }
+  async function saveDebt(e) {
+    e.preventDefault();
+    if (!form.customer_name.trim()) { setStatus({ saving: false, error: t.enterNameError, success: "" }); return; }
     const amount = Number(form.amount_owed);
-    if (!amount || amount <= 0) {
-      setStatus({ saving: false, error: "Enter an amount greater than 0.", success: "" });
-      return;
-    }
-
+    if (!amount || amount <= 0) { setStatus({ saving: false, error: t.enterAmountError, success: "" }); return; }
     setStatus({ saving: true, error: "", success: "" });
-
     try {
-      await apiRequest("/credits", {
-        method: "POST",
-        body: JSON.stringify({
-          customer_name: form.customer_name.trim(),
-          customer_phone: form.customer_phone.trim(),
-          amount_owed: amount,
-          notes: form.notes.trim()
-        })
-      });
-
-      setStatus({ saving: false, error: "", success: "Debt recorded successfully." });
+      await apiRequest("/credits", { method: "POST", body: JSON.stringify({ customer_name: form.customer_name.trim(), customer_phone: form.customer_phone.trim(), amount_owed: amount, notes: form.notes.trim() }) });
+      setStatus({ saving: false, error: "", success: t.debtRecorded });
       await onSaved();
       setTimeout(onClose, 700);
-    } catch (error) {
-      setStatus({ saving: false, error: error.message, success: "" });
-    }
+    } catch (err) { setStatus({ saving: false, error: err.message, success: "" }); }
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-4">
-      <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white shadow-2xl">
-        <div className="flex items-start justify-between border-b border-slate-100 p-5">
+    <div style={{ position: "fixed", inset: 0, zIndex: 200, background: "rgba(15,31,69,0.45)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
+      <div style={{ background: "#fff", borderRadius: 20, width: "100%", maxWidth: 440, maxHeight: "90vh", overflowY: "auto", boxShadow: "0 24px 64px rgba(15,31,69,0.18)" }}>
+        <div style={{ background: "#1E40AF", borderRadius: "20px 20px 0 0", padding: "18px 20px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <div>
-            <h3 className="text-xl font-black text-slate-950">Record Money Given</h3>
-            <p className="mt-1 text-sm font-semibold text-slate-500">Track cash you gave someone that they owe back</p>
+            <p style={{ fontSize: 16, fontWeight: 700, color: "#fff" }}>{t.recordMoneyGiven}</p>
+            <p style={{ fontSize: 12, color: "rgba(255,255,255,0.65)", marginTop: 2 }}>{t.recordMoneyGivenSub}</p>
           </div>
-          <button className="rounded-lg p-2 text-slate-400 hover:bg-slate-100" onClick={onClose}>
-            <X className="h-5 w-5" />
+          <button onClick={onClose} style={{ background: "rgba(255,255,255,0.15)", border: "none", borderRadius: 8, width: 32, height: 32, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#fff" }}>
+            <X style={{ width: 16, height: 16 }} />
           </button>
         </div>
-
-        <form onSubmit={saveDebt} className="space-y-5 p-5">
-          <label className="block">
-            <span className="text-sm font-bold text-slate-700">Person's name</span>
-            <input
-              className="field mt-2"
-              type="text"
-              value={form.customer_name}
-              onChange={(event) => setForm({ ...form, customer_name: event.target.value })}
-              placeholder="Example: Ahmed Ali"
-              required
-            />
-          </label>
-
-          <label className="block">
-            <span className="text-sm font-bold text-slate-700">Phone number optional</span>
-            <input
-              className="field mt-2"
-              type="text"
-              value={form.customer_phone}
-              onChange={(event) => setForm({ ...form, customer_phone: event.target.value })}
-              placeholder="Example: 615738632"
-            />
-          </label>
-
-          <label className="block">
-            <span className="text-sm font-bold text-slate-700">Amount given</span>
-            <input
-              className="field mt-2"
-              type="number"
-              min="0.01"
-              step="0.01"
-              value={form.amount_owed}
-              onChange={(event) => setForm({ ...form, amount_owed: event.target.value })}
-              required
-            />
-          </label>
-
-          <label className="block">
-            <span className="text-sm font-bold text-slate-700">Notes optional</span>
-            <textarea
-              className="field mt-2 min-h-[90px]"
-              value={form.notes}
-              onChange={(event) => setForm({ ...form, notes: event.target.value })}
-              placeholder="Example: lent for school fees, will repay end of month"
-            />
-          </label>
-
-          {status.error ? <p className="rounded-lg bg-rose-50 p-3 text-sm font-bold text-rose-700">{status.error}</p> : null}
-          {status.success ? <p className="rounded-lg bg-green-50 p-3 text-sm font-bold text-green-700">{status.success}</p> : null}
-
-          <button className="btn-primary w-full" disabled={status.saving}>
-            <Plus className="h-4 w-4" />
-            {status.saving ? "Saving..." : "Record debt"}
+        <form onSubmit={saveDebt} style={{ padding: 20, display: "flex", flexDirection: "column", gap: 14 }}>
+          {[
+            { key: "customer_name", label: t.personName, type: "text", placeholder: "Ahmed Ali" },
+            { key: "customer_phone", label: `${t.customerPhone} (${t.notesOptional})`, type: "text", placeholder: "615738632" },
+            { key: "amount_owed", label: t.amountGiven, type: "number", placeholder: "0.00" },
+          ].map(({ key, label, type, placeholder }) => (
+            <div key={key}>
+              <label style={{ ...labelSm, display: "block", marginBottom: 6 }}>{label}</label>
+              <input style={inputStyle} type={type} placeholder={placeholder} value={form[key]} onChange={(e) => setForm({ ...form, [key]: e.target.value })} />
+            </div>
+          ))}
+          <div>
+            <label style={{ ...labelSm, display: "block", marginBottom: 6 }}>{t.notesOptional}</label>
+            <textarea style={{ ...inputStyle, minHeight: 72, resize: "vertical" }} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
+          </div>
+          {status.error && <p style={{ background: "#FEF2F2", borderRadius: 8, padding: "10px 14px", fontSize: 13, color: "#B91C1C" }}>{status.error}</p>}
+          {status.success && <p style={{ background: "#ECFDF5", borderRadius: 8, padding: "10px 14px", fontSize: 13, color: "#065F46" }}>{status.success}</p>}
+          <button style={{ ...orangeBtn, justifyContent: "center", padding: "12px 0", width: "100%", fontSize: 14 }} disabled={status.saving}>
+            <Plus style={{ width: 16, height: 16 }} />
+            {status.saving ? t.saving : t.recordDebt}
           </button>
         </form>
       </div>
@@ -412,7 +286,9 @@ function GiveMoneyModal({ open, onClose, onSaved }) {
   );
 }
 
+// ── Main Credits Page ──────────────────────────────────────────────────────────
 export default function Credits() {
+  const { t, dir } = useLanguage();
   const [credits, setCredits] = useState([]);
   const [filter, setFilter] = useState("open");
   const [search, setSearch] = useState("");
@@ -423,248 +299,208 @@ export default function Credits() {
 
   async function loadCredits(nextFilter = filter) {
     setStatus({ loading: true, error: "" });
-
     try {
-      const response = await apiRequest(`/credits?status=${nextFilter}`);
-      setCredits(response.data || []);
+      const res = await apiRequest(`/credits?status=${nextFilter}`);
+      setCredits(res.data || []);
       setStatus({ loading: false, error: "" });
-    } catch (error) {
-      setStatus({ loading: false, error: error.message });
-    }
+    } catch (err) { setStatus({ loading: false, error: err.message }); }
   }
 
-  useEffect(() => {
-    loadCredits(filter);
-  }, [filter]);
+  useEffect(() => { loadCredits(filter); }, [filter]);
 
   const customers = useMemo(() => buildCustomers(credits, search), [credits, search]);
-  const totalAmountOwed = customers.reduce((sum, customer) => sum + customer.total_amount_owed, 0);
-  const overdueCustomers = customers.filter((customer) => customer.has_overdue);
-  const overdueTotal = overdueCustomers.reduce((sum, customer) => sum + customer.total_amount_owed, 0);
-
-  function openPaymentModal(customer, mode, creditId = null) {
-    setPaymentTarget({ customer, mode, creditId });
-  }
+  const totalAmountOwed = customers.reduce((s, c) => s + c.total_amount_owed, 0);
+  const overdueCustomers = customers.filter((c) => c.has_overdue);
+  const overdueTotal = overdueCustomers.reduce((s, c) => s + c.total_amount_owed, 0);
 
   if (status.loading) return <LoadingState />;
 
+  const FILTERS = [["open", t.open], ["overdue", t.overdue], ["paid", t.paid], ["all", t.all]];
+
   return (
-    <div className="space-y-5">
-      <section className="panel p-5">
-        <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-          <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
-              <CreditCard className="h-5 w-5" />
-            </div>
-            <div>
-              <h2 className="text-base font-bold text-slate-950">Customer Credits</h2>
-              <p className="text-sm font-medium text-slate-500">Track debt, payments, and paid history.</p>
-            </div>
-          </div>
+    <div dir={dir} style={{ background: "#F0F4FF", minHeight: "100vh", fontFamily: "'Inter', 'Plus Jakarta Sans', sans-serif", padding: "16px" }}>
 
-          <div className="flex w-full flex-col gap-3 lg:flex-row lg:items-center xl:max-w-4xl">
-            <label className="relative flex-1">
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-              <input
-                className="field pl-10"
-                placeholder="Search customer name or phone"
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-              />
-            </label>
-            <div className="flex rounded-xl border border-slate-200 bg-white p-1">
-              {[
-                ["open", "Open"],
-                ["overdue", "Overdue"],
-                ["paid", "Paid"],
-                ["all", "All"]
-              ].map(([value, label]) => (
-                <button
-                  key={value}
-                  className={`rounded-lg px-4 py-2 text-sm font-black transition ${
-                    filter === value ? "bg-blue-600 text-white" : "text-slate-500 hover:bg-slate-50"
-                  }`}
-                  onClick={() => setFilter(value)}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-            <button className="btn-primary whitespace-nowrap" onClick={() => setGiveMoneyOpen(true)}>
-              <Plus className="h-4 w-4" />
-              Give Money
-            </button>
-          </div>
+      {/* ── Page header ── */}
+      <div style={{ background: "#1E40AF", borderRadius: 16, padding: "16px 18px", marginBottom: 14, display: "flex", flexWrap: "wrap", gap: 12, alignItems: "center", justifyContent: "space-between" }}>
+        <div>
+          <h1 style={{ fontSize: 16, fontWeight: 700, color: "#fff", margin: 0 }}>{t.creditsTitle}</h1>
+          <p style={{ fontSize: 12, color: "rgba(255,255,255,0.65)", marginTop: 2 }}>{t.creditsSubtitle}</p>
         </div>
-      </section>
-
-      {overdueCustomers.length > 0 && filter !== "overdue" ? (
-        <button
-          className="panel flex w-full items-center justify-between gap-3 border-rose-200 bg-rose-50 p-4 text-left transition hover:bg-rose-100"
-          onClick={() => setFilter("overdue")}
-        >
-          <div className="flex items-center gap-3">
-            <AlertTriangle className="h-5 w-5 text-rose-600" />
-            <p className="text-sm font-black text-rose-700">
-              {overdueCustomers.length} {overdueCustomers.length === 1 ? "customer has" : "customers have"} debts overdue 30+ days
-            </p>
-          </div>
-          <p className="text-sm font-black text-rose-700">{formatMoney(overdueTotal)} -&gt;</p>
+        <button onClick={() => setGiveMoneyOpen(true)} style={{ ...orangeBtn, background: "#F97316", fontSize: 12, padding: "8px 14px" }}>
+          <Plus style={{ width: 14, height: 14 }} /> {t.giveMoney}
         </button>
-      ) : null}
+      </div>
 
-      {status.error ? <ErrorState message={status.error} /> : null}
+      {/* ── Search + filters ── */}
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginBottom: 14 }}>
+        <div style={{ position: "relative", flex: 1, minWidth: 200 }}>
+          <Search style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", width: 14, height: 14, color: "#A0B3D6", pointerEvents: "none" }} />
+          <input style={{ ...inputStyle, paddingLeft: 36, background: "#fff" }} placeholder={t.searchCustomer} value={search} onChange={(e) => setSearch(e.target.value)} />
+        </div>
+        <div style={{ display: "flex", background: "#fff", border: "1px solid #E2EBFF", borderRadius: 10, padding: 3, gap: 2 }}>
+          {FILTERS.map(([val, label]) => (
+            <button key={val} onClick={() => setFilter(val)} style={{
+              padding: "7px 13px", borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", border: "none",
+              background: filter === val ? "#1E40AF" : "transparent",
+              color: filter === val ? "#fff" : "#6B87C4",
+              transition: "all 0.15s",
+            }}>{label}</button>
+          ))}
+        </div>
+      </div>
 
+      {/* ── Overdue alert ── */}
+      {overdueCustomers.length > 0 && filter !== "overdue" && (
+        <button onClick={() => setFilter("overdue")} style={{ display: "flex", width: "100%", alignItems: "center", justifyContent: "space-between", background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: 12, padding: "12px 16px", cursor: "pointer", marginBottom: 14, fontFamily: "inherit" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <AlertTriangle style={{ width: 16, height: 16, color: "#B91C1C", flexShrink: 0 }} />
+            <span style={{ fontSize: 13, fontWeight: 600, color: "#B91C1C" }}>
+              {overdueCustomers.length} {overdueCustomers.length === 1 ? t.overdueAlertOne : t.overdueAlert}
+            </span>
+          </div>
+          <span style={{ fontSize: 13, fontWeight: 700, color: "#B91C1C" }}>{formatMoney(overdueTotal)} →</span>
+        </button>
+      )}
+
+      {status.error && <div style={{ background: "#FEF2F2", borderRadius: 10, padding: "12px 16px", color: "#B91C1C", fontSize: 13, marginBottom: 14 }}>{status.error}</div>}
+
+      {/* ── Customer cards ── */}
       {customers.length === 0 ? (
-        <div className="panel p-4">
-          <EmptyState
-            title={filter === "paid" ? "No paid credits yet" : filter === "overdue" ? "No overdue debts" : "No credits found"}
-            description={
-              filter === "paid"
-                ? "Fully paid credit history will appear here."
-                : filter === "overdue"
-                ? "Debts older than 30 days will show up here."
-                : "Credit customers will appear here."
-            }
-          />
+        <div style={{ ...card, padding: 32, textAlign: "center" }}>
+          <p style={{ color: "#A0B3D6", fontSize: 14 }}>{filter === "paid" ? t.noPaidCredits : filter === "overdue" ? t.noOverdue : t.noCredits}</p>
         </div>
       ) : (
-        <section className="grid gap-4">
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           {customers.map((customer) => {
             const isOpen = openCustomer === customer.key;
             const fullyPaid = customer.status === "paid";
 
             return (
-              <article
-                key={customer.key}
-                className={`panel overflow-hidden ${customer.has_overdue ? "border-rose-200" : ""}`}
-              >
-                <button
-                  type="button"
-                  className="flex w-full flex-col gap-4 p-5 text-left transition hover:bg-slate-50 lg:flex-row lg:items-center lg:justify-between"
-                  onClick={() => setOpenCustomer(isOpen ? "" : customer.key)}
+              <div key={customer.key} style={customer.has_overdue ? cardOverdue : card}>
+                {/* Customer row */}
+                <button type="button" onClick={() => setOpenCustomer(isOpen ? "" : customer.key)}
+                  style={{ display: "flex", width: "100%", alignItems: "center", justifyContent: "space-between", padding: "14px 16px", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", gap: 12, textAlign: "left" }}
                 >
-                  <div className="flex items-start gap-3">
-                    {isOpen ? <ChevronDown className="mt-1 h-5 w-5 text-slate-400" /> : <ChevronRight className="mt-1 h-5 w-5 text-slate-400" />}
-                    <div>
-                      <div className="flex flex-wrap items-center gap-2">
-                        <h3 className="text-xl font-black text-slate-950">{customer.customer_name}</h3>
-                        {fullyPaid ? (
-                          <span className="inline-flex items-center gap-1 rounded-full bg-green-50 px-3 py-1 text-xs font-black text-green-700">
-                            <CheckCircle2 className="h-3.5 w-3.5" />
-                            FULLY PAID
-                          </span>
-                        ) : customer.has_overdue ? (
-                          <OverdueBadge days={customer.max_days_outstanding} />
-                        ) : (
-                          <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-black uppercase text-amber-700">{customer.status}</span>
-                        )}
+                  <div style={{ display: "flex", alignItems: "center", gap: 12, flex: 1, minWidth: 0 }}>
+                    {/* Avatar */}
+                    <div style={{ width: 42, height: 42, borderRadius: 12, background: fullyPaid ? "#ECFDF5" : customer.has_overdue ? "#FEF2F2" : "#EEF2FF", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                      <span style={{ fontSize: 14, fontWeight: 700, color: fullyPaid ? "#15803D" : customer.has_overdue ? "#B91C1C" : "#1E40AF" }}>
+                        {customer.customer_name.charAt(0).toUpperCase()}
+                      </span>
+                    </div>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 6, marginBottom: 2 }}>
+                        <span style={{ fontSize: 14, fontWeight: 700, color: "#0F1F45" }}>{customer.customer_name}</span>
+                        {fullyPaid
+                          ? <span style={{ background: "#ECFDF5", color: "#15803D", fontSize: 9, fontWeight: 700, textTransform: "uppercase", padding: "2px 8px", borderRadius: 20 }}>✓ {t.fullyPaid}</span>
+                          : customer.has_overdue
+                          ? <OverdueBadge days={customer.max_days_outstanding} t={t} />
+                          : <StatusBadge status={customer.status} t={t} />
+                        }
                       </div>
-                      <p className="mt-1 flex items-center gap-1 text-sm font-semibold text-slate-500">
-                        <Phone className="h-4 w-4" />
+                      <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: "#6B87C4" }}>
+                        <Phone style={{ width: 11, height: 11 }} />
                         {customer.customer_phone}
-                      </p>
-                      {fullyPaid ? <p className="mt-2 text-sm font-bold text-green-700">Paid On: {formatDateTime(customer.paid_on)}</p> : null}
+                      </div>
                     </div>
                   </div>
 
-                  <div className="grid gap-2 text-left sm:grid-cols-3 lg:min-w-[420px]">
-                    <div className="rounded-lg bg-slate-50 p-3">
-                      <p className="text-xs font-bold text-slate-500">Original</p>
-                      <p className="font-black text-slate-950">{formatMoney(customer.total_original_amount)}</p>
+                  {/* Amounts */}
+                  <div style={{ display: "flex", gap: 8, alignItems: "center", flexShrink: 0 }}>
+                    <div style={{ textAlign: "right" }}>
+                      <div style={{ fontSize: 10, color: "#A0B3D6", fontWeight: 600 }}>{t.remaining}</div>
+                      <div style={{ fontSize: 16, fontWeight: 700, color: fullyPaid ? "#15803D" : "#F97316" }}>{formatMoney(customer.total_amount_owed)}</div>
                     </div>
-                    <div className="rounded-lg bg-green-50 p-3">
-                      <p className="text-xs font-bold text-green-600">Paid</p>
-                      <p className="font-black text-green-700">{formatMoney(customer.total_paid)}</p>
-                    </div>
-                    <div className="rounded-lg bg-blue-50 p-3">
-                      <p className="text-xs font-bold text-blue-600">Remaining</p>
-                      <p className="font-black text-blue-700">{formatMoney(customer.total_amount_owed)}</p>
+                    <div style={{ color: "#A0B3D6" }}>
+                      {isOpen ? <ChevronDown style={{ width: 16, height: 16 }} /> : <ChevronRight style={{ width: 16, height: 16 }} />}
                     </div>
                   </div>
                 </button>
 
-                {isOpen ? (
-                  <div className="border-t border-slate-100 bg-white p-5">
-                    <div className="grid gap-4 xl:grid-cols-[1fr_360px]">
-                      <div className="space-y-3">
+                {/* Summary strip */}
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", borderTop: "1px solid #F0F4FF" }}>
+                  {[
+                    { label: t.original, val: customer.total_original_amount, color: "#6B87C4", bg: "#F7F9FF" },
+                    { label: t.paid, val: customer.total_paid, color: "#15803D", bg: "#F0FDF4" },
+                    { label: t.remaining, val: customer.total_amount_owed, color: "#F97316", bg: "#FFF7ED" },
+                  ].map(({ label, val, color, bg }) => (
+                    <div key={label} style={{ background: bg, padding: "8px 12px", textAlign: "center" }}>
+                      <div style={{ fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.6px", color: "#A0B3D6", marginBottom: 2 }}>{label}</div>
+                      <div style={{ fontSize: 13, fontWeight: 700, color }}>{formatMoney(val)}</div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Expanded detail */}
+                {isOpen && (
+                  <div style={{ borderTop: "1px solid #F0F4FF", padding: 16, background: "#FAFBFF" }}>
+                    <div style={{ display: "grid", gap: 16 }}>
+
+                      {/* Items */}
+                      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                         {customer.items.map((item) => (
-                          <div key={item.credit_id} className="rounded-xl border border-slate-100 bg-slate-50 p-4">
-                            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                          <div key={item.credit_id} style={{ background: "#fff", border: "1px solid #E2EBFF", borderRadius: 12, padding: "12px 14px" }}>
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8, flexWrap: "wrap" }}>
                               <div>
-                                <div className="flex flex-wrap items-center gap-2">
-                                  <p className="font-black text-slate-950">{item.product_name}</p>
-                                  {item.is_overdue ? <OverdueBadge days={item.days_outstanding} /> : null}
+                                <div style={{ display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center", marginBottom: 4 }}>
+                                  <span style={{ fontSize: 13, fontWeight: 700, color: "#0F1F45" }}>{item.product_name}</span>
+                                  {item.is_overdue && <OverdueBadge days={item.days_outstanding} t={t} />}
                                 </div>
-                                <p className="mt-1 text-sm font-semibold text-slate-500">
-                                  Qty {item.quantity} - {formatDateTime(item.date)}
-                                </p>
-                                {item.credit_status === "paid" ? (
-                                  <p className="mt-2 text-sm font-bold text-green-700">Paid On: {formatDateTime(item.paid_on)}</p>
-                                ) : null}
+                                <p style={{ fontSize: 11, color: "#6B87C4" }}>× {item.quantity} · {formatShortDate(item.date)}</p>
+                                {item.credit_status === "paid" && <p style={{ fontSize: 11, color: "#15803D", fontWeight: 600, marginTop: 3 }}>✓ {t.paidOn}: {formatShortDate(item.paid_on)}</p>}
                               </div>
-                              <div className="text-left sm:text-right">
-                                <p className="font-black text-slate-950">{formatMoney(item.amount)}</p>
-                                <p className="text-sm font-semibold text-blue-700">Remaining {formatMoney(item.remaining)}</p>
+                              <div style={{ textAlign: "right" }}>
+                                <div style={{ fontSize: 14, fontWeight: 700, color: "#0F1F45" }}>{formatMoney(item.amount)}</div>
+                                <div style={{ fontSize: 11, color: "#F97316", fontWeight: 600 }}>{t.remaining} {formatMoney(item.remaining)}</div>
                               </div>
                             </div>
-                            {item.credit_status !== "paid" ? (
-                              <div className="mt-3 flex flex-wrap gap-2">
-                                <button className="btn-secondary" onClick={() => openPaymentModal(customer, "partial", item.credit_id)}>
-                                  Partial Payment
+                            {item.credit_status !== "paid" && (
+                              <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
+                                <button style={{ ...outlineBtn, fontSize: 12, padding: "7px 14px" }} onClick={() => setPaymentTarget({ customer, mode: "partial", creditId: item.credit_id })}>
+                                  {t.partialPayment}
                                 </button>
-                                <button className="btn-primary" onClick={() => openPaymentModal(customer, "full", item.credit_id)}>
-                                  <Check className="h-4 w-4" />
-                                  Mark as Paid
+                                <button style={{ ...orangeBtn, fontSize: 12, padding: "7px 14px" }} onClick={() => setPaymentTarget({ customer, mode: "full", creditId: item.credit_id })}>
+                                  <Check style={{ width: 13, height: 13 }} /> {t.markAsPaid}
                                 </button>
                               </div>
-                            ) : null}
+                            )}
                           </div>
                         ))}
                       </div>
 
-                      <aside className="rounded-xl border border-blue-100 bg-blue-50/60 p-4">
-                        <p className="text-sm font-black text-slate-950">Payment timeline</p>
-                        <div className="mt-3">
-                          <PaymentTimeline payments={customer.payments} remaining={fullyPaid ? 0 : customer.total_amount_owed} compact />
-                        </div>
-                        {!fullyPaid ? (
-                          <div className="mt-4 flex flex-col gap-2">
-                            <button className="btn-secondary" onClick={() => openPaymentModal(customer, "partial")}>
-                              Partial Payment
+                      {/* Payment timeline + actions */}
+                      <div style={{ background: "#fff", border: "1px solid #E2EBFF", borderRadius: 12, padding: "14px 16px" }}>
+                        <p style={{ ...labelSm, marginBottom: 10 }}>{t.paymentTimeline}</p>
+                        <PaymentTimeline payments={customer.payments} remaining={fullyPaid ? 0 : customer.total_amount_owed} t={t} />
+                        {!fullyPaid && (
+                          <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
+                            <button style={{ ...outlineBtn, fontSize: 12, padding: "8px 16px" }} onClick={() => setPaymentTarget({ customer, mode: "partial" })}>
+                              {t.partialPayment}
                             </button>
-                            <button className="btn-primary" onClick={() => openPaymentModal(customer, "full")}>
-                              <Check className="h-4 w-4" />
-                              Mark Customer Paid
+                            <button style={{ ...orangeBtn, fontSize: 12, padding: "8px 16px" }} onClick={() => setPaymentTarget({ customer, mode: "full" })}>
+                              <Check style={{ width: 13, height: 13 }} /> {t.markCustomerPaid}
                             </button>
                           </div>
-                        ) : null}
-                      </aside>
+                        )}
+                      </div>
+
                     </div>
                   </div>
-                ) : null}
-              </article>
+                )}
+              </div>
             );
           })}
 
-          <div className="panel flex flex-col gap-2 bg-blue-600 p-5 text-white sm:flex-row sm:items-center sm:justify-between">
-            <p className="font-black">{filter === "paid" ? "Paid credits history total" : "Remaining credit total"}</p>
-            <p className="text-2xl font-black">{formatMoney(totalAmountOwed)}</p>
+          {/* Total footer */}
+          <div style={{ background: "#1E40AF", borderRadius: 14, padding: "14px 18px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <span style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.75)" }}>{filter === "paid" ? t.paidCreditsHistory : t.remainingCreditTotal}</span>
+            <span style={{ fontSize: 20, fontWeight: 700, color: "#fff" }}>{formatMoney(totalAmountOwed)}</span>
           </div>
-        </section>
+        </div>
       )}
 
-      <PaymentModal
-        paymentTarget={paymentTarget}
-        onClose={() => setPaymentTarget(null)}
-        onSaved={() => loadCredits(filter)}
-      />
-
-      <GiveMoneyModal
-        open={giveMoneyOpen}
-        onClose={() => setGiveMoneyOpen(false)}
-        onSaved={() => loadCredits(filter)}
-      />
+      <PaymentModal paymentTarget={paymentTarget} onClose={() => setPaymentTarget(null)} onSaved={() => loadCredits(filter)} t={t} />
+      <GiveMoneyModal open={giveMoneyOpen} onClose={() => setGiveMoneyOpen(false)} onSaved={() => loadCredits(filter)} t={t} />
     </div>
   );
 }
