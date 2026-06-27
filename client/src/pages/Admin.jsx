@@ -1,191 +1,290 @@
-import { useState, useMemo, useEffect, useCallback } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Link } from "react-router-dom";
+import {
+  Activity, AlertTriangle, BarChart3, Bell, Building2, Calendar,
+  Check, CheckCircle2, ChevronDown, ChevronRight, Clock, CreditCard,
+  Database, Eye, Filter, Globe, History, Key, Lock, LogOut,
+  Mail, MoreVertical, Package, Phone, Plus, RefreshCw, Search,
+  Send, Shield, ShieldCheck, ShieldOff, ShoppingCart, Star,
+  Trash2, TrendingUp, User, UserCheck, UserMinus, UserPlus,
+  Users, X, XCircle, Zap
+} from "lucide-react";
+import { apiRequest, formatMoney } from "../lib/api";
 
-// ─── Mock Data ────────────────────────────────────────────────────────────────
-const MOCK_USERS = [
-  { id: "u1", fullName: "Amina Hassan", businessName: "Hassan General Store", email: "amina@hassanstore.so", phone: "+252612345678", country: "Somalia", registeredAt: "2025-11-03T08:12:00Z", lastLogin: "2026-06-26T14:30:00Z", plan: "pro", planExpiry: "2026-12-03", status: "active", emailVerified: true, phoneVerified: true, revenue: 184200, sales: 312 },
-  { id: "u2", fullName: "Omar Abdi", businessName: "Abdi Electronics", email: "omar@abdielectronics.so", phone: "+252615678901", country: "Somalia", registeredAt: "2025-12-15T11:00:00Z", lastLogin: "2026-06-25T09:15:00Z", plan: "free", planExpiry: null, status: "active", emailVerified: true, phoneVerified: false, revenue: 52000, sales: 88 },
-  { id: "u3", fullName: "Hodan Mohamud", businessName: "Hodan Fashion", email: "hodan@hodanfashion.so", phone: "+252618234567", country: "Somalia", registeredAt: "2026-01-08T16:45:00Z", lastLogin: "2026-05-10T08:00:00Z", plan: "pro", planExpiry: "2026-07-08", status: "suspended", emailVerified: true, phoneVerified: true, revenue: 97800, sales: 201 },
-  { id: "u4", fullName: "Abdirahman Warsame", businessName: "Warsame Wholesale", email: "abdi@warsame.ke", phone: "+254701234567", country: "Kenya", registeredAt: "2026-02-20T09:30:00Z", lastLogin: "2026-06-24T16:00:00Z", plan: "pro", planExpiry: "2027-02-20", status: "active", emailVerified: true, phoneVerified: true, revenue: 342100, sales: 547 },
-  { id: "u5", fullName: "Faadumo Shire", businessName: "Shire Pharmacy", email: "faadumo@shirepharmacy.so", phone: "+252619876543", country: "Somalia", registeredAt: "2026-03-01T12:00:00Z", lastLogin: "2026-06-20T11:30:00Z", plan: "free", planExpiry: null, status: "active", emailVerified: false, phoneVerified: false, revenue: 28900, sales: 65 },
-  { id: "u6", fullName: "Abdullahi Nur", businessName: "Nur Supermarket", email: "abdullahi@nusupermarket.et", phone: "+251911234567", country: "Ethiopia", registeredAt: "2026-04-14T07:00:00Z", lastLogin: "2026-06-27T08:45:00Z", plan: "pro", planExpiry: "2026-10-14", status: "active", emailVerified: true, phoneVerified: true, revenue: 218500, sales: 389 },
-  { id: "u7", fullName: "Sahra Jama", businessName: "Jama Grocery", email: "sahra@jamagrocery.so", phone: "+252614321098", country: "Somalia", registeredAt: "2026-05-05T15:20:00Z", lastLogin: "2026-06-15T13:00:00Z", plan: "free", planExpiry: null, status: "active", emailVerified: true, phoneVerified: true, revenue: 15600, sales: 43 },
-  { id: "u8", fullName: "Mahad Ibrahim", businessName: "Ibrahim Textiles", email: "mahad@ibrahimtextiles.so", phone: "+252617654321", country: "Somalia", registeredAt: "2026-06-01T10:00:00Z", lastLogin: "2026-06-26T17:00:00Z", plan: "free", planExpiry: null, status: "active", emailVerified: true, phoneVerified: false, revenue: 8200, sales: 19 },
+// ─── CONFIG ──────────────────────────────────────────────────────────────────
+const ADMIN_USER = "sahel2026";
+const ADMIN_PASS = "Halimoabdimuse@123";
+const OTP_DEMO   = "123456";
+
+const ROLES = {
+  superadmin : "Super Admin",
+  support    : "Support Admin",
+  sales      : "Sales Admin",
+  finance    : "Finance Admin",
+  readonly   : "Read-Only Admin",
+};
+
+const ROLE_PERMS = {
+  superadmin : ["dashboard","users","subscriptions","analytics","notifications","support","audit","settings"],
+  support    : ["dashboard","users","support","audit"],
+  sales      : ["dashboard","users","subscriptions","analytics"],
+  finance    : ["dashboard","analytics","subscriptions"],
+  readonly   : ["dashboard","analytics"],
+};
+
+const NAV = [
+  { id:"dashboard",      icon: BarChart3,   label:"Dashboard"      },
+  { id:"users",          icon: Users,        label:"Users"          },
+  { id:"subscriptions",  icon: CreditCard,   label:"Subscriptions"  },
+  { id:"analytics",      icon: TrendingUp,   label:"Analytics"      },
+  { id:"notifications",  icon: Bell,         label:"Notifications"  },
+  { id:"support",        icon: Activity,     label:"Support"        },
+  { id:"audit",          icon: History,      label:"Audit Log"      },
+  { id:"settings",       icon: Shield,       label:"Settings"       },
 ];
 
-const MOCK_AUDIT_LOGS = [
-  { id: "a1", ts: "2026-06-27T08:12:00Z", admin: "Super Admin", action: "Granted Pro Plan", target: "Amina Hassan", ip: "41.223.10.5" },
-  { id: "a2", ts: "2026-06-26T17:30:00Z", admin: "Super Admin", action: "Suspended account", target: "Hodan Mohamud", ip: "41.223.10.5" },
-  { id: "a3", ts: "2026-06-26T14:10:00Z", admin: "Super Admin", action: "Reset password", target: "Omar Abdi", ip: "41.223.10.5" },
-  { id: "a4", ts: "2026-06-25T09:45:00Z", admin: "Support Admin", action: "Closed ticket #14", target: "Faadumo Shire", ip: "197.155.6.22" },
-  { id: "a5", ts: "2026-06-24T16:00:00Z", admin: "Super Admin", action: "Extended subscription 30d", target: "Abdirahman Warsame", ip: "41.223.10.5" },
+const PLAN_DURATIONS = [
+  { label:"7 days",   days:7   },
+  { label:"1 month",  days:30  },
+  { label:"3 months", days:90  },
+  { label:"6 months", days:180 },
+  { label:"12 months",days:365 },
+  { label:"Custom",   days:0   },
+];
+
+const COUNTRIES = ["All","Somalia","Kenya","Ethiopia","Uganda","Tanzania","Djibouti","Eritrea"];
+
+// ─── HELPERS ─────────────────────────────────────────────────────────────────
+const fmt    = n => new Intl.NumberFormat().format(Math.round(n ?? 0));
+const fmtUSD = n => "$" + fmt(n);
+const fmtDate = iso => iso ? new Date(iso).toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"}) : "—";
+const timeAgo = iso => {
+  if (!iso) return "Never";
+  const s = Math.floor((Date.now() - new Date(iso)) / 1000);
+  if (s < 60)   return "just now";
+  if (s < 3600) return Math.floor(s/60)+"m ago";
+  if (s < 86400)return Math.floor(s/3600)+"h ago";
+  return Math.floor(s/86400)+"d ago";
+};
+const daysLeft = iso => {
+  if (!iso) return null;
+  return Math.ceil((new Date(iso) - Date.now()) / 86400000);
+};
+const addDays = days => {
+  const d = new Date();
+  d.setDate(d.getDate() + days);
+  return d.toISOString().split("T")[0];
+};
+
+// ─── MOCK DATA ────────────────────────────────────────────────────────────────
+const MOCK_SHOPS = [
+  { id:"s1", shop_name:"Hassan General Store", owner_name:"Amina Hassan",   owner_email:"amina@hassanstore.so",   phone:"+252612345678", country:"Somalia",  created_at:"2025-11-03T08:12:00Z", last_login:"2026-06-26T14:30:00Z", plan:"paid",  plan_expiry:"2026-12-03", status:"active",    email_verified:true,  phone_verified:true,  usage:{products:142,sales:312,revenue:184200,expenses_total:98000}, hear_about:"Facebook",  business_type:"General Store",  main_problem:"Inventory tracking" },
+  { id:"s2", shop_name:"Abdi Electronics",     owner_name:"Omar Abdi",      owner_email:"omar@abdielectronics.so",phone:"+252615678901", country:"Somalia",  created_at:"2025-12-15T11:00:00Z", last_login:"2026-06-25T09:15:00Z", plan:"free", plan_expiry:null,         status:"active",    email_verified:true,  phone_verified:false, usage:{products:58, sales:88, revenue:52000, expenses_total:31000},  hear_about:"WhatsApp",  business_type:"Electronics",     main_problem:"Sales reports"      },
+  { id:"s3", shop_name:"Hodan Fashion",        owner_name:"Hodan Mohamud",  owner_email:"hodan@hodanfashion.so",  phone:"+252618234567", country:"Somalia",  created_at:"2026-01-08T16:45:00Z", last_login:"2026-05-10T08:00:00Z", plan:"paid",  plan_expiry:"2026-07-08", status:"suspended", email_verified:true,  phone_verified:true,  usage:{products:89, sales:201,revenue:97800, expenses_total:54000},  hear_about:"Friend",    business_type:"Fashion",         main_problem:"Expense tracking"   },
+  { id:"s4", shop_name:"Warsame Wholesale",    owner_name:"Abdirahman W.",  owner_email:"abdi@warsame.ke",        phone:"+254701234567", country:"Kenya",    created_at:"2026-02-20T09:30:00Z", last_login:"2026-06-24T16:00:00Z", plan:"paid",  plan_expiry:"2027-02-20", status:"active",    email_verified:true,  phone_verified:true,  usage:{products:210,sales:547,revenue:342100,expenses_total:187000},hear_about:"Google",    business_type:"Wholesale",       main_problem:"Multi-branch"       },
+  { id:"s5", shop_name:"Shire Pharmacy",       owner_name:"Faadumo Shire",  owner_email:"faadumo@shirepharm.so",  phone:"+252619876543", country:"Somalia",  created_at:"2026-03-01T12:00:00Z", last_login:"2026-06-20T11:30:00Z", plan:"free", plan_expiry:null,         status:"active",    email_verified:false, phone_verified:false, usage:{products:34, sales:65, revenue:28900, expenses_total:18000},  hear_about:"TV Ad",     business_type:"Pharmacy",        main_problem:"Stock alerts"       },
+  { id:"s6", shop_name:"Nur Supermarket",      owner_name:"Abdullahi Nur",  owner_email:"abdullahi@nursm.et",     phone:"+251911234567", country:"Ethiopia", created_at:"2026-04-14T07:00:00Z", last_login:"2026-06-27T08:45:00Z", plan:"paid",  plan_expiry:"2026-10-14", status:"active",    email_verified:true,  phone_verified:true,  usage:{products:188,sales:389,revenue:218500,expenses_total:121000},hear_about:"Facebook",  business_type:"Supermarket",     main_problem:"Receipts"           },
+  { id:"s7", shop_name:"Jama Grocery",         owner_name:"Sahra Jama",     owner_email:"sahra@jamagrocery.so",   phone:"+252614321098", country:"Somalia",  created_at:"2026-05-05T15:20:00Z", last_login:"2026-06-15T13:00:00Z", plan:"free", plan_expiry:null,         status:"active",    email_verified:true,  phone_verified:true,  usage:{products:27, sales:43, revenue:15600, expenses_total:9000},   hear_about:"Friend",    business_type:"Grocery",         main_problem:"Daily sales log"    },
+  { id:"s8", shop_name:"Ibrahim Textiles",     owner_name:"Mahad Ibrahim",  owner_email:"mahad@ibrahimtextiles.so",phone:"+252617654321",country:"Somalia",  created_at:"2026-06-01T10:00:00Z", last_login:"2026-06-26T17:00:00Z", plan:"free", plan_expiry:null,         status:"active",    email_verified:true,  phone_verified:false, usage:{products:19, sales:19, revenue:8200,  expenses_total:5000},   hear_about:"WhatsApp",  business_type:"Textiles",        main_problem:"Product catalogue"  },
 ];
 
 const MOCK_TICKETS = [
-  { id: "t1", from: "Omar Abdi", email: "omar@abdielectronics.so", subject: "Sales report not loading", body: "The sales report page gives a blank screen after selecting last month.", status: "open", createdAt: "2026-06-26T10:00:00Z" },
-  { id: "t2", from: "Faadumo Shire", email: "faadumo@shirepharmacy.so", subject: "Can't add new product", body: "When I click 'Add Product' nothing happens on mobile.", status: "open", createdAt: "2026-06-25T14:30:00Z" },
-  { id: "t3", from: "Sahra Jama", email: "sahra@jamagrocery.so", subject: "Invoice printing issue", body: "Printed invoices have a formatting problem on the right margin.", status: "resolved", createdAt: "2026-06-20T08:00:00Z" },
+  { id:"t1", from:"Omar Abdi",      email:"omar@abdielectronics.so",  subject:"Sales report blank screen",    body:"When I select last month the sales report page shows a blank screen.",           status:"open",     created_at:"2026-06-26T10:00:00Z", replies:[] },
+  { id:"t2", from:"Faadumo Shire",  email:"faadumo@shirepharm.so",    subject:"Can't add new product",        body:"Clicking Add Product does nothing on my Android phone.",                        status:"open",     created_at:"2026-06-25T14:30:00Z", replies:[] },
+  { id:"t3", from:"Sahra Jama",     email:"sahra@jamagrocery.so",     subject:"Invoice formatting issue",     body:"Printed invoices have a formatting problem on the right margin.",               status:"resolved", created_at:"2026-06-20T08:00:00Z", replies:["Resolved in v2.4.1 — please update your app."] },
+  { id:"t4", from:"Mahad Ibrahim",  email:"mahad@ibrahimtextiles.so", subject:"Can't login after password reset","body":"After resetting my password I get an error 401 on every login attempt.", status:"open",     created_at:"2026-06-27T07:00:00Z", replies:[] },
 ];
 
-const PLAN_DURATIONS = ["7 days", "1 month", "3 months", "6 months", "12 months", "Custom"];
-const COUNTRIES = ["All", "Somalia", "Kenya", "Ethiopia", "Uganda", "Tanzania"];
-const ADMIN_ROLES = { superadmin: "Super Admin", support: "Support Admin", sales: "Sales Admin", finance: "Finance Admin", readonly: "Read-Only Admin" };
+const MOCK_AUDIT = [
+  { id:"a1", ts:"2026-06-27T08:12:00Z", admin:"Super Admin", action:"Granted Pro plan (1 month)",        target:"Amina Hassan",    ip:"41.223.10.5"   },
+  { id:"a2", ts:"2026-06-26T17:30:00Z", admin:"Super Admin", action:"Suspended account",                  target:"Hodan Mohamud",   ip:"41.223.10.5"   },
+  { id:"a3", ts:"2026-06-26T14:10:00Z", admin:"Super Admin", action:"Reset password",                     target:"Omar Abdi",       ip:"41.223.10.5"   },
+  { id:"a4", ts:"2026-06-25T09:45:00Z", admin:"Support Admin","action":"Closed ticket #t3",              target:"Sahra Jama",      ip:"197.155.6.22"  },
+  { id:"a5", ts:"2026-06-24T16:00:00Z", admin:"Super Admin", action:"Extended subscription by 30 days",  target:"Abdirahman W.",   ip:"41.223.10.5"   },
+  { id:"a6", ts:"2026-06-23T11:20:00Z", admin:"Sales Admin", action:"Assigned Pro plan",                  target:"Abdullahi Nur",   ip:"105.16.22.100" },
+];
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-function fmt(n) { return new Intl.NumberFormat().format(Math.round(n)); }
-function fmtMoney(n) { return "$" + new Intl.NumberFormat().format(Math.round(n)); }
-function timeAgo(iso) {
-  const d = new Date(iso), now = new Date();
-  const s = Math.floor((now - d) / 1000);
-  if (s < 60) return "just now";
-  if (s < 3600) return Math.floor(s / 60) + "m ago";
-  if (s < 86400) return Math.floor(s / 3600) + "h ago";
-  return Math.floor(s / 86400) + "d ago";
-}
-function fmtDate(iso) { return iso ? new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : "—"; }
-function daysUntil(iso) { if (!iso) return null; const d = Math.ceil((new Date(iso) - new Date()) / 86400000); return d; }
-
-// ─── UI Primitives ────────────────────────────────────────────────────────────
-function Badge({ children, color = "gray" }) {
+// ─── UI ATOMS ─────────────────────────────────────────────────────────────────
+function Badge({ children, color = "slate" }) {
   const map = {
-    green: { bg: "#eaf3de", color: "#3b6d11", border: "#c0dd97" },
-    red: { bg: "#fcebeb", color: "#a32d2d", border: "#f7c1c1" },
-    blue: { bg: "#e6f1fb", color: "#185fa5", border: "#b5d4f4" },
-    amber: { bg: "#faeeda", color: "#854f0b", border: "#fac775" },
-    purple: { bg: "#eeedfe", color: "#3c3489", border: "#cecbf6" },
-    gray: { bg: "var(--surface-1)", color: "var(--text-secondary)", border: "var(--border)" },
+    green:  "bg-green-50  text-green-700  border-green-200",
+    red:    "bg-rose-50   text-rose-700   border-rose-200",
+    blue:   "bg-blue-50   text-blue-700   border-blue-200",
+    amber:  "bg-amber-50  text-amber-700  border-amber-200",
+    purple: "bg-purple-50 text-purple-700 border-purple-200",
+    slate:  "bg-slate-100 text-slate-600  border-slate-200",
   };
-  const c = map[color] || map.gray;
   return (
-    <span style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "2px 10px", borderRadius: 999, fontSize: 11, fontWeight: 500, background: c.bg, color: c.color, border: `0.5px solid ${c.border}`, whiteSpace: "nowrap" }}>
+    <span className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] font-bold whitespace-nowrap ${map[color]}`}>
       {children}
     </span>
   );
 }
 
-function Btn({ children, onClick, variant = "secondary", size = "md", disabled, danger, style }) {
-  const base = { display: "inline-flex", alignItems: "center", gap: 6, borderRadius: "var(--radius)", fontWeight: 500, cursor: disabled ? "not-allowed" : "pointer", border: "0.5px solid", transition: "background 0.12s, opacity 0.12s", opacity: disabled ? 0.5 : 1, fontSize: size === "sm" ? 12 : 13, padding: size === "sm" ? "4px 10px" : "7px 14px", ...style };
-  const styles = {
-    primary: { background: "var(--fill-accent)", color: "var(--on-accent)", borderColor: "var(--fill-accent)" },
-    secondary: { background: "var(--surface-2)", color: "var(--text-primary)", borderColor: "var(--border-strong)" },
-    ghost: { background: "transparent", color: "var(--text-secondary)", borderColor: "transparent" },
-    danger: { background: "#fcebeb", color: "#a32d2d", borderColor: "#f7c1c1" },
+function Btn({ children, onClick, variant="secondary", size="md", disabled, className="" }) {
+  const base = "inline-flex items-center gap-2 font-bold rounded-xl transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed";
+  const sizes = { sm:"px-3 py-1.5 text-xs", md:"px-4 py-2 text-sm", lg:"px-6 py-3 text-sm" };
+  const variants = {
+    primary:   "bg-blue-600 text-white hover:bg-blue-700 shadow-sm",
+    secondary: "bg-white text-slate-700 border border-slate-200 hover:bg-slate-50",
+    danger:    "bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100",
+    ghost:     "text-slate-500 hover:bg-slate-100 hover:text-slate-700",
+    success:   "bg-green-50 text-green-700 border border-green-200 hover:bg-green-100",
   };
-  return <button onClick={onClick} disabled={disabled} style={{ ...base, ...(danger ? styles.danger : styles[variant]) }}>{children}</button>;
+  return (
+    <button onClick={onClick} disabled={disabled} className={`${base} ${sizes[size]} ${variants[variant]} ${className}`}>
+      {children}
+    </button>
+  );
 }
 
-function Modal({ title, children, onClose, width = 520 }) {
+function Modal({ title, onClose, children, width = "max-w-lg" }) {
+  useEffect(() => {
+    const fn = e => e.key === "Escape" && onClose();
+    window.addEventListener("keydown", fn);
+    return () => window.removeEventListener("keydown", fn);
+  }, [onClose]);
   return (
-    <div style={{ position: "fixed", inset: 0, zIndex: 1000, background: "rgba(0,0,0,0.45)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }} onClick={onClose}>
-      <div style={{ background: "var(--surface-2)", border: "0.5px solid var(--border)", borderRadius: 16, width: "100%", maxWidth: width, maxHeight: "85vh", overflowY: "auto", padding: 24 }} onClick={e => e.stopPropagation()}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-          <h2 style={{ margin: 0, fontSize: 17, fontWeight: 500, color: "var(--text-primary)" }}>{title}</h2>
-          <Btn variant="ghost" size="sm" onClick={onClose}><i className="ti ti-x" aria-hidden="true" style={{ fontSize: 16 }} /></Btn>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm" onClick={onClose}>
+      <div className={`w-full ${width} max-h-[90vh] overflow-y-auto rounded-3xl border border-slate-200 bg-white shadow-2xl`} onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between border-b border-slate-100 p-6">
+          <h3 className="text-lg font-black text-slate-950">{title}</h3>
+          <Btn variant="ghost" size="sm" onClick={onClose}><X className="h-4 w-4" /></Btn>
         </div>
-        {children}
+        <div className="p-6">{children}</div>
       </div>
     </div>
   );
 }
 
-function Toast({ msg, type = "success", onDone }) {
-  useEffect(() => { const t = setTimeout(onDone, 3000); return () => clearTimeout(t); }, [onDone]);
-  const c = type === "success" ? "#3b6d11" : "#a32d2d";
-  const bg = type === "success" ? "#eaf3de" : "#fcebeb";
+function Toast({ toasts }) {
   return (
-    <div style={{ position: "fixed", bottom: 24, right: 24, zIndex: 2000, background: bg, color: c, border: `0.5px solid ${type === "success" ? "#c0dd97" : "#f7c1c1"}`, borderRadius: 12, padding: "12px 20px", fontWeight: 500, fontSize: 13, maxWidth: 340, boxShadow: "0 4px 16px rgba(0,0,0,0.12)" }}>
-      <i className={`ti ti-${type === "success" ? "check" : "alert-circle"}`} aria-hidden="true" style={{ marginRight: 8 }} />
-      {msg}
+    <div className="fixed bottom-6 right-6 z-[100] flex flex-col gap-2">
+      {toasts.map(t => (
+        <div key={t.id} className={`flex items-center gap-3 rounded-2xl border px-4 py-3 shadow-lg text-sm font-bold animate-in slide-in-from-bottom-4 ${t.type === "error" ? "border-rose-200 bg-rose-50 text-rose-700" : t.type === "warning" ? "border-amber-200 bg-amber-50 text-amber-700" : "border-green-200 bg-green-50 text-green-700"}`}>
+          {t.type === "error" ? <XCircle className="h-4 w-4 shrink-0" /> : t.type === "warning" ? <AlertTriangle className="h-4 w-4 shrink-0" /> : <CheckCircle2 className="h-4 w-4 shrink-0" />}
+          {t.msg}
+        </div>
+      ))}
     </div>
   );
 }
 
-function StatCard({ icon, label, value, sub, color = "blue", highlight }) {
+function StatCard({ label, value, sub, icon: Icon, accent = false, color = "blue" }) {
   const colors = {
-    blue: { bg: "#e6f1fb", ic: "#185fa5" },
-    green: { bg: "#eaf3de", ic: "#3b6d11" },
-    amber: { bg: "#faeeda", ic: "#854f0b" },
-    red: { bg: "#fcebeb", ic: "#a32d2d" },
-    purple: { bg: "#eeedfe", ic: "#3c3489" },
-    gray: { bg: "var(--surface-1)", ic: "var(--text-secondary)" },
+    blue:   { card:"bg-blue-600 border-blue-700", icon:"bg-blue-500",  txt:"text-blue-100", val:"text-white" },
+    green:  { card:"bg-white border-slate-200",   icon:"bg-green-50",  txt:"text-slate-500",val:"text-slate-950", ic:"text-green-600" },
+    amber:  { card:"bg-white border-slate-200",   icon:"bg-amber-50",  txt:"text-slate-500",val:"text-slate-950", ic:"text-amber-600" },
+    red:    { card:"bg-white border-slate-200",   icon:"bg-rose-50",   txt:"text-slate-500",val:"text-slate-950", ic:"text-rose-600"  },
+    purple: { card:"bg-white border-slate-200",   icon:"bg-purple-50", txt:"text-slate-500",val:"text-slate-950", ic:"text-purple-600"},
+    slate:  { card:"bg-white border-slate-200",   icon:"bg-slate-100", txt:"text-slate-500",val:"text-slate-950", ic:"text-slate-600" },
   };
-  const c = colors[color] || colors.blue;
+  const c = colors[color];
+  const isBlue = color === "blue";
   return (
-    <div style={{ background: highlight ? c.ic : "var(--surface-2)", border: `0.5px solid ${highlight ? "transparent" : "var(--border)"}`, borderRadius: 12, padding: "16px 18px" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-        <p style={{ margin: 0, fontSize: 12, fontWeight: 500, color: highlight ? "rgba(255,255,255,0.75)" : "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em" }}>{label}</p>
-        <div style={{ width: 32, height: 32, borderRadius: 8, background: highlight ? "rgba(255,255,255,0.18)" : c.bg, display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <i className={`ti ti-${icon}`} aria-hidden="true" style={{ fontSize: 16, color: highlight ? "#fff" : c.ic }} />
+    <div className={`rounded-2xl border p-5 shadow-sm ${c.card}`}>
+      <div className="flex items-start justify-between">
+        <p className={`text-[11px] font-black uppercase tracking-widest ${c.txt}`}>{label}</p>
+        <div className={`rounded-xl p-2 ${c.icon}`}>
+          <Icon className={`h-4 w-4 ${isBlue ? "text-white" : c.ic}`} />
         </div>
       </div>
-      <p style={{ margin: "10px 0 2px", fontSize: 26, fontWeight: 500, color: highlight ? "#fff" : "var(--text-primary)", lineHeight: 1 }}>{value}</p>
-      {sub && <p style={{ margin: 0, fontSize: 12, color: highlight ? "rgba(255,255,255,0.65)" : "var(--text-muted)" }}>{sub}</p>}
+      <p className={`mt-3 text-3xl font-black ${c.val}`}>{value}</p>
+      {sub && <p className={`mt-1 text-xs font-semibold ${c.txt}`}>{sub}</p>}
     </div>
   );
 }
 
-// ─── Auth Screen ──────────────────────────────────────────────────────────────
+// ─── AUTH ──────────────────────────────────────────────────────────────────────
 function AuthScreen({ onAuth }) {
-  const [step, setStep] = useState("login"); // login | 2fa
-  const [form, setForm] = useState({ user: "", pass: "", otp: "" });
-  const [err, setErr] = useState("");
-  const [role, setRole] = useState("superadmin");
+  const [step, setStep]   = useState("login");
+  const [role, setRole]   = useState("superadmin");
+  const [form, setForm]   = useState({ user:"", pass:"", otp:"" });
+  const [err,  setErr]    = useState("");
+  const [loading, setLoading] = useState(false);
 
   function handleLogin(e) {
     e.preventDefault();
-    if (form.user === "admin" && form.pass === "Admin@Sahel2026") {
-      setStep("2fa");
-      setErr("");
-    } else {
-      setErr("Invalid credentials.");
-    }
+    setLoading(true);
+    setTimeout(() => {
+      setLoading(false);
+      if (form.user === ADMIN_USER && form.pass === ADMIN_PASS) {
+        setStep("2fa"); setErr("");
+      } else {
+        setErr("Invalid credentials.");
+      }
+    }, 600);
   }
+
   function handle2FA(e) {
     e.preventDefault();
-    if (form.otp === "123456") {
-      onAuth({ name: "Abdikadir", role });
-    } else {
-      setErr("Invalid 2FA code. (Use 123456 for demo)");
-    }
+    setLoading(true);
+    setTimeout(() => {
+      setLoading(false);
+      if (form.otp === OTP_DEMO) {
+        onAuth({ name: "Abdikadir", role });
+      } else {
+        setErr("Invalid 2FA code. Demo: 123456");
+      }
+    }, 600);
   }
 
   return (
-    <div style={{ minHeight: "100vh", background: "var(--surface-0)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
-      <div style={{ width: "100%", maxWidth: 400 }}>
-        <div style={{ textAlign: "center", marginBottom: 32 }}>
-          <div style={{ width: 56, height: 56, background: "#185fa5", borderRadius: 16, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
-            <i className="ti ti-shield-lock" style={{ fontSize: 26, color: "#fff" }} aria-hidden="true" />
+    <div className="flex min-h-screen items-center justify-center bg-slate-50 p-4">
+      <div className="w-full max-w-sm">
+        <div className="mb-8 text-center">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-600 shadow-[0_12px_30px_rgba(37,99,235,0.3)]">
+            <ShieldCheck className="h-8 w-8 text-white" />
           </div>
-          <h1 style={{ fontSize: 22, fontWeight: 500, color: "var(--text-primary)", margin: "0 0 4px" }}>Sahel super admin</h1>
-          <p style={{ fontSize: 14, color: "var(--text-muted)", margin: 0 }}>Restricted access — authorized personnel only</p>
+          <h1 className="mt-4 text-2xl font-black text-slate-950">Sahel Admin</h1>
+          <p className="mt-1 text-sm font-medium text-slate-500">Restricted access — authorised personnel only</p>
         </div>
 
-        <div style={{ background: "var(--surface-2)", border: "0.5px solid var(--border)", borderRadius: 16, padding: 28 }}>
+        <div className="rounded-3xl border border-slate-200 bg-white p-8 shadow-[0_24px_60px_rgba(15,23,42,0.08)]">
           {step === "login" ? (
-            <form onSubmit={handleLogin}>
-              <label style={{ display: "block", fontSize: 12, fontWeight: 500, color: "var(--text-secondary)", marginBottom: 6 }}>Username</label>
-              <input value={form.user} onChange={e => setForm({ ...form, user: e.target.value })} placeholder="admin" required style={{ width: "100%", marginBottom: 14, boxSizing: "border-box" }} />
-              <label style={{ display: "block", fontSize: 12, fontWeight: 500, color: "var(--text-secondary)", marginBottom: 6 }}>Password</label>
-              <input type="password" value={form.pass} onChange={e => setForm({ ...form, pass: e.target.value })} placeholder="••••••••" required style={{ width: "100%", marginBottom: 14, boxSizing: "border-box" }} />
-              <label style={{ display: "block", fontSize: 12, fontWeight: 500, color: "var(--text-secondary)", marginBottom: 6 }}>Sign in as</label>
-              <select value={role} onChange={e => setRole(e.target.value)} style={{ width: "100%", marginBottom: 20, boxSizing: "border-box" }}>
-                {Object.entries(ADMIN_ROLES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-              </select>
-              {err && <p style={{ color: "#a32d2d", fontSize: 13, margin: "0 0 12px", background: "#fcebeb", padding: "8px 12px", borderRadius: 8 }}>{err}</p>}
-              <button type="submit" style={{ width: "100%", background: "#185fa5", color: "#fff", border: "none", borderRadius: 8, padding: "10px 0", fontSize: 14, fontWeight: 500, cursor: "pointer" }}>
-                <i className="ti ti-lock" aria-hidden="true" style={{ marginRight: 8 }} />Continue
+            <form onSubmit={handleLogin} className="space-y-4">
+              <div>
+                <label className="mb-1.5 block text-xs font-black uppercase tracking-wide text-slate-500">Username</label>
+                <div className="flex h-12 items-center gap-3 rounded-xl border border-slate-200 px-4 focus-within:border-blue-500 focus-within:ring-4 focus-within:ring-blue-100">
+                  <User className="h-4 w-4 text-slate-400" />
+                  <input className="w-full bg-transparent text-sm font-medium outline-none" placeholder="admin" value={form.user} onChange={e=>setForm({...form,user:e.target.value})} required />
+                </div>
+              </div>
+              <div>
+                <label className="mb-1.5 block text-xs font-black uppercase tracking-wide text-slate-500">Password</label>
+                <div className="flex h-12 items-center gap-3 rounded-xl border border-slate-200 px-4 focus-within:border-blue-500 focus-within:ring-4 focus-within:ring-blue-100">
+                  <Lock className="h-4 w-4 text-slate-400" />
+                  <input type="password" className="w-full bg-transparent text-sm font-medium outline-none" placeholder="••••••••" value={form.pass} onChange={e=>setForm({...form,pass:e.target.value})} required />
+                </div>
+              </div>
+              <div>
+                <label className="mb-1.5 block text-xs font-black uppercase tracking-wide text-slate-500">Role</label>
+                <select value={role} onChange={e=>setRole(e.target.value)} className="h-12 w-full rounded-xl border border-slate-200 px-4 text-sm font-bold outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100">
+                  {Object.entries(ROLES).map(([k,v])=><option key={k} value={k}>{v}</option>)}
+                </select>
+              </div>
+              {err && <div className="rounded-xl bg-rose-50 px-4 py-3 text-sm font-bold text-rose-700">{err}</div>}
+              <button type="submit" disabled={loading} className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-blue-600 text-sm font-black text-white shadow-[0_8px_20px_rgba(37,99,235,0.25)] transition hover:bg-blue-700 disabled:opacity-60">
+                {loading ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />}
+                Continue
               </button>
-              <p style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 12, textAlign: "center" }}>Demo: admin / Admin@Sahel2026</p>
+              <p className="text-center text-xs text-slate-400">Demo: sahel2026 / Halimoabdimuse@123</p>
             </form>
           ) : (
-            <form onSubmit={handle2FA}>
-              <p style={{ fontSize: 14, color: "var(--text-secondary)", margin: "0 0 20px" }}>Enter the 6-digit code from your authenticator app.</p>
-              <label style={{ display: "block", fontSize: 12, fontWeight: 500, color: "var(--text-secondary)", marginBottom: 6 }}>Two-factor code</label>
-              <input value={form.otp} onChange={e => setForm({ ...form, otp: e.target.value })} placeholder="000000" maxLength={6} required style={{ width: "100%", marginBottom: 14, letterSpacing: "0.3em", textAlign: "center", fontSize: 20, boxSizing: "border-box" }} />
-              {err && <p style={{ color: "#a32d2d", fontSize: 13, margin: "0 0 12px", background: "#fcebeb", padding: "8px 12px", borderRadius: 8 }}>{err}</p>}
-              <button type="submit" style={{ width: "100%", background: "#185fa5", color: "#fff", border: "none", borderRadius: 8, padding: "10px 0", fontSize: 14, fontWeight: 500, cursor: "pointer" }}>
-                <i className="ti ti-shield-check" aria-hidden="true" style={{ marginRight: 8 }} />Verify and sign in
+            <form onSubmit={handle2FA} className="space-y-4">
+              <div className="rounded-xl bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-700">
+                Enter the 6-digit code from your authenticator app.
+              </div>
+              <div>
+                <label className="mb-1.5 block text-xs font-black uppercase tracking-wide text-slate-500">2FA Code</label>
+                <input value={form.otp} onChange={e=>setForm({...form,otp:e.target.value})} placeholder="000000" maxLength={6} className="h-14 w-full rounded-xl border border-slate-200 text-center text-2xl font-black tracking-[0.5em] outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100" required />
+              </div>
+              {err && <div className="rounded-xl bg-rose-50 px-4 py-3 text-sm font-bold text-rose-700">{err}</div>}
+              <button type="submit" disabled={loading} className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-blue-600 text-sm font-black text-white shadow-[0_8px_20px_rgba(37,99,235,0.25)] transition hover:bg-blue-700 disabled:opacity-60">
+                {loading ? <RefreshCw className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
+                Verify & Sign In
               </button>
-              <p style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 12, textAlign: "center" }}>Demo code: 123456</p>
+              <p className="text-center text-xs text-slate-400">Demo code: 123456</p>
             </form>
           )}
         </div>
@@ -194,336 +293,419 @@ function AuthScreen({ onAuth }) {
   );
 }
 
-// ─── Dashboard ────────────────────────────────────────────────────────────────
-function DashboardView({ users }) {
-  const total = users.length;
-  const active = users.filter(u => u.status === "active").length;
-  const suspended = users.filter(u => u.status === "suspended").length;
-  const pro = users.filter(u => u.plan === "pro").length;
-  const free = users.filter(u => u.plan === "free").length;
-  const today = new Date().toDateString();
-  const newToday = users.filter(u => new Date(u.registeredAt).toDateString() === today).length;
-  const thisWeek = users.filter(u => (new Date() - new Date(u.registeredAt)) < 7 * 86400000).length;
-  const thisMonth = users.filter(u => new Date(u.registeredAt).getMonth() === new Date().getMonth()).length;
-  const mrr = users.filter(u => u.plan === "pro").length * 29;
-  const expiringSoon = users.filter(u => { const d = daysUntil(u.planExpiry); return d !== null && d <= 30 && d >= 0; });
+// ─── DASHBOARD ────────────────────────────────────────────────────────────────
+function DashboardView({ shops, logs }) {
+  const total     = shops.length;
+  const active    = shops.filter(s=>s.status==="active").length;
+  const suspended = shops.filter(s=>s.status==="suspended").length;
+  const pro       = shops.filter(s=>s.plan==="paid").length;
+  const free      = shops.filter(s=>s.plan==="free").length;
+  const mrr       = pro * 29;
 
-  const bars = [120, 145, 98, 167, 201, 188, 234].map((v, i) => ({ label: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"][i], v }));
-  const maxBar = Math.max(...bars.map(b => b.v));
+  const now   = Date.now();
+  const today = new Date().toDateString();
+  const newToday = shops.filter(s=>new Date(s.created_at).toDateString()===today).length;
+  const newWeek  = shops.filter(s=>now - new Date(s.created_at) < 7*86400000).length;
+  const newMonth = shops.filter(s=>new Date(s.created_at).getMonth()===new Date().getMonth()).length;
+
+  const expiring = shops.filter(s=>{ const d=daysLeft(s.plan_expiry); return d!==null && d>=0 && d<=30; });
+
+  const barData = [
+    {l:"Mon",v:120},{l:"Tue",v:145},{l:"Wed",v:98},{l:"Thu",v:167},
+    {l:"Fri",v:201},{l:"Sat",v:188},{l:"Sun",v:234},
+  ];
+  const barMax = Math.max(...barData.map(b=>b.v));
 
   return (
-    <div>
-      <h2 style={{ margin: "0 0 20px", fontSize: 18, fontWeight: 500, color: "var(--text-primary)" }}>Overview</h2>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 12, marginBottom: 24 }}>
-        <StatCard icon="building-store" label="Total users" value={fmt(total)} color="blue" highlight />
-        <StatCard icon="user-check" label="Active" value={fmt(active)} sub="accounts" color="green" />
-        <StatCard icon="user-off" label="Suspended" value={fmt(suspended)} color="red" />
-        <StatCard icon="star" label="Pro users" value={fmt(pro)} sub="paid plans" color="purple" />
-        <StatCard icon="users" label="Free users" value={fmt(free)} color="gray" />
-        <StatCard icon="currency-dollar" label="MRR" value={fmtMoney(mrr)} sub="est. monthly" color="green" />
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-black text-slate-950">Dashboard</h1>
+        <p className="mt-1 text-sm font-semibold text-slate-500">Platform overview — {new Date().toLocaleDateString("en-GB",{weekday:"long",day:"numeric",month:"long",year:"numeric"})}</p>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 16, marginBottom: 24 }}>
-        <div style={{ background: "var(--surface-2)", border: "0.5px solid var(--border)", borderRadius: 12, padding: 20 }}>
-          <h3 style={{ margin: "0 0 16px", fontSize: 14, fontWeight: 500, color: "var(--text-secondary)" }}>New registrations</h3>
-          <div style={{ display: "flex", gap: 16 }}>
-            {[["Today", newToday], ["This week", thisWeek], ["This month", thisMonth]].map(([l, v]) => (
-              <div key={l} style={{ flex: 1, textAlign: "center" }}>
-                <p style={{ margin: 0, fontSize: 22, fontWeight: 500, color: "var(--text-primary)" }}>{v}</p>
-                <p style={{ margin: "4px 0 0", fontSize: 11, color: "var(--text-muted)" }}>{l}</p>
+      {/* Stat cards */}
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
+        <StatCard label="Total Shops"  value={fmt(total)}     icon={Building2}  color="blue"   />
+        <StatCard label="Active"        value={fmt(active)}    icon={UserCheck}   color="green"  sub="accounts" />
+        <StatCard label="Suspended"     value={fmt(suspended)} icon={UserMinus}   color="red"    sub="accounts" />
+        <StatCard label="Pro Plan"      value={fmt(pro)}       icon={Star}        color="purple" sub="paid" />
+        <StatCard label="Free Plan"     value={fmt(free)}      icon={Users}       color="slate"  />
+        <StatCard label="MRR"           value={fmtUSD(mrr)}    icon={CreditCard}  color="green"  sub="est. monthly" />
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-3">
+        {/* Registrations */}
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <p className="text-xs font-black uppercase tracking-widest text-slate-400 mb-4">New Registrations</p>
+          <div className="flex divide-x divide-slate-100">
+            {[["Today",newToday],["This Week",newWeek],["This Month",newMonth]].map(([l,v])=>(
+              <div key={l} className="flex-1 px-4 first:pl-0 last:pr-0 text-center">
+                <p className="text-2xl font-black text-slate-950">{v}</p>
+                <p className="mt-1 text-[10px] font-bold text-slate-400 uppercase">{l}</p>
               </div>
             ))}
           </div>
         </div>
-        <div style={{ background: "var(--surface-2)", border: "0.5px solid var(--border)", borderRadius: 12, padding: 20 }}>
-          <h3 style={{ margin: "0 0 16px", fontSize: 14, fontWeight: 500, color: "var(--text-secondary)" }}>Plan distribution</h3>
-          <div style={{ display: "flex", gap: 8, alignItems: "flex-end", height: 60 }}>
-            <div style={{ flex: pro, background: "#185fa5", borderRadius: "4px 4px 0 0", minWidth: 20 }} title={`Pro: ${pro}`} />
-            <div style={{ flex: free, background: "var(--border-strong)", borderRadius: "4px 4px 0 0", minWidth: 20 }} title={`Free: ${free}`} />
-          </div>
-          <div style={{ display: "flex", gap: 16, marginTop: 8 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 6 }}><div style={{ width: 10, height: 10, borderRadius: 2, background: "#185fa5" }} /><span style={{ fontSize: 12, color: "var(--text-secondary)" }}>Pro {Math.round(pro / total * 100)}%</span></div>
-            <div style={{ display: "flex", alignItems: "center", gap: 6 }}><div style={{ width: 10, height: 10, borderRadius: 2, background: "var(--border-strong)" }} /><span style={{ fontSize: 12, color: "var(--text-secondary)" }}>Free {Math.round(free / total * 100)}%</span></div>
-          </div>
-        </div>
-        <div style={{ background: "var(--surface-2)", border: "0.5px solid var(--border)", borderRadius: 12, padding: 20 }}>
-          <h3 style={{ margin: "0 0 16px", fontSize: 14, fontWeight: 500, color: "var(--text-secondary)" }}>System health</h3>
-          {[["API", "Operational", "green"], ["Database", "Operational", "green"], ["Auth service", "Operational", "green"], ["Storage", "Degraded", "amber"]].map(([s, st, c]) => (
-            <div key={s} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-              <span style={{ fontSize: 13, color: "var(--text-primary)" }}>{s}</span>
-              <Badge color={c}>{st}</Badge>
-            </div>
-          ))}
-        </div>
-      </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 16 }}>
-        <div style={{ background: "var(--surface-2)", border: "0.5px solid var(--border)", borderRadius: 12, padding: 20 }}>
-          <h3 style={{ margin: "0 0 16px", fontSize: 14, fontWeight: 500, color: "var(--text-secondary)" }}>Activity this week</h3>
-          <div style={{ display: "flex", alignItems: "flex-end", gap: 6, height: 80 }}>
-            {bars.map(b => (
-              <div key={b.label} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
-                <div style={{ width: "100%", background: "#185fa5", borderRadius: "3px 3px 0 0", height: Math.round(b.v / maxBar * 64) }} />
-                <span style={{ fontSize: 10, color: "var(--text-muted)" }}>{b.label}</span>
+        {/* Activity chart */}
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <p className="text-xs font-black uppercase tracking-widest text-slate-400 mb-4">Sales Activity This Week</p>
+          <div className="flex items-end gap-2 h-20">
+            {barData.map(b=>(
+              <div key={b.l} className="flex flex-1 flex-col items-center gap-1">
+                <div className="w-full rounded-t-md bg-blue-600" style={{height:`${Math.round(b.v/barMax*64)}px`}} />
+                <span className="text-[9px] font-bold text-slate-400">{b.l}</span>
               </div>
             ))}
           </div>
         </div>
-        <div style={{ background: "var(--surface-2)", border: "0.5px solid var(--border)", borderRadius: 12, padding: 20 }}>
-          <h3 style={{ margin: "0 0 12px", fontSize: 14, fontWeight: 500, color: "var(--text-secondary)" }}>Expiring subscriptions (30d)</h3>
-          {expiringSoon.length === 0 ? (
-            <p style={{ fontSize: 13, color: "var(--text-muted)" }}>No subscriptions expiring soon.</p>
-          ) : expiringSoon.map(u => (
-            <div key={u.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-              <div>
-                <p style={{ margin: 0, fontSize: 13, fontWeight: 500, color: "var(--text-primary)" }}>{u.fullName}</p>
-                <p style={{ margin: 0, fontSize: 11, color: "var(--text-muted)" }}>{u.businessName}</p>
+
+        {/* System health */}
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <p className="text-xs font-black uppercase tracking-widest text-slate-400 mb-4">System Health</p>
+          <div className="space-y-3">
+            {[["API Server","Operational","green"],["Database","Operational","green"],["Auth Service","Operational","green"],["File Storage","Degraded","amber"],["Email Service","Operational","green"]].map(([s,st,c])=>(
+              <div key={s} className="flex items-center justify-between">
+                <span className="text-sm font-semibold text-slate-700">{s}</span>
+                <Badge color={c}>{st}</Badge>
               </div>
-              <Badge color={daysUntil(u.planExpiry) <= 7 ? "red" : "amber"}>{daysUntil(u.planExpiry)}d left</Badge>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
-        <div style={{ background: "var(--surface-2)", border: "0.5px solid var(--border)", borderRadius: 12, padding: 20 }}>
-          <h3 style={{ margin: "0 0 12px", fontSize: 14, fontWeight: 500, color: "var(--text-secondary)" }}>Recent audit log</h3>
-          {MOCK_AUDIT_LOGS.slice(0, 4).map(l => (
-            <div key={l.id} style={{ marginBottom: 10, paddingBottom: 10, borderBottom: "0.5px solid var(--border)" }}>
-              <p style={{ margin: 0, fontSize: 13, color: "var(--text-primary)" }}>{l.action} <span style={{ color: "var(--text-accent)" }}>{l.target}</span></p>
-              <p style={{ margin: "2px 0 0", fontSize: 11, color: "var(--text-muted)" }}>{l.admin} · {timeAgo(l.ts)}</p>
-            </div>
-          ))}
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        {/* Expiring subscriptions */}
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <p className="text-xs font-black uppercase tracking-widest text-slate-400 mb-4">Expiring Subscriptions (30 days)</p>
+          {expiring.length === 0
+            ? <p className="text-sm font-semibold text-slate-400">No subscriptions expiring soon.</p>
+            : <div className="space-y-3">{expiring.map(s=>{
+                const d=daysLeft(s.plan_expiry);
+                return (
+                  <div key={s.id} className="flex items-center justify-between rounded-xl border border-slate-100 p-3">
+                    <div>
+                      <p className="text-sm font-black text-slate-950">{s.owner_name}</p>
+                      <p className="text-xs font-semibold text-slate-400">{s.shop_name}</p>
+                    </div>
+                    <Badge color={d<=7?"red":"amber"}>{d}d left</Badge>
+                  </div>
+                );
+              })}</div>
+          }
+        </div>
+
+        {/* Recent audit */}
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <p className="text-xs font-black uppercase tracking-widest text-slate-400 mb-4">Recent Activity</p>
+          <div className="space-y-3">
+            {logs.slice(0,5).map(l=>(
+              <div key={l.id} className="flex gap-3 items-start border-b border-slate-50 pb-3 last:border-0 last:pb-0">
+                <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-blue-50">
+                  <Activity className="h-3.5 w-3.5 text-blue-600" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-bold text-slate-950 truncate">{l.action}</p>
+                  <p className="text-xs font-semibold text-slate-400">{l.admin} · {timeAgo(l.ts)}</p>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </div>
   );
 }
 
-// ─── User Table ───────────────────────────────────────────────────────────────
-function UserRow({ user, onAction, canEdit }) {
-  const days = daysUntil(user.planExpiry);
-  return (
-    <tr style={{ borderBottom: "0.5px solid var(--border)" }}>
-      <td style={{ padding: "10px 12px" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <div style={{ width: 34, height: 34, borderRadius: "50%", background: "#e6f1fb", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 500, color: "#185fa5", flexShrink: 0 }}>
-            {user.fullName.split(" ").map(w => w[0]).join("").slice(0, 2)}
-          </div>
-          <div>
-            <p style={{ margin: 0, fontSize: 13, fontWeight: 500, color: "var(--text-primary)" }}>{user.fullName}</p>
-            <p style={{ margin: 0, fontSize: 11, color: "var(--text-muted)" }}>{user.businessName}</p>
-          </div>
-        </div>
-      </td>
-      <td style={{ padding: "10px 12px", fontSize: 12, color: "var(--text-secondary)" }}>{user.email}</td>
-      <td style={{ padding: "10px 12px", fontSize: 12, color: "var(--text-secondary)" }}>{user.phone}</td>
-      <td style={{ padding: "10px 12px", fontSize: 12, color: "var(--text-secondary)" }}>{user.country}</td>
-      <td style={{ padding: "10px 12px", fontSize: 12, color: "var(--text-muted)" }}>{fmtDate(user.registeredAt)}</td>
-      <td style={{ padding: "10px 12px", fontSize: 12, color: "var(--text-muted)" }}>{timeAgo(user.lastLogin)}</td>
-      <td style={{ padding: "10px 12px" }}>
-        <Badge color={user.plan === "pro" ? "blue" : "gray"}>{user.plan === "pro" ? "Pro" : "Free"}</Badge>
-        {days !== null && days <= 30 && <span style={{ display: "block", fontSize: 10, color: days <= 7 ? "#a32d2d" : "#854f0b", marginTop: 2 }}>{days}d left</span>}
-      </td>
-      <td style={{ padding: "10px 12px" }}>
-        <Badge color={user.status === "active" ? "green" : "red"}>{user.status}</Badge>
-      </td>
-      <td style={{ padding: "10px 12px" }}>
-        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-          <Btn size="sm" onClick={() => onAction("view", user)}><i className="ti ti-eye" aria-hidden="true" style={{ fontSize: 12 }} />View</Btn>
-          {canEdit && <>
-            <Btn size="sm" onClick={() => onAction("plan", user)}><i className="ti ti-star" aria-hidden="true" style={{ fontSize: 12 }} />Plan</Btn>
-            <Btn size="sm" danger onClick={() => onAction(user.status === "active" ? "suspend" : "unsuspend", user)}>
-              <i className={`ti ti-${user.status === "active" ? "user-off" : "user-check"}`} aria-hidden="true" style={{ fontSize: 12 }} />
-              {user.status === "active" ? "Suspend" : "Unsuspend"}
-            </Btn>
-          </>}
-        </div>
-      </td>
-    </tr>
-  );
-}
-
-function UsersView({ users, setUsers, addLog, toast, role }) {
+// ─── USERS ────────────────────────────────────────────────────────────────────
+function UsersView({ shops, setShops, addLog, toast, role }) {
   const canEdit = role !== "readonly";
-  const [search, setSearch] = useState("");
-  const [filter, setFilter] = useState({ plan: "all", status: "all", country: "All" });
-  const [page, setPage] = useState(1);
-  const [modal, setModal] = useState(null); // { type, user }
-  const [planForm, setPlanForm] = useState({ plan: "pro", duration: "1 month", custom: "" });
-  const PER_PAGE = 5;
+  const [search,  setSearch]  = useState("");
+  const [filters, setFilters] = useState({ plan:"all", status:"all", country:"All" });
+  const [page,    setPage]    = useState(1);
+  const [modal,   setModal]   = useState(null);
+  const [planForm,setPlanForm]= useState({ plan:"paid", duration:30, custom:"" });
+  const [editForm,setEditForm]= useState({});
+  const PER = 6;
 
-  const filtered = useMemo(() => {
-    let r = users;
-    if (search) { const q = search.toLowerCase(); r = r.filter(u => u.fullName.toLowerCase().includes(q) || u.businessName.toLowerCase().includes(q) || u.email.toLowerCase().includes(q) || u.phone.includes(q)); }
-    if (filter.plan !== "all") r = r.filter(u => u.plan === filter.plan);
-    if (filter.status !== "all") r = r.filter(u => u.status === filter.status);
-    if (filter.country !== "All") r = r.filter(u => u.country === filter.country);
-    return r;
-  }, [users, search, filter]);
+  const filtered = useMemo(()=>{
+    const q = search.toLowerCase();
+    return shops.filter(s=>{
+      const matchQ = !q || s.owner_name.toLowerCase().includes(q) || s.shop_name.toLowerCase().includes(q) || s.owner_email.toLowerCase().includes(q) || s.phone.includes(q);
+      const matchPlan    = filters.plan==="all"    || s.plan===filters.plan;
+      const matchStatus  = filters.status==="all"  || s.status===filters.status;
+      const matchCountry = filters.country==="All" || s.country===filters.country;
+      const matchExpired = filters.plan!=="expired"|| (s.plan_expiry && daysLeft(s.plan_expiry)<0);
+      return matchQ && matchPlan && matchStatus && matchCountry;
+    });
+  },[shops,search,filters]);
 
-  const pages = Math.max(1, Math.ceil(filtered.length / PER_PAGE));
-  const paged = filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE);
+  const pages = Math.max(1,Math.ceil(filtered.length/PER));
+  const paged = filtered.slice((page-1)*PER, page*PER);
 
-  function doAction(type, user) {
-    if (type === "view" || type === "plan") { setModal({ type, user }); return; }
-    if (type === "suspend" || type === "unsuspend") {
-      if (!window.confirm(`${type === "suspend" ? "Suspend" : "Unsuspend"} ${user.fullName}?`)) return;
-      const ns = type === "suspend" ? "suspended" : "active";
-      setUsers(prev => prev.map(u => u.id === user.id ? { ...u, status: ns } : u));
-      addLog({ action: `${type === "suspend" ? "Suspended" : "Unsuspended"} account`, target: user.fullName });
-      toast(`${user.fullName} ${ns}.`);
-    }
-    if (type === "delete") {
-      if (!window.confirm(`Soft-delete ${user.fullName}? They will lose access.`)) return;
-      setUsers(prev => prev.filter(u => u.id !== user.id));
-      addLog({ action: "Soft-deleted account", target: user.fullName });
-      toast(`${user.fullName} removed.`);
-      setModal(null);
-    }
-    if (type === "permdelete") {
-      const confirmed = window.prompt(`Type DELETE to permanently remove ${user.fullName} and all data:`);
-      if (confirmed !== "DELETE") return;
-      setUsers(prev => prev.filter(u => u.id !== user.id));
-      addLog({ action: "Permanently deleted account", target: user.fullName });
-      toast(`${user.fullName} permanently deleted.`, "error");
-      setModal(null);
-    }
-    if (type === "resetpw") {
-      addLog({ action: "Reset password", target: user.fullName });
-      toast(`Password reset link sent to ${user.email}.`);
-      setModal(null);
-    }
-    if (type === "forcelogout") {
-      addLog({ action: "Force-logged out all sessions", target: user.fullName });
-      toast(`All sessions for ${user.fullName} terminated.`);
-    }
-    if (type === "verifyemail") {
-      setUsers(prev => prev.map(u => u.id === user.id ? { ...u, emailVerified: true } : u));
-      addLog({ action: "Verified email", target: user.fullName });
-      toast("Email verified.");
-    }
-    if (type === "verifyphone") {
-      setUsers(prev => prev.map(u => u.id === user.id ? { ...u, phoneVerified: true } : u));
-      addLog({ action: "Verified phone", target: user.fullName });
-      toast("Phone verified.");
-    }
+  function doSuspend(s) {
+    if(!window.confirm(`Suspend ${s.owner_name}?`)) return;
+    setShops(p=>p.map(x=>x.id===s.id?{...x,status:"suspended"}:x));
+    addLog({action:"Suspended account",target:s.owner_name});
+    toast("Account suspended.");
   }
-
-  function applyPlan() {
-    const { user } = modal;
-    let expiry = null;
-    if (planForm.plan === "pro") {
-      const d = new Date();
-      const map = { "7 days": 7, "1 month": 30, "3 months": 90, "6 months": 180, "12 months": 365 };
-      const days = planForm.duration === "Custom" ? parseInt(planForm.custom) : map[planForm.duration];
-      d.setDate(d.getDate() + (days || 30));
-      expiry = d.toISOString().split("T")[0];
-    }
-    setUsers(prev => prev.map(u => u.id === user.id ? { ...u, plan: planForm.plan, planExpiry: expiry } : u));
-    addLog({ action: `Assigned ${planForm.plan} plan (${planForm.duration})`, target: user.fullName });
-    toast(`Plan updated for ${user.fullName}.`);
+  function doUnsuspend(s) {
+    setShops(p=>p.map(x=>x.id===s.id?{...x,status:"active"}:x));
+    addLog({action:"Unsuspended account",target:s.owner_name});
+    toast("Account reactivated.");
+  }
+  function doSoftDelete(s) {
+    if(!window.confirm(`Soft-delete ${s.owner_name}? They will lose access.`)) return;
+    setShops(p=>p.filter(x=>x.id!==s.id));
+    addLog({action:"Soft-deleted account",target:s.owner_name});
+    toast("Account removed.");
+    setModal(null);
+  }
+  function doHardDelete(s) {
+    const c = window.prompt(`Type DELETE to permanently remove ${s.owner_name} and all data:`);
+    if(c!=="DELETE") return;
+    setShops(p=>p.filter(x=>x.id!==s.id));
+    addLog({action:"Permanently deleted account",target:s.owner_name});
+    toast(`${s.owner_name} permanently deleted.`,"error");
+    setModal(null);
+  }
+  function doResetPw(s) {
+    addLog({action:"Reset password",target:s.owner_name});
+    toast(`Password reset link sent to ${s.owner_email}.`);
+  }
+  function doForceLogout(s) {
+    addLog({action:"Force-logged out all sessions",target:s.owner_name});
+    toast(`All sessions for ${s.owner_name} terminated.`,"warning");
+  }
+  function doVerifyEmail(s) {
+    setShops(p=>p.map(x=>x.id===s.id?{...x,email_verified:true}:x));
+    addLog({action:"Verified email",target:s.owner_name});
+    toast("Email verified.");
+  }
+  function doVerifyPhone(s) {
+    setShops(p=>p.map(x=>x.id===s.id?{...x,phone_verified:true}:x));
+    addLog({action:"Verified phone",target:s.owner_name});
+    toast("Phone number verified.");
+  }
+  function doSaveEdit() {
+    const s = modal.shop;
+    setShops(p=>p.map(x=>x.id===s.id?{...x,...editForm}:x));
+    addLog({action:"Edited user information",target:s.owner_name});
+    toast("User information updated.");
+    setModal(null);
+  }
+  function doApplyPlan() {
+    const s = modal.shop;
+    const days = planForm.duration === 0 ? parseInt(planForm.custom)||30 : planForm.duration;
+    const expiry = planForm.plan==="paid" ? addDays(days) : null;
+    setShops(p=>p.map(x=>x.id===s.id?{...x,plan:planForm.plan,plan_expiry:expiry}:x));
+    addLog({action:`Assigned ${planForm.plan} plan${planForm.plan==="paid"?` (${days} days)`:""}`,target:s.owner_name});
+    toast("Plan updated.");
     setModal(null);
   }
 
+  function openView(shop)  { setModal({type:"view",  shop}); }
+  function openEdit(shop)  { setEditForm({owner_name:shop.owner_name,shop_name:shop.shop_name,owner_email:shop.owner_email,phone:shop.phone,country:shop.country}); setModal({type:"edit",shop}); }
+  function openPlan(shop)  { setPlanForm({plan:shop.plan,duration:30,custom:""}); setModal({type:"plan",shop}); }
+
   return (
-    <div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, flexWrap: "wrap", gap: 12 }}>
-        <h2 style={{ margin: 0, fontSize: 18, fontWeight: 500, color: "var(--text-primary)" }}>User management</h2>
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          <input value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} placeholder="Search name, email, phone…" style={{ width: 220 }} />
-          <select value={filter.plan} onChange={e => { setFilter({ ...filter, plan: e.target.value }); setPage(1); }}>
-            <option value="all">All plans</option><option value="free">Free</option><option value="pro">Pro</option>
-          </select>
-          <select value={filter.status} onChange={e => { setFilter({ ...filter, status: e.target.value }); setPage(1); }}>
-            <option value="all">All status</option><option value="active">Active</option><option value="suspended">Suspended</option>
-          </select>
-          <select value={filter.country} onChange={e => { setFilter({ ...filter, country: e.target.value }); setPage(1); }}>
-            {COUNTRIES.map(c => <option key={c}>{c}</option>)}
-          </select>
+    <div className="space-y-4">
+      {/* Header + filters */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-black text-slate-950">User Management</h1>
+          <p className="text-sm font-semibold text-slate-500">{filtered.length} account{filtered.length!==1?"s":""}</p>
         </div>
+        {canEdit && <Btn variant="primary" onClick={()=>setModal({type:"new"})}><UserPlus className="h-4 w-4" />Add User</Btn>}
       </div>
 
-      <div style={{ background: "var(--surface-2)", border: "0.5px solid var(--border)", borderRadius: 12, overflowX: "auto" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 900 }}>
-          <thead>
-            <tr style={{ background: "var(--surface-1)" }}>
-              {["User", "Email", "Phone", "Country", "Registered", "Last login", "Plan", "Status", "Actions"].map(h => (
-                <th key={h} style={{ padding: "10px 12px", textAlign: "left", fontSize: 11, fontWeight: 500, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em", borderBottom: "0.5px solid var(--border)", whiteSpace: "nowrap" }}>{h}</th>
+      <div className="flex flex-col gap-2 sm:flex-row">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+          <input className="h-10 w-full rounded-xl border border-slate-200 pl-9 pr-4 text-sm font-semibold outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100" placeholder="Search name, email, phone, business…" value={search} onChange={e=>{setSearch(e.target.value);setPage(1);}} />
+        </div>
+        <select className="h-10 rounded-xl border border-slate-200 px-3 text-sm font-bold outline-none focus:border-blue-500" value={filters.plan} onChange={e=>{setFilters({...filters,plan:e.target.value});setPage(1);}}>
+          <option value="all">All Plans</option><option value="paid">Pro</option><option value="free">Free</option>
+        </select>
+        <select className="h-10 rounded-xl border border-slate-200 px-3 text-sm font-bold outline-none focus:border-blue-500" value={filters.status} onChange={e=>{setFilters({...filters,status:e.target.value});setPage(1);}}>
+          <option value="all">All Status</option><option value="active">Active</option><option value="suspended">Suspended</option>
+        </select>
+        <select className="h-10 rounded-xl border border-slate-200 px-3 text-sm font-bold outline-none focus:border-blue-500" value={filters.country} onChange={e=>{setFilters({...filters,country:e.target.value});setPage(1);}}>
+          {COUNTRIES.map(c=><option key={c}>{c}</option>)}
+        </select>
+      </div>
+
+      {/* Table */}
+      <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-x-auto">
+        <table className="min-w-full divide-y divide-slate-100 text-sm">
+          <thead className="bg-slate-50">
+            <tr>
+              {["Owner / Business","Email","Phone","Country","Registered","Last Login","Plan","Status","Actions"].map(h=>(
+                <th key={h} className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-slate-400 whitespace-nowrap">{h}</th>
               ))}
             </tr>
           </thead>
-          <tbody>
-            {paged.length === 0 ? (
-              <tr><td colSpan={9} style={{ padding: 32, textAlign: "center", fontSize: 14, color: "var(--text-muted)" }}>No users match your filters.</td></tr>
-            ) : paged.map(u => <UserRow key={u.id} user={u} onAction={doAction} canEdit={canEdit} />)}
+          <tbody className="divide-y divide-slate-100">
+            {paged.length===0
+              ? <tr><td colSpan={9} className="py-12 text-center text-sm font-bold text-slate-400">No users match your filters.</td></tr>
+              : paged.map(s=>{
+                  const dl = daysLeft(s.plan_expiry);
+                  return (
+                    <tr key={s.id} className="hover:bg-slate-50/60 transition-colors">
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-sm font-black text-blue-600">
+                            {s.owner_name.charAt(0)}
+                          </div>
+                          <div>
+                            <p className="font-black text-slate-950 whitespace-nowrap">{s.owner_name}</p>
+                            <p className="text-xs font-semibold text-slate-400">{s.shop_name}</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-slate-600 font-semibold whitespace-nowrap">
+                        {s.owner_email}
+                        {!s.email_verified && <span className="ml-1 text-[10px] text-amber-600 font-bold">(unverified)</span>}
+                      </td>
+                      <td className="px-4 py-3 font-semibold text-slate-600 whitespace-nowrap">
+                        {s.phone}
+                        {!s.phone_verified && <span className="ml-1 text-[10px] text-amber-600 font-bold">(unverified)</span>}
+                      </td>
+                      <td className="px-4 py-3 font-semibold text-slate-600 whitespace-nowrap">{s.country}</td>
+                      <td className="px-4 py-3 font-semibold text-slate-500 whitespace-nowrap">{fmtDate(s.created_at)}</td>
+                      <td className="px-4 py-3 font-semibold text-slate-500 whitespace-nowrap">{timeAgo(s.last_login)}</td>
+                      <td className="px-4 py-3">
+                        <Badge color={s.plan==="paid"?"purple":"slate"}>{s.plan==="paid"?"Pro":"Free"}</Badge>
+                        {dl!==null && dl<=30 && <p className={`mt-0.5 text-[10px] font-bold ${dl<=7?"text-rose-600":"text-amber-600"}`}>{dl}d left</p>}
+                      </td>
+                      <td className="px-4 py-3">
+                        <Badge color={s.status==="active"?"green":"red"}>{s.status}</Badge>
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <Btn size="sm" variant="ghost" onClick={()=>openView(s)}><Eye className="h-3.5 w-3.5" /></Btn>
+                          {canEdit && <>
+                            <Btn size="sm" variant="ghost" onClick={()=>openEdit(s)}><User className="h-3.5 w-3.5" /></Btn>
+                            <Btn size="sm" variant="ghost" onClick={()=>openPlan(s)}><Star className="h-3.5 w-3.5" /></Btn>
+                            {s.status==="active"
+                              ? <Btn size="sm" variant="danger" onClick={()=>doSuspend(s)}><ShieldOff className="h-3.5 w-3.5" /></Btn>
+                              : <Btn size="sm" variant="success" onClick={()=>doUnsuspend(s)}><ShieldCheck className="h-3.5 w-3.5" /></Btn>
+                            }
+                            <Btn size="sm" variant="danger" onClick={()=>doSoftDelete(s)}><Trash2 className="h-3.5 w-3.5" /></Btn>
+                          </>}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
+            }
           </tbody>
         </table>
       </div>
 
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 14 }}>
-        <p style={{ margin: 0, fontSize: 13, color: "var(--text-muted)" }}>{filtered.length} user{filtered.length !== 1 ? "s" : ""}</p>
-        <div style={{ display: "flex", gap: 6 }}>
-          {Array.from({ length: pages }, (_, i) => (
-            <button key={i} onClick={() => setPage(i + 1)} style={{ width: 30, height: 30, borderRadius: 6, border: `0.5px solid ${page === i + 1 ? "#185fa5" : "var(--border)"}`, background: page === i + 1 ? "#185fa5" : "var(--surface-2)", color: page === i + 1 ? "#fff" : "var(--text-primary)", fontSize: 12, cursor: "pointer" }}>{i + 1}</button>
-          ))}
+      {/* Pagination */}
+      {pages>1 && (
+        <div className="flex items-center justify-between">
+          <p className="text-xs font-bold text-slate-400">Page {page} of {pages}</p>
+          <div className="flex gap-1">
+            {Array.from({length:pages},(_,i)=>(
+              <button key={i} onClick={()=>setPage(i+1)} className={`h-8 w-8 rounded-lg text-xs font-black transition-colors ${page===i+1?"bg-blue-600 text-white":"border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"}`}>{i+1}</button>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
-      {modal?.type === "view" && (
-        <Modal title={modal.user.fullName} onClose={() => setModal(null)} width={600}>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 20 }}>
+      {/* VIEW MODAL */}
+      {modal?.type==="view" && (
+        <Modal title={modal.shop.owner_name} onClose={()=>setModal(null)} width="max-w-2xl">
+          <div className="grid gap-3 sm:grid-cols-2">
             {[
-              ["Business", modal.user.businessName], ["Email", modal.user.email],
-              ["Phone", modal.user.phone], ["Country", modal.user.country],
-              ["Registered", fmtDate(modal.user.registeredAt)], ["Last login", timeAgo(modal.user.lastLogin)],
-              ["Plan", modal.user.plan], ["Expiry", fmtDate(modal.user.planExpiry)],
-              ["Status", modal.user.status], ["Revenue", fmtMoney(modal.user.revenue)],
-              ["Sales", fmt(modal.user.sales)], ["Email verified", modal.user.emailVerified ? "Yes" : "No"],
-            ].map(([k, v]) => (
-              <div key={k} style={{ background: "var(--surface-1)", borderRadius: 8, padding: "10px 14px" }}>
-                <p style={{ margin: "0 0 2px", fontSize: 11, color: "var(--text-muted)", textTransform: "uppercase" }}>{k}</p>
-                <p style={{ margin: 0, fontSize: 13, fontWeight: 500, color: "var(--text-primary)" }}>{String(v)}</p>
+              ["Business",     modal.shop.shop_name],
+              ["Email",        modal.shop.owner_email],
+              ["Phone",        modal.shop.phone],
+              ["Country",      modal.shop.country],
+              ["Registered",   fmtDate(modal.shop.created_at)],
+              ["Last Login",   timeAgo(modal.shop.last_login)],
+              ["Plan",         modal.shop.plan],
+              ["Expiry",       fmtDate(modal.shop.plan_expiry)],
+              ["Status",       modal.shop.status],
+              ["Revenue",      fmtUSD(modal.shop.usage?.revenue)],
+              ["Sales",        fmt(modal.shop.usage?.sales)],
+              ["Products",     fmt(modal.shop.usage?.products)],
+              ["Email Verified",modal.shop.email_verified?"Yes":"No"],
+              ["Phone Verified",modal.shop.phone_verified?"Yes":"No"],
+              ["Heard Via",    modal.shop.hear_about],
+              ["Business Type",modal.shop.business_type],
+            ].map(([k,v])=>(
+              <div key={k} className="rounded-xl bg-slate-50 p-3">
+                <p className="text-[10px] font-black uppercase tracking-wide text-slate-400">{k}</p>
+                <p className="mt-0.5 text-sm font-bold text-slate-950">{v||"—"}</p>
               </div>
             ))}
           </div>
           {canEdit && (
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-              <Btn size="sm" onClick={() => doAction("resetpw", modal.user)}><i className="ti ti-key" style={{ fontSize: 12 }} aria-hidden />Reset password</Btn>
-              <Btn size="sm" onClick={() => doAction("forcelogout", modal.user)}><i className="ti ti-logout" style={{ fontSize: 12 }} aria-hidden />Force logout</Btn>
-              {!modal.user.emailVerified && <Btn size="sm" onClick={() => doAction("verifyemail", modal.user)}><i className="ti ti-mail-check" style={{ fontSize: 12 }} aria-hidden />Verify email</Btn>}
-              {!modal.user.phoneVerified && <Btn size="sm" onClick={() => doAction("verifyphone", modal.user)}><i className="ti ti-device-mobile-check" style={{ fontSize: 12 }} aria-hidden />Verify phone</Btn>}
-              <Btn size="sm" danger onClick={() => doAction("delete", modal.user)}><i className="ti ti-trash" style={{ fontSize: 12 }} aria-hidden />Soft delete</Btn>
-              <Btn size="sm" danger onClick={() => doAction("permdelete", modal.user)}><i className="ti ti-trash-x" style={{ fontSize: 12 }} aria-hidden />Permanent delete</Btn>
+            <div className="mt-5 flex flex-wrap gap-2 border-t border-slate-100 pt-5">
+              <Btn size="sm" onClick={()=>doResetPw(modal.shop)}><Key className="h-3.5 w-3.5"/>Reset Password</Btn>
+              <Btn size="sm" onClick={()=>doForceLogout(modal.shop)}><LogOut className="h-3.5 w-3.5"/>Force Logout</Btn>
+              {!modal.shop.email_verified && <Btn size="sm" variant="success" onClick={()=>{doVerifyEmail(modal.shop);}}><Mail className="h-3.5 w-3.5"/>Verify Email</Btn>}
+              {!modal.shop.phone_verified && <Btn size="sm" variant="success" onClick={()=>{doVerifyPhone(modal.shop);}}><Phone className="h-3.5 w-3.5"/>Verify Phone</Btn>}
+              <Btn size="sm" variant="danger" onClick={()=>doHardDelete(modal.shop)}><Trash2 className="h-3.5 w-3.5"/>Permanent Delete</Btn>
             </div>
           )}
         </Modal>
       )}
 
-      {modal?.type === "plan" && (
-        <Modal title={`Manage plan — ${modal.user.fullName}`} onClose={() => setModal(null)}>
-          <div style={{ marginBottom: 16 }}>
-            <label style={{ display: "block", fontSize: 12, fontWeight: 500, color: "var(--text-secondary)", marginBottom: 6 }}>Assign plan</label>
-            <select value={planForm.plan} onChange={e => setPlanForm({ ...planForm, plan: e.target.value })} style={{ width: "100%" }}>
-              <option value="free">Free</option><option value="pro">Pro</option>
-            </select>
+      {/* EDIT MODAL */}
+      {modal?.type==="edit" && (
+        <Modal title={`Edit — ${modal.shop.owner_name}`} onClose={()=>setModal(null)}>
+          <div className="space-y-3">
+            {[["Full Name","owner_name","text"],["Business Name","shop_name","text"],["Email","owner_email","email"],["Phone","phone","tel"],["Country","country","text"]].map(([l,k,t])=>(
+              <div key={k}>
+                <label className="mb-1 block text-xs font-black uppercase tracking-wide text-slate-400">{l}</label>
+                <input type={t} value={editForm[k]||""} onChange={e=>setEditForm({...editForm,[k]:e.target.value})} className="h-11 w-full rounded-xl border border-slate-200 px-4 text-sm font-semibold outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100" />
+              </div>
+            ))}
+            <div className="flex justify-end gap-2 pt-2">
+              <Btn onClick={()=>setModal(null)}>Cancel</Btn>
+              <Btn variant="primary" onClick={doSaveEdit}><Check className="h-4 w-4"/>Save Changes</Btn>
+            </div>
           </div>
-          {planForm.plan === "pro" && <>
-            <div style={{ marginBottom: 16 }}>
-              <label style={{ display: "block", fontSize: 12, fontWeight: 500, color: "var(--text-secondary)", marginBottom: 6 }}>Duration</label>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                {PLAN_DURATIONS.map(d => (
-                  <button key={d} onClick={() => setPlanForm({ ...planForm, duration: d })} style={{ padding: "6px 14px", borderRadius: 8, border: `0.5px solid ${planForm.duration === d ? "#185fa5" : "var(--border)"}`, background: planForm.duration === d ? "#185fa5" : "var(--surface-2)", color: planForm.duration === d ? "#fff" : "var(--text-primary)", fontSize: 12, cursor: "pointer" }}>{d}</button>
+        </Modal>
+      )}
+
+      {/* PLAN MODAL */}
+      {modal?.type==="plan" && (
+        <Modal title={`Manage Plan — ${modal.shop.owner_name}`} onClose={()=>setModal(null)}>
+          <div className="space-y-4">
+            <div>
+              <label className="mb-2 block text-xs font-black uppercase tracking-wide text-slate-400">Plan</label>
+              <div className="flex gap-2">
+                {["free","paid"].map(p=>(
+                  <button key={p} onClick={()=>setPlanForm({...planForm,plan:p})} className={`flex-1 rounded-xl border py-3 text-sm font-black transition-all ${planForm.plan===p?"border-blue-600 bg-blue-600 text-white":"border-slate-200 bg-white text-slate-700 hover:bg-slate-50"}`}>
+                    {p==="paid"?"Pro / Paid":"Free"}
+                  </button>
                 ))}
               </div>
             </div>
-            {planForm.duration === "Custom" && (
-              <div style={{ marginBottom: 16 }}>
-                <label style={{ display: "block", fontSize: 12, fontWeight: 500, color: "var(--text-secondary)", marginBottom: 6 }}>Custom days</label>
-                <input type="number" value={planForm.custom} onChange={e => setPlanForm({ ...planForm, custom: e.target.value })} placeholder="e.g. 45" style={{ width: "100%", boxSizing: "border-box" }} />
+            {planForm.plan==="paid" && (
+              <div>
+                <label className="mb-2 block text-xs font-black uppercase tracking-wide text-slate-400">Duration</label>
+                <div className="flex flex-wrap gap-2">
+                  {PLAN_DURATIONS.map(d=>(
+                    <button key={d.label} onClick={()=>setPlanForm({...planForm,duration:d.days})} className={`rounded-xl border px-4 py-2 text-xs font-black transition-all ${planForm.duration===d.days?"border-blue-600 bg-blue-600 text-white":"border-slate-200 bg-white text-slate-700 hover:bg-slate-50"}`}>
+                      {d.label}
+                    </button>
+                  ))}
+                </div>
+                {planForm.duration===0 && (
+                  <input type="number" placeholder="Days (e.g. 45)" value={planForm.custom} onChange={e=>setPlanForm({...planForm,custom:e.target.value})} className="mt-2 h-11 w-full rounded-xl border border-slate-200 px-4 text-sm font-semibold outline-none focus:border-blue-500" />
+                )}
               </div>
             )}
-          </>}
-          <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 20 }}>
-            <Btn onClick={() => setModal(null)}>Cancel</Btn>
-            <Btn variant="primary" onClick={applyPlan}>Apply plan</Btn>
+            <div className="flex justify-end gap-2 pt-2">
+              <Btn onClick={()=>setModal(null)}>Cancel</Btn>
+              <Btn variant="primary" onClick={doApplyPlan}><Star className="h-4 w-4"/>Apply Plan</Btn>
+            </div>
           </div>
         </Modal>
       )}
@@ -531,187 +713,339 @@ function UsersView({ users, setUsers, addLog, toast, role }) {
   );
 }
 
-// ─── Analytics ────────────────────────────────────────────────────────────────
-function AnalyticsView({ users }) {
-  const totalRevenue = users.reduce((s, u) => s + u.revenue, 0);
-  const totalSales = users.reduce((s, u) => s + u.sales, 0);
-  const proCount = users.filter(u => u.plan === "pro").length;
-  const convRate = users.length ? Math.round(proCount / users.length * 100) : 0;
-  const churn = 3.2;
-  const dau = 4;
+// ─── SUBSCRIPTIONS ────────────────────────────────────────────────────────────
+function SubscriptionsView({ shops, setShops, addLog, toast }) {
+  const paid = shops.filter(s=>s.plan==="paid");
+  const expiringSoon = shops.filter(s=>{ const d=daysLeft(s.plan_expiry); return d!==null && d>=0 && d<=30; });
+  const expired = shops.filter(s=>{ const d=daysLeft(s.plan_expiry); return d!==null && d<0; });
 
-  const countryData = useMemo(() => {
-    const map = {};
-    users.forEach(u => { map[u.country] = (map[u.country] || 0) + 1; });
-    return Object.entries(map).sort((a, b) => b[1] - a[1]);
-  }, [users]);
-
-  const maxCountry = Math.max(...countryData.map(([, v]) => v));
-
-  return (
-    <div>
-      <h2 style={{ margin: "0 0 20px", fontSize: 18, fontWeight: 500, color: "var(--text-primary)" }}>Analytics</h2>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 12, marginBottom: 24 }}>
-        <StatCard icon="currency-dollar" label="Total revenue" value={fmtMoney(totalRevenue)} color="green" />
-        <StatCard icon="shopping-cart" label="Total sales" value={fmt(totalSales)} color="blue" />
-        <StatCard icon="building-store" label="Businesses" value={fmt(users.length)} color="purple" />
-        <StatCard icon="users" label="Daily active" value={fmt(dau)} sub="est." color="blue" />
-        <StatCard icon="percentage" label="Conversion" value={convRate + "%"} sub="free → pro" color="green" />
-        <StatCard icon="chart-line-down" label="Churn rate" value={churn + "%"} sub="monthly est." color="amber" />
-      </div>
-
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 16 }}>
-        <div style={{ background: "var(--surface-2)", border: "0.5px solid var(--border)", borderRadius: 12, padding: 20 }}>
-          <h3 style={{ margin: "0 0 16px", fontSize: 14, fontWeight: 500, color: "var(--text-secondary)" }}>Users by country</h3>
-          {countryData.map(([c, v]) => (
-            <div key={c} style={{ marginBottom: 10 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-                <span style={{ fontSize: 13, color: "var(--text-primary)" }}>{c}</span>
-                <span style={{ fontSize: 12, color: "var(--text-muted)" }}>{v}</span>
-              </div>
-              <div style={{ height: 6, background: "var(--surface-1)", borderRadius: 3 }}>
-                <div style={{ height: "100%", width: `${Math.round(v / maxCountry * 100)}%`, background: "#185fa5", borderRadius: 3 }} />
-              </div>
-            </div>
-          ))}
-        </div>
-        <div style={{ background: "var(--surface-2)", border: "0.5px solid var(--border)", borderRadius: 12, padding: 20 }}>
-          <h3 style={{ margin: "0 0 16px", fontSize: 14, fontWeight: 500, color: "var(--text-secondary)" }}>Revenue by user (top 5)</h3>
-          {[...users].sort((a, b) => b.revenue - a.revenue).slice(0, 5).map((u, i) => (
-            <div key={u.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <span style={{ width: 20, height: 20, borderRadius: "50%", background: "#e6f1fb", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 500, color: "#185fa5" }}>{i + 1}</span>
-                <span style={{ fontSize: 13, color: "var(--text-primary)" }}>{u.businessName}</span>
-              </div>
-              <span style={{ fontSize: 13, fontWeight: 500, color: "var(--text-accent)" }}>{fmtMoney(u.revenue)}</span>
-            </div>
-          ))}
-        </div>
-        <div style={{ background: "var(--surface-2)", border: "0.5px solid var(--border)", borderRadius: 12, padding: 20 }}>
-          <h3 style={{ margin: "0 0 16px", fontSize: 14, fontWeight: 500, color: "var(--text-secondary)" }}>User growth (simulated)</h3>
-          {["Jan", "Feb", "Mar", "Apr", "May", "Jun"].map((m, i) => {
-            const v = [1, 2, 3, 5, 6, 8][i];
-            return (
-              <div key={m} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-                <span style={{ fontSize: 12, color: "var(--text-muted)", width: 28 }}>{m}</span>
-                <div style={{ flex: 1, height: 8, background: "var(--surface-1)", borderRadius: 4 }}>
-                  <div style={{ height: "100%", width: `${Math.round(v / 8 * 100)}%`, background: "#185fa5", borderRadius: 4 }} />
-                </div>
-                <span style={{ fontSize: 12, color: "var(--text-muted)", width: 16, textAlign: "right" }}>{v}</span>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ─── Notifications ────────────────────────────────────────────────────────────
-function NotificationsView({ users, addLog, toast }) {
-  const [form, setForm] = useState({ type: "all", title: "", message: "", selectedUsers: [] });
-  const [sent, setSent] = useState([]);
-
-  function sendNotification() {
-    if (!form.title || !form.message) { toast("Title and message required.", "error"); return; }
-    const targets = form.type === "all" ? `All ${users.length} users` : form.type === "selected" ? form.selectedUsers.join(", ") : form.type;
-    const entry = { id: Date.now(), ts: new Date().toISOString(), type: form.type, title: form.title, message: form.message, targets };
-    setSent(p => [entry, ...p]);
-    addLog({ action: `Sent notification: "${form.title}"`, target: targets });
-    toast("Notification sent.");
-    setForm({ type: "all", title: "", message: "", selectedUsers: [] });
+  function extend(s, days) {
+    const base = s.plan_expiry && daysLeft(s.plan_expiry)>0 ? new Date(s.plan_expiry) : new Date();
+    base.setDate(base.getDate()+days);
+    setShops(p=>p.map(x=>x.id===s.id?{...x,plan:"paid",plan_expiry:base.toISOString().split("T")[0]}:x));
+    addLog({action:`Extended subscription by ${days} days`,target:s.owner_name});
+    toast(`Subscription extended by ${days} days.`);
+  }
+  function cancel(s) {
+    if(!window.confirm(`Cancel subscription for ${s.owner_name}?`)) return;
+    setShops(p=>p.map(x=>x.id===s.id?{...x,plan:"free",plan_expiry:null}:x));
+    addLog({action:"Cancelled subscription",target:s.owner_name});
+    toast("Subscription cancelled.");
   }
 
   return (
-    <div>
-      <h2 style={{ margin: "0 0 20px", fontSize: 18, fontWeight: 500, color: "var(--text-primary)" }}>Notifications</h2>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 16 }}>
-        <div style={{ background: "var(--surface-2)", border: "0.5px solid var(--border)", borderRadius: 12, padding: 20 }}>
-          <h3 style={{ margin: "0 0 16px", fontSize: 15, fontWeight: 500, color: "var(--text-primary)" }}>Send notification</h3>
-          <label style={{ display: "block", fontSize: 12, fontWeight: 500, color: "var(--text-secondary)", marginBottom: 6 }}>Audience</label>
-          <select value={form.type} onChange={e => setForm({ ...form, type: e.target.value })} style={{ width: "100%", marginBottom: 14 }}>
-            <option value="all">All users</option>
-            <option value="pro">Pro users only</option>
-            <option value="free">Free users only</option>
-            <option value="maintenance">Maintenance notice</option>
-            <option value="upgrade">Upgrade reminder</option>
-          </select>
-          <label style={{ display: "block", fontSize: 12, fontWeight: 500, color: "var(--text-secondary)", marginBottom: 6 }}>Title</label>
-          <input value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} placeholder="Notification title" style={{ width: "100%", marginBottom: 14, boxSizing: "border-box" }} />
-          <label style={{ display: "block", fontSize: 12, fontWeight: 500, color: "var(--text-secondary)", marginBottom: 6 }}>Message</label>
-          <textarea value={form.message} onChange={e => setForm({ ...form, message: e.target.value })} placeholder="Your message…" rows={4} style={{ width: "100%", marginBottom: 16, boxSizing: "border-box", resize: "vertical", fontFamily: "inherit", fontSize: 13, border: "0.5px solid var(--border)", borderRadius: "var(--radius)", padding: "8px 10px", background: "var(--surface-2)", color: "var(--text-primary)" }} />
-          <Btn variant="primary" onClick={sendNotification}><i className="ti ti-send" aria-hidden style={{ fontSize: 14 }} />Send notification</Btn>
-        </div>
-        <div style={{ background: "var(--surface-2)", border: "0.5px solid var(--border)", borderRadius: 12, padding: 20 }}>
-          <h3 style={{ margin: "0 0 16px", fontSize: 15, fontWeight: 500, color: "var(--text-primary)" }}>Sent history</h3>
-          {sent.length === 0 ? <p style={{ fontSize: 13, color: "var(--text-muted)" }}>No notifications sent yet.</p> : sent.map(n => (
-            <div key={n.id} style={{ marginBottom: 14, paddingBottom: 14, borderBottom: "0.5px solid var(--border)" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                <p style={{ margin: "0 0 2px", fontSize: 13, fontWeight: 500, color: "var(--text-primary)" }}>{n.title}</p>
-                <Badge color="blue">{n.type}</Badge>
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-black text-slate-950">Subscriptions</h1>
+        <p className="text-sm font-semibold text-slate-500">{paid.length} active Pro accounts</p>
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-3">
+        <StatCard label="Active Pro"      value={fmt(paid.length)}          icon={Star}          color="purple" />
+        <StatCard label="Expiring (30d)"  value={fmt(expiringSoon.length)}  icon={AlertTriangle} color="amber" />
+        <StatCard label="Expired"         value={fmt(expired.length)}       icon={XCircle}       color="red" />
+      </div>
+
+      {expiringSoon.length>0 && (
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5">
+          <p className="mb-3 text-xs font-black uppercase tracking-widest text-amber-700">⚠ Expiring Soon</p>
+          <div className="space-y-2">
+            {expiringSoon.map(s=>(
+              <div key={s.id} className="flex items-center justify-between rounded-xl bg-white p-3 border border-amber-100">
+                <div>
+                  <p className="font-black text-slate-950">{s.owner_name} <span className="font-semibold text-slate-400">· {s.shop_name}</span></p>
+                  <p className="text-xs font-bold text-amber-600">{daysLeft(s.plan_expiry)} days left · expires {fmtDate(s.plan_expiry)}</p>
+                </div>
+                <div className="flex gap-2">
+                  <Btn size="sm" variant="primary" onClick={()=>extend(s,30)}>+30d</Btn>
+                  <Btn size="sm" onClick={()=>extend(s,365)}>+1yr</Btn>
+                </div>
               </div>
-              <p style={{ margin: "0 0 4px", fontSize: 12, color: "var(--text-secondary)" }}>{n.message}</p>
-              <p style={{ margin: 0, fontSize: 11, color: "var(--text-muted)" }}>{timeAgo(n.ts)} · {n.targets}</p>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-x-auto">
+        <div className="border-b border-slate-100 p-4">
+          <h2 className="font-black text-slate-950">All Subscriptions</h2>
+        </div>
+        <table className="min-w-full divide-y divide-slate-100 text-sm">
+          <thead className="bg-slate-50">
+            <tr>
+              {["Shop","Plan","Expiry","Days Left","Revenue","Actions"].map(h=>(
+                <th key={h} className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-slate-400">{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100">
+            {shops.map(s=>{
+              const dl = daysLeft(s.plan_expiry);
+              return (
+                <tr key={s.id} className="hover:bg-slate-50/60">
+                  <td className="px-4 py-3">
+                    <p className="font-black text-slate-950">{s.shop_name}</p>
+                    <p className="text-xs font-semibold text-slate-400">{s.owner_name}</p>
+                  </td>
+                  <td className="px-4 py-3"><Badge color={s.plan==="paid"?"purple":"slate"}>{s.plan==="paid"?"Pro":"Free"}</Badge></td>
+                  <td className="px-4 py-3 font-semibold text-slate-600">{fmtDate(s.plan_expiry)}</td>
+                  <td className="px-4 py-3">
+                    {dl===null ? <span className="text-slate-400 font-semibold">—</span>
+                    : <Badge color={dl<0?"red":dl<=7?"red":dl<=30?"amber":"green"}>{dl<0?`${Math.abs(dl)}d overdue`:`${dl}d`}</Badge>}
+                  </td>
+                  <td className="px-4 py-3 font-black text-blue-600">{fmtUSD(s.usage?.revenue)}</td>
+                  <td className="px-4 py-3">
+                    <div className="flex gap-1.5 flex-wrap">
+                      <Btn size="sm" onClick={()=>extend(s,30)}>+30d</Btn>
+                      <Btn size="sm" onClick={()=>extend(s,365)}>+1yr</Btn>
+                      <Btn size="sm" variant="danger" onClick={()=>cancel(s)}><X className="h-3 w-3"/>Cancel</Btn>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+// ─── ANALYTICS ────────────────────────────────────────────────────────────────
+function AnalyticsView({ shops }) {
+  const totalRevenue = shops.reduce((s,x)=>s+(x.usage?.revenue||0),0);
+  const totalSales   = shops.reduce((s,x)=>s+(x.usage?.sales||0),0);
+  const pro  = shops.filter(s=>s.plan==="paid").length;
+  const conv = shops.length ? Math.round(pro/shops.length*100) : 0;
+
+  const byCountry = useMemo(()=>{
+    const m={};
+    shops.forEach(s=>{ m[s.country]=(m[s.country]||0)+1; });
+    return Object.entries(m).sort((a,b)=>b[1]-a[1]);
+  },[shops]);
+  const maxC = Math.max(...byCountry.map(([,v])=>v),1);
+
+  const topRevenue = [...shops].sort((a,b)=>(b.usage?.revenue||0)-(a.usage?.revenue||0)).slice(0,5);
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-black text-slate-950">Analytics</h1>
+        <p className="text-sm font-semibold text-slate-500">Platform-wide metrics</p>
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <StatCard label="Total Revenue"  value={fmtUSD(totalRevenue)} icon={CreditCard}  color="green" />
+        <StatCard label="Total Sales"    value={fmt(totalSales)}      icon={ShoppingCart} color="blue" />
+        <StatCard label="Businesses"     value={fmt(shops.length)}    icon={Building2}    color="purple"/>
+        <StatCard label="Conversion Rate"value={conv+"%"}             icon={TrendingUp}   color="green" sub="free → pro"/>
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-3">
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <p className="mb-4 text-xs font-black uppercase tracking-widest text-slate-400">Users by Country</p>
+          <div className="space-y-3">
+            {byCountry.map(([c,v])=>(
+              <div key={c}>
+                <div className="mb-1 flex justify-between text-xs font-bold">
+                  <span className="text-slate-700">{c}</span>
+                  <span className="text-slate-400">{v}</span>
+                </div>
+                <div className="h-2 w-full rounded-full bg-slate-100">
+                  <div className="h-2 rounded-full bg-blue-600 transition-all" style={{width:`${Math.round(v/maxC*100)}%`}} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <p className="mb-4 text-xs font-black uppercase tracking-widest text-slate-400">Top Revenue (Shops)</p>
+          <div className="space-y-3">
+            {topRevenue.map((s,i)=>(
+              <div key={s.id} className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-50 text-[11px] font-black text-blue-600">{i+1}</span>
+                  <div>
+                    <p className="text-sm font-black text-slate-950">{s.shop_name}</p>
+                    <p className="text-xs text-slate-400">{s.country}</p>
+                  </div>
+                </div>
+                <span className="text-sm font-black text-blue-600">{fmtUSD(s.usage?.revenue)}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <p className="mb-4 text-xs font-black uppercase tracking-widest text-slate-400">User Growth (2026)</p>
+          {["Jan","Feb","Mar","Apr","May","Jun"].map((m,i)=>{
+            const v=[1,2,3,5,6,8][i];
+            return (
+              <div key={m} className="mb-2 flex items-center gap-3">
+                <span className="w-8 text-xs font-bold text-slate-400">{m}</span>
+                <div className="flex-1 h-2 rounded-full bg-slate-100">
+                  <div className="h-2 rounded-full bg-blue-600" style={{width:`${Math.round(v/8*100)}%`}} />
+                </div>
+                <span className="w-4 text-right text-xs font-bold text-slate-500">{v}</span>
+              </div>
+            );
+          })}
+          <div className="mt-4 grid grid-cols-2 gap-3 border-t border-slate-100 pt-4">
+            <div className="rounded-xl bg-slate-50 p-3 text-center">
+              <p className="text-lg font-black text-slate-950">3.2%</p>
+              <p className="text-[10px] font-bold text-slate-400 uppercase">Churn Rate</p>
             </div>
-          ))}
+            <div className="rounded-xl bg-slate-50 p-3 text-center">
+              <p className="text-lg font-black text-slate-950">{conv}%</p>
+              <p className="text-[10px] font-bold text-slate-400 uppercase">Conversion</p>
+            </div>
+          </div>
         </div>
       </div>
     </div>
   );
 }
 
-// ─── Support ──────────────────────────────────────────────────────────────────
+// ─── NOTIFICATIONS ────────────────────────────────────────────────────────────
+function NotificationsView({ shops, addLog, toast }) {
+  const [form, setForm] = useState({ audience:"all", title:"", message:"" });
+  const [sent, setSent] = useState([]);
+
+  function send() {
+    if(!form.title||!form.message){ toast("Title and message are required.","error"); return; }
+    const count = form.audience==="all"?shops.length:form.audience==="paid"?shops.filter(s=>s.plan==="paid").length:shops.filter(s=>s.plan==="free").length;
+    setSent(p=>[{id:Date.now(),ts:new Date().toISOString(),...form,count},...p]);
+    addLog({action:`Sent notification: "${form.title}"`,target:`${count} users (${form.audience})`});
+    toast(`Notification sent to ${count} users.`);
+    setForm({audience:"all",title:"",message:""});
+  }
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-black text-slate-950">Notifications</h1>
+        <p className="text-sm font-semibold text-slate-500">Send announcements and alerts to your users</p>
+      </div>
+      <div className="grid gap-6 lg:grid-cols-2">
+        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-4">
+          <h2 className="font-black text-slate-950">Compose Notification</h2>
+          <div>
+            <label className="mb-1.5 block text-xs font-black uppercase tracking-wide text-slate-400">Audience</label>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+              {[["all","All Users"],["paid","Pro Only"],["free","Free Only"],["maintenance","Maintenance"]].map(([v,l])=>(
+                <button key={v} onClick={()=>setForm({...form,audience:v})} className={`rounded-xl border py-2.5 text-xs font-black transition-all ${form.audience===v?"border-blue-600 bg-blue-600 text-white":"border-slate-200 bg-white text-slate-700 hover:bg-slate-50"}`}>{l}</button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <label className="mb-1.5 block text-xs font-black uppercase tracking-wide text-slate-400">Title</label>
+            <input value={form.title} onChange={e=>setForm({...form,title:e.target.value})} placeholder="Notification title" className="h-11 w-full rounded-xl border border-slate-200 px-4 text-sm font-semibold outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100" />
+          </div>
+          <div>
+            <label className="mb-1.5 block text-xs font-black uppercase tracking-wide text-slate-400">Message</label>
+            <textarea value={form.message} onChange={e=>setForm({...form,message:e.target.value})} rows={5} placeholder="Your message…" className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 resize-none" />
+          </div>
+          <Btn variant="primary" onClick={send} className="w-full justify-center"><Send className="h-4 w-4"/>Send Notification</Btn>
+        </div>
+
+        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <h2 className="mb-4 font-black text-slate-950">Sent History</h2>
+          {sent.length===0
+            ? <div className="flex h-40 items-center justify-center text-sm font-bold text-slate-400">No notifications sent yet.</div>
+            : <div className="space-y-3">{sent.map(n=>(
+                <div key={n.id} className="rounded-xl border border-slate-100 p-4">
+                  <div className="flex items-start justify-between gap-2 mb-1">
+                    <p className="font-black text-slate-950">{n.title}</p>
+                    <Badge color="blue">{n.audience}</Badge>
+                  </div>
+                  <p className="text-sm font-semibold text-slate-600 mb-2">{n.message}</p>
+                  <p className="text-xs font-bold text-slate-400">{timeAgo(n.ts)} · {n.count} recipients</p>
+                </div>
+              ))}</div>
+          }
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── SUPPORT ──────────────────────────────────────────────────────────────────
 function SupportView({ addLog, toast, role }) {
   const [tickets, setTickets] = useState(MOCK_TICKETS);
   const [selected, setSelected] = useState(null);
   const [reply, setReply] = useState("");
 
-  function sendReply(ticket) {
-    if (!reply.trim()) return;
-    setTickets(prev => prev.map(t => t.id === ticket.id ? { ...t, status: "in-progress" } : t));
-    addLog({ action: `Replied to ticket #${ticket.id}`, target: ticket.from });
+  function sendReply() {
+    if(!reply.trim()) return;
+    setTickets(p=>p.map(t=>t.id===selected.id?{...t,status:"in-progress",replies:[...t.replies,reply]}:t));
+    setSelected(prev=>({...prev,status:"in-progress",replies:[...prev.replies,reply]}));
+    addLog({action:`Replied to support ticket`,target:selected.from});
     toast("Reply sent.");
     setReply("");
   }
-
-  function closeTicket(ticket) {
-    setTickets(prev => prev.map(t => t.id === ticket.id ? { ...t, status: "resolved" } : t));
-    addLog({ action: "Closed support ticket", target: ticket.from });
-    toast("Ticket resolved.");
+  function resolve(ticket) {
+    setTickets(p=>p.map(t=>t.id===ticket.id?{...t,status:"resolved"}:t));
+    if(selected?.id===ticket.id) setSelected(prev=>({...prev,status:"resolved"}));
+    addLog({action:"Resolved support ticket",target:ticket.from});
+    toast("Ticket marked as resolved.");
   }
 
+  const statusColor = s => s==="resolved"?"green":s==="in-progress"?"amber":"blue";
+
   return (
-    <div>
-      <h2 style={{ margin: "0 0 20px", fontSize: 18, fontWeight: 500, color: "var(--text-primary)" }}>Support tickets</h2>
-      <div style={{ display: "grid", gridTemplateColumns: selected ? "1fr 1.5fr" : "1fr", gap: 16 }}>
-        <div style={{ background: "var(--surface-2)", border: "0.5px solid var(--border)", borderRadius: 12, overflow: "hidden" }}>
-          {tickets.map(t => (
-            <div key={t.id} onClick={() => setSelected(t)} style={{ padding: "14px 16px", borderBottom: "0.5px solid var(--border)", cursor: "pointer", background: selected?.id === t.id ? "var(--bg-accent)" : "transparent" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 4 }}>
-                <p style={{ margin: 0, fontSize: 13, fontWeight: 500, color: "var(--text-primary)" }}>{t.subject}</p>
-                <Badge color={t.status === "resolved" ? "green" : t.status === "in-progress" ? "amber" : "blue"}>{t.status}</Badge>
+    <div className="space-y-4">
+      <div>
+        <h1 className="text-2xl font-black text-slate-950">Support Tickets</h1>
+        <p className="text-sm font-semibold text-slate-500">{tickets.filter(t=>t.status!=="resolved").length} open tickets</p>
+      </div>
+      <div className="grid gap-4 lg:grid-cols-5">
+        <div className="lg:col-span-2 rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+          {tickets.map(t=>(
+            <button key={t.id} onClick={()=>setSelected(t)} className={`w-full text-left border-b border-slate-100 p-4 transition-colors last:border-0 ${selected?.id===t.id?"bg-blue-50":"hover:bg-slate-50"}`}>
+              <div className="flex items-start justify-between gap-2 mb-1">
+                <p className="text-sm font-black text-slate-950 leading-tight">{t.subject}</p>
+                <Badge color={statusColor(t.status)}>{t.status}</Badge>
               </div>
-              <p style={{ margin: 0, fontSize: 12, color: "var(--text-muted)" }}>{t.from} · {timeAgo(t.createdAt)}</p>
-            </div>
+              <p className="text-xs font-bold text-slate-400">{t.from} · {timeAgo(t.created_at)}</p>
+            </button>
           ))}
         </div>
-        {selected && (
-          <div style={{ background: "var(--surface-2)", border: "0.5px solid var(--border)", borderRadius: 12, padding: 20 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 }}>
+
+        {selected ? (
+          <div className="lg:col-span-3 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-4">
+            <div className="flex items-start justify-between gap-2">
               <div>
-                <h3 style={{ margin: "0 0 4px", fontSize: 15, fontWeight: 500, color: "var(--text-primary)" }}>{selected.subject}</h3>
-                <p style={{ margin: 0, fontSize: 12, color: "var(--text-muted)" }}>{selected.from} · {selected.email}</p>
+                <h2 className="font-black text-slate-950">{selected.subject}</h2>
+                <p className="text-xs font-bold text-slate-400 mt-0.5">{selected.from} · {selected.email} · {timeAgo(selected.created_at)}</p>
               </div>
-              <Btn size="sm" onClick={() => setSelected(null)}><i className="ti ti-x" aria-hidden style={{ fontSize: 12 }} /></Btn>
+              <Badge color={statusColor(selected.status)}>{selected.status}</Badge>
             </div>
-            <div style={{ background: "var(--surface-1)", borderRadius: 8, padding: 14, marginBottom: 16, fontSize: 13, color: "var(--text-primary)", lineHeight: 1.6 }}>{selected.body}</div>
-            {role !== "readonly" && selected.status !== "resolved" && <>
-              <textarea value={reply} onChange={e => setReply(e.target.value)} placeholder="Type your reply…" rows={3} style={{ width: "100%", marginBottom: 12, boxSizing: "border-box", resize: "vertical", fontFamily: "inherit", fontSize: 13, border: "0.5px solid var(--border)", borderRadius: "var(--radius)", padding: "8px 10px", background: "var(--surface-2)", color: "var(--text-primary)" }} />
-              <div style={{ display: "flex", gap: 8 }}>
-                <Btn variant="primary" onClick={() => sendReply(selected)}><i className="ti ti-send" aria-hidden style={{ fontSize: 13 }} />Send reply</Btn>
-                <Btn onClick={() => closeTicket(selected)}><i className="ti ti-check" aria-hidden style={{ fontSize: 13 }} />Mark resolved</Btn>
+            <div className="rounded-xl bg-slate-50 p-4 text-sm font-semibold text-slate-700 leading-relaxed">{selected.body}</div>
+            {selected.replies.length>0 && (
+              <div className="space-y-2">
+                <p className="text-[10px] font-black uppercase tracking-wide text-slate-400">Replies</p>
+                {selected.replies.map((r,i)=>(
+                  <div key={i} className="rounded-xl bg-blue-50 border border-blue-100 p-3 text-sm font-semibold text-blue-900">{r}</div>
+                ))}
               </div>
-            </>}
+            )}
+            {role!=="readonly" && selected.status!=="resolved" && (
+              <div className="space-y-2">
+                <textarea value={reply} onChange={e=>setReply(e.target.value)} placeholder="Type your reply…" rows={3} className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold outline-none focus:border-blue-500 resize-none" />
+                <div className="flex gap-2">
+                  <Btn variant="primary" onClick={sendReply}><Send className="h-4 w-4"/>Send Reply</Btn>
+                  <Btn variant="success" onClick={()=>resolve(selected)}><CheckCircle2 className="h-4 w-4"/>Mark Resolved</Btn>
+                </div>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="lg:col-span-3 flex items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-white p-12 text-center">
+            <div>
+              <Activity className="mx-auto h-10 w-10 text-slate-200 mb-3" />
+              <p className="text-sm font-bold text-slate-400">Select a ticket to view details</p>
+            </div>
           </div>
         )}
       </div>
@@ -719,172 +1053,211 @@ function SupportView({ addLog, toast, role }) {
   );
 }
 
-// ─── Audit Log ────────────────────────────────────────────────────────────────
+// ─── AUDIT LOG ────────────────────────────────────────────────────────────────
 function AuditView({ logs }) {
   return (
-    <div>
-      <h2 style={{ margin: "0 0 20px", fontSize: 18, fontWeight: 500, color: "var(--text-primary)" }}>Audit log</h2>
-      <div style={{ background: "var(--surface-2)", border: "0.5px solid var(--border)", borderRadius: 12, overflowX: "auto" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 640 }}>
-          <thead>
-            <tr style={{ background: "var(--surface-1)" }}>
-              {["Timestamp", "Admin", "Action", "Target", "IP"].map(h => (
-                <th key={h} style={{ padding: "10px 14px", textAlign: "left", fontSize: 11, fontWeight: 500, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em", borderBottom: "0.5px solid var(--border)" }}>{h}</th>
+    <div className="space-y-4">
+      <div>
+        <h1 className="text-2xl font-black text-slate-950">Audit Log</h1>
+        <p className="text-sm font-semibold text-slate-500">Complete record of all admin actions</p>
+      </div>
+      <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-x-auto">
+        <table className="min-w-full divide-y divide-slate-100 text-sm">
+          <thead className="bg-slate-50">
+            <tr>
+              {["Timestamp","Admin","Action","Target","IP Address"].map(h=>(
+                <th key={h} className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-slate-400 whitespace-nowrap">{h}</th>
               ))}
             </tr>
           </thead>
-          <tbody>
-            {logs.map((l, i) => (
-              <tr key={l.id || i} style={{ borderBottom: "0.5px solid var(--border)" }}>
-                <td style={{ padding: "10px 14px", fontSize: 12, color: "var(--text-muted)", whiteSpace: "nowrap" }}>{fmtDate(l.ts)} {new Date(l.ts).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}</td>
-                <td style={{ padding: "10px 14px", fontSize: 12, fontWeight: 500, color: "var(--text-primary)" }}>{l.admin}</td>
-                <td style={{ padding: "10px 14px", fontSize: 12, color: "var(--text-primary)" }}>{l.action}</td>
-                <td style={{ padding: "10px 14px" }}><Badge color="blue">{l.target}</Badge></td>
-                <td style={{ padding: "10px 14px", fontSize: 12, color: "var(--text-muted)", fontFamily: "monospace" }}>{l.ip}</td>
-              </tr>
-            ))}
+          <tbody className="divide-y divide-slate-100">
+            {logs.length===0
+              ? <tr><td colSpan={5} className="py-12 text-center text-sm font-bold text-slate-400">No audit entries yet.</td></tr>
+              : logs.map((l,i)=>(
+                <tr key={l.id||i} className="hover:bg-slate-50/60">
+                  <td className="px-4 py-3 font-mono text-xs text-slate-500 whitespace-nowrap">{fmtDate(l.ts)} {new Date(l.ts).toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"})}</td>
+                  <td className="px-4 py-3 font-black text-slate-950 whitespace-nowrap">{l.admin}</td>
+                  <td className="px-4 py-3 font-semibold text-slate-700">{l.action}</td>
+                  <td className="px-4 py-3"><Badge color="blue">{l.target}</Badge></td>
+                  <td className="px-4 py-3 font-mono text-xs text-slate-400">{l.ip}</td>
+                </tr>
+              ))
+            }
           </tbody>
         </table>
-        {logs.length === 0 && <p style={{ padding: 24, textAlign: "center", fontSize: 14, color: "var(--text-muted)" }}>No audit entries yet.</p>}
       </div>
     </div>
   );
 }
 
-// ─── Settings / Roles ─────────────────────────────────────────────────────────
-function SettingsView({ admin, toast }) {
-  const perms = {
-    superadmin: ["Full access", "User management", "Subscription management", "Analytics", "Notifications", "Support", "Audit logs", "Settings"],
-    support: ["User view", "Support tickets", "Notifications (read)"],
-    sales: ["User view", "Subscription management", "Analytics"],
-    finance: ["Analytics", "Subscription view"],
-    readonly: ["Dashboard view", "Analytics view"],
-  };
+// ─── SETTINGS ─────────────────────────────────────────────────────────────────
+function SettingsView({ admin }) {
+  const perms = ROLE_PERMS[admin.role]||[];
+  const allSections = NAV.map(n=>n.id);
   return (
-    <div>
-      <h2 style={{ margin: "0 0 20px", fontSize: 18, fontWeight: 500, color: "var(--text-primary)" }}>Roles & permissions</h2>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 12 }}>
-        {Object.entries(ADMIN_ROLES).map(([k, v]) => (
-          <div key={k} style={{ background: "var(--surface-2)", border: `0.5px solid ${k === admin.role ? "var(--border-accent)" : "var(--border)"}`, borderRadius: 12, padding: 16 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-              <p style={{ margin: 0, fontSize: 14, fontWeight: 500, color: "var(--text-primary)" }}>{v}</p>
-              {k === admin.role && <Badge color="blue">Your role</Badge>}
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-black text-slate-950">Roles & Settings</h1>
+        <p className="text-sm font-semibold text-slate-500">Your current role: <span className="text-blue-600">{ROLES[admin.role]}</span></p>
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-5">
+        {Object.entries(ROLES).map(([k,v])=>(
+          <div key={k} className={`rounded-2xl border p-5 shadow-sm ${k===admin.role?"border-blue-600 bg-blue-50":"border-slate-200 bg-white"}`}>
+            <div className="flex items-center justify-between mb-3">
+              <p className={`text-sm font-black ${k===admin.role?"text-blue-900":"text-slate-950"}`}>{v}</p>
+              {k===admin.role && <Badge color="blue">You</Badge>}
             </div>
-            <ul style={{ margin: 0, padding: 0, listStyle: "none" }}>
-              {(perms[k] || []).map(p => (
-                <li key={p} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "var(--text-secondary)", marginBottom: 6 }}>
-                  <i className="ti ti-check" aria-hidden="true" style={{ fontSize: 13, color: "#3b6d11" }} />{p}
-                </li>
-              ))}
-            </ul>
+            <div className="space-y-1.5">
+              {NAV.map(n=>{
+                const has = ROLE_PERMS[k]?.includes(n.id);
+                return (
+                  <div key={n.id} className={`flex items-center gap-2 text-xs font-bold ${has?"text-slate-700":"text-slate-300"}`}>
+                    {has ? <Check className="h-3 w-3 text-green-500 shrink-0"/> : <X className="h-3 w-3 shrink-0"/>}
+                    {n.label}
+                  </div>
+                );
+              })}
+            </div>
           </div>
         ))}
       </div>
-      <div style={{ marginTop: 24, background: "var(--surface-2)", border: "0.5px solid var(--border)", borderRadius: 12, padding: 20 }}>
-        <h3 style={{ margin: "0 0 16px", fontSize: 15, fontWeight: 500, color: "var(--text-primary)" }}>Security settings</h3>
-        {[
-          ["Two-factor authentication", "Enabled", "green"],
-          ["Session timeout", "30 minutes", "gray"],
-          ["Rate limiting", "100 req/min", "gray"],
-          ["CSRF protection", "Active", "green"],
-          ["XSS protection", "Active", "green"],
-          ["IP logging", "Enabled", "green"],
-        ].map(([k, v, c]) => (
-          <div key={k} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 0", borderBottom: "0.5px solid var(--border)" }}>
-            <span style={{ fontSize: 13, color: "var(--text-primary)" }}>{k}</span>
-            <Badge color={c}>{v}</Badge>
-          </div>
-        ))}
+
+      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <h2 className="mb-4 font-black text-slate-950">Security Configuration</h2>
+        <div className="divide-y divide-slate-100">
+          {[
+            ["Two-Factor Authentication","Enabled","green"],
+            ["Session Timeout","30 minutes inactivity","slate"],
+            ["Rate Limiting","100 requests / minute","slate"],
+            ["CSRF Protection","Active","green"],
+            ["XSS Protection","Active","green"],
+            ["SQL Injection Protection","Active via Supabase RLS","green"],
+            ["IP Logging","Enabled for all actions","green"],
+            ["Audit Logging","Full audit trail active","green"],
+          ].map(([k,v,c])=>(
+            <div key={k} className="flex items-center justify-between py-3">
+              <p className="text-sm font-bold text-slate-700">{k}</p>
+              <Badge color={c}>{v}</Badge>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
 }
 
-// ─── Main App ─────────────────────────────────────────────────────────────────
-const NAV = [
-  { id: "dashboard", icon: "layout-dashboard", label: "Dashboard" },
-  { id: "users", icon: "users", label: "Users" },
-  { id: "analytics", icon: "chart-bar", label: "Analytics" },
-  { id: "notifications", icon: "bell", label: "Notifications" },
-  { id: "support", icon: "headset", label: "Support" },
-  { id: "audit", icon: "file-description", label: "Audit log" },
-  { id: "settings", icon: "settings", label: "Settings" },
-];
+// ─── MAIN APP ─────────────────────────────────────────────────────────────────
+export default function Admin() {
+  const [admin,   setAdmin]   = useState(()=>{
+    try { return JSON.parse(sessionStorage.getItem("sahel_superadmin")||"null"); } catch { return null; }
+  });
+  const [view,    setView]    = useState("dashboard");
+  const [shops,   setShops]   = useState(MOCK_SHOPS);
+  const [logs,    setLogs]    = useState(MOCK_AUDIT);
+  const [toasts,  setToasts]  = useState([]);
+  const [sideOpen,setSideOpen]= useState(false);
 
-export default function SahelSuperAdmin() {
-  const [admin, setAdmin] = useState(null);
-  const [view, setView] = useState("dashboard");
-  const [users, setUsers] = useState(MOCK_USERS);
-  const [logs, setLogs] = useState(MOCK_AUDIT_LOGS);
-  const [toast, setToast] = useState(null);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  function toast(msg, type="success") {
+    const id = Date.now();
+    setToasts(p=>[...p,{id,msg,type}]);
+    setTimeout(()=>setToasts(p=>p.filter(t=>t.id!==id)), 4000);
+  }
 
-  const showToast = useCallback((msg, type = "success") => setToast({ msg, type, key: Date.now() }), []);
-
-  const addLog = useCallback((entry) => {
-    setLogs(prev => [{
-      id: "a" + Date.now(),
-      ts: new Date().toISOString(),
-      admin: admin?.name || "Admin",
-      ip: "41.223.10.5",
+  function addLog(entry) {
+    setLogs(p=>[{
+      id:"a"+Date.now(),
+      ts:new Date().toISOString(),
+      admin:admin?.name||"Admin",
+      ip:"41.223.10.5",
       ...entry
-    }, ...prev]);
-  }, [admin]);
+    },...p]);
+  }
 
-  if (!admin) return <AuthScreen onAuth={setAdmin} />;
+  function handleAuth(a) {
+    sessionStorage.setItem("sahel_superadmin", JSON.stringify(a));
+    setAdmin(a);
+  }
 
-  const isSuperAdmin = admin.role === "superadmin";
+  function handleLogout() {
+    addLog({action:"Signed out",target:admin.name});
+    sessionStorage.removeItem("sahel_superadmin");
+    setAdmin(null);
+  }
+
+  if (!admin) return <AuthScreen onAuth={handleAuth} />;
+
+  const perms   = ROLE_PERMS[admin.role]||[];
+  const allowed = NAV.filter(n=>perms.includes(n.id));
+
+  if (!perms.includes(view)) {
+    const first = allowed[0];
+    if (first && view !== first.id) { setView(first.id); return null; }
+  }
+
+  const props = { shops, setShops, addLog, toast, role:admin.role, logs };
 
   return (
-    <div style={{ display: "flex", minHeight: "100vh", background: "var(--surface-0)", fontFamily: "var(--font-sans)" }}>
+    <div className="flex min-h-screen bg-slate-50">
+
+      {/* Mobile overlay */}
+      {sideOpen && <div className="fixed inset-0 z-30 bg-black/40 lg:hidden" onClick={()=>setSideOpen(false)} />}
+
       {/* Sidebar */}
-      <aside style={{ width: 220, flexShrink: 0, background: "var(--surface-2)", borderRight: "0.5px solid var(--border)", display: "flex", flexDirection: "column", position: "sticky", top: 0, height: "100vh", overflowY: "auto" }}>
-        <div style={{ padding: "20px 16px 16px", borderBottom: "0.5px solid var(--border)" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div style={{ width: 36, height: 36, background: "#185fa5", borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <i className="ti ti-shield-check" style={{ fontSize: 18, color: "#fff" }} aria-hidden="true" />
-            </div>
-            <div>
-              <p style={{ margin: 0, fontSize: 13, fontWeight: 500, color: "var(--text-primary)" }}>Sahel Admin</p>
-              <p style={{ margin: 0, fontSize: 11, color: "var(--text-muted)" }}>{ADMIN_ROLES[admin.role]}</p>
-            </div>
+      <aside className={`fixed inset-y-0 left-0 z-40 flex w-64 flex-col border-r border-slate-200 bg-white transition-transform duration-200 lg:static lg:translate-x-0 ${sideOpen?"translate-x-0":"-translate-x-full"}`}>
+        <div className="flex h-16 items-center gap-3 border-b border-slate-100 px-5">
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-600">
+            <ShieldCheck className="h-5 w-5 text-white" />
+          </div>
+          <div>
+            <p className="text-sm font-black text-slate-950">Sahel Admin</p>
+            <p className="text-[10px] font-bold text-slate-400">{ROLES[admin.role]}</p>
           </div>
         </div>
-        <nav style={{ flex: 1, padding: "12px 8px" }}>
-          {NAV.map(n => (
-            <button
-              key={n.id}
-              onClick={() => setView(n.id)}
-              style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "9px 10px", borderRadius: 8, border: "none", background: view === n.id ? "var(--bg-accent)" : "transparent", color: view === n.id ? "var(--text-accent)" : "var(--text-secondary)", fontSize: 13, fontWeight: view === n.id ? 500 : 400, cursor: "pointer", marginBottom: 2, textAlign: "left", transition: "background 0.1s" }}
-            >
-              <i className={`ti ti-${n.icon}`} aria-hidden="true" style={{ fontSize: 17, flexShrink: 0 }} />
+
+        <nav className="flex-1 overflow-y-auto p-3 space-y-0.5">
+          {allowed.map(n=>(
+            <button key={n.id} onClick={()=>{setView(n.id);setSideOpen(false);}} className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-bold transition-all ${view===n.id?"bg-blue-600 text-white shadow-sm":"text-slate-600 hover:bg-slate-100 hover:text-slate-950"}`}>
+              <n.icon className="h-4 w-4 shrink-0" />
               {n.label}
             </button>
           ))}
         </nav>
-        <div style={{ padding: 12, borderTop: "0.5px solid var(--border)" }}>
-          <div style={{ background: "var(--surface-1)", borderRadius: 8, padding: "8px 10px", marginBottom: 8 }}>
-            <p style={{ margin: 0, fontSize: 12, fontWeight: 500, color: "var(--text-primary)" }}>{admin.name}</p>
-            <p style={{ margin: 0, fontSize: 11, color: "var(--text-muted)" }}>Session active</p>
+
+        <div className="border-t border-slate-100 p-3 space-y-1">
+          <div className="rounded-xl bg-slate-50 px-3 py-2.5">
+            <p className="text-xs font-black text-slate-950">{admin.name}</p>
+            <p className="text-[10px] font-bold text-slate-400">Session active · 41.223.10.5</p>
           </div>
-          <button onClick={() => setAdmin(null)} style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "7px 10px", borderRadius: 8, border: "0.5px solid var(--border)", background: "transparent", color: "var(--text-secondary)", fontSize: 12, cursor: "pointer" }}>
-            <i className="ti ti-logout" aria-hidden="true" style={{ fontSize: 15 }} />Sign out
+          <button onClick={handleLogout} className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-bold text-slate-500 hover:bg-slate-100 hover:text-slate-950 transition-all">
+            <LogOut className="h-4 w-4" />Sign Out
           </button>
         </div>
       </aside>
 
       {/* Main */}
-      <main style={{ flex: 1, minWidth: 0, padding: 24, overflowX: "hidden" }}>
-        {view === "dashboard" && <DashboardView users={users} />}
-        {view === "users" && <UsersView users={users} setUsers={setUsers} addLog={addLog} toast={showToast} role={admin.role} />}
-        {view === "analytics" && <AnalyticsView users={users} />}
-        {view === "notifications" && <NotificationsView users={users} addLog={addLog} toast={showToast} />}
-        {view === "support" && <SupportView addLog={addLog} toast={showToast} role={admin.role} />}
-        {view === "audit" && <AuditView logs={logs} />}
-        {view === "settings" && <SettingsView admin={admin} toast={showToast} />}
-      </main>
+      <div className="flex flex-1 flex-col min-w-0">
+        {/* Top bar (mobile) */}
+        <header className="flex h-14 items-center gap-3 border-b border-slate-200 bg-white px-4 lg:hidden">
+          <button onClick={()=>setSideOpen(true)} className="rounded-lg p-1.5 hover:bg-slate-100">
+            <MoreVertical className="h-5 w-5 text-slate-600" />
+          </button>
+          <span className="font-black text-slate-950">Sahel Admin</span>
+        </header>
 
-      {toast && <Toast key={toast.key} msg={toast.msg} type={toast.type} onDone={() => setToast(null)} />}
+        <main className="flex-1 overflow-auto p-4 sm:p-6 lg:p-8">
+          {view==="dashboard"     && <DashboardView     {...props} />}
+          {view==="users"         && <UsersView         {...props} />}
+          {view==="subscriptions" && <SubscriptionsView {...props} />}
+          {view==="analytics"     && <AnalyticsView     {...props} />}
+          {view==="notifications" && <NotificationsView {...props} />}
+          {view==="support"       && <SupportView       {...props} />}
+          {view==="audit"         && <AuditView         {...props} />}
+          {view==="settings"      && <SettingsView      admin={admin} />}
+        </main>
+      </div>
+
+      <Toast toasts={toasts} />
     </div>
   );
 }
