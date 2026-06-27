@@ -74,30 +74,16 @@ const addDays = days => {
 };
 
 // ─── SUPABASE API ─────────────────────────────────────────────────────────────
-async function sbQuery(sql) {
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/exec_admin_sql`, {
-    method: "POST",
-    headers: {
-      "Content-Type":  "application/json",
-      "apikey":        SUPABASE_KEY,
-      "Authorization": "Bearer " + SUPABASE_KEY,
-    },
-    body: JSON.stringify({ query: sql }),
-  });
-  if (!res.ok) {
-    // fallback: use direct REST for reads
-    throw new Error(await res.text());
-  }
-  return res.json();
-}
+const ADMIN_HEADERS = {
+  "apikey":        SUPABASE_KEY,
+  "Authorization": "Bearer " + SUPABASE_KEY,
+  "Content-Type":  "application/json",
+  "x-admin-key":   "sahel-admin-2026",
+};
 
 async function sbRest(table, params = "") {
   const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${params}`, {
-    headers: {
-      "apikey":        SUPABASE_KEY,
-      "Authorization": "Bearer " + SUPABASE_KEY,
-      "Content-Type":  "application/json",
-    },
+    headers: ADMIN_HEADERS,
   });
   if (!res.ok) throw new Error(await res.text());
   return res.json();
@@ -106,12 +92,7 @@ async function sbRest(table, params = "") {
 async function sbPatch(table, id, data) {
   const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?id=eq.${id}`, {
     method: "PATCH",
-    headers: {
-      "apikey":        SUPABASE_KEY,
-      "Authorization": "Bearer " + SUPABASE_KEY,
-      "Content-Type":  "application/json",
-      "Prefer":        "return=representation",
-    },
+    headers: { ...ADMIN_HEADERS, "Prefer": "return=representation" },
     body: JSON.stringify(data),
   });
   if (!res.ok) throw new Error(await res.text());
