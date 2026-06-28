@@ -14,7 +14,7 @@ const ADMIN_USER = "sahel2026";
 const ADMIN_PASS = "Halimoabdimuse@123";
 
 const SUPABASE_URL = "https://olhfaqqpypwotusviyhf.supabase.co";
-const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9saGZhcXFweXB3b3R1c3ZpeWhmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE0NDIxODIsImV4cCI6MjA5NzAxODE4Mn0.6WWT7Jf26AeMzhN6jfbmd6Dbn9npHx6ZHO4uoagakxc";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9saGZhcXFweXB3b3R1c3ZpeWhmIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MTQ0MjE4MiwiZXhwIjoyMDk3MDE4MTgyfQ.65umyCAOJq1dnnUHu0JDHoP0uRLVPXg-7mbYeq21UV0";
 
 const ROLES = {
   superadmin: "Super Admin",
