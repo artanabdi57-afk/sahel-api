@@ -51,7 +51,7 @@ export default function Settings() {
   async function loadMyShops() {
     setLoadingShops(true);
     try {
-      const response = await apiRequest("/api/shops");
+      const response = await apiRequest("/shops");
       setMyShops(response.data || []);
     } catch (e) {
       console.error(e);
@@ -74,7 +74,7 @@ export default function Settings() {
     if (!newShop.location.trim()) { showMsg("Location is required.",     "error"); return; }
     setAddingShop(true);
     try {
-      await apiRequest("/api/shops", {
+      await apiRequest("/shops", {
         method: "POST",
         body: JSON.stringify({
           shop_name: newShop.shop_name.trim(),
@@ -122,7 +122,7 @@ export default function Settings() {
     if (!window.confirm(`Delete "${s.shop_name}"? This cannot be undone.`)) return;
     setDeletingShop(s.id);
     try {
-      await apiRequest(`/api/shops/${s.id}`, { method: "DELETE" });
+      await apiRequest(`/shops/${s.id}`, { method: "DELETE" });
       await loadMyShops();
       showMsg(`"${s.shop_name}" deleted.`, "success");
     } catch (err) {
