@@ -22,8 +22,13 @@ const CURRENCIES = [
 
 export default function Settings() {
   const { t } = useLanguage();
-  const user     = getCurrentUser();
-  const shop     = getCurrentShop();
+  const user  = getCurrentUser();
+  const shop  = getCurrentShop();
+
+  // ── Owner vs Staff ────────────────────────────────────────────────────────
+  const isStaff = !!user?.is_staff;
+  const isOwner = !isStaff;
+
   const [settings,  setSettings]  = useState(getSavedSettings);
   const [shopName,  setShopName]  = useState(shop?.shop_name || "");
   const [location,  setLocation]  = useState(shop?.location  || "");
@@ -105,7 +110,7 @@ export default function Settings() {
       localStorage.setItem("sahel_auth_token", token);
       localStorage.setItem("sahel_user",       JSON.stringify(newUser));
       localStorage.setItem("sahel_shop",       JSON.stringify(newShop));
-      showMsg(`Switching to ${selectedShop.shop_name}…`, "success");
+      showMsg(`Switching to ${selectedShop.shop_name}...`, "success");
       setTimeout(() => window.location.href = "/dashboard", 800);
     } catch (err) {
       showMsg(err.message, "error");
@@ -200,27 +205,39 @@ export default function Settings() {
         </div>
       )}
 
+      {/* MY SHOPS SECTION */}
       <section className="panel p-5">
         <div className="mb-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Store className="h-5 w-5 text-blue-600" />
             <div>
-              <h3 className="font-bold text-slate-950">My Shops</h3>
-              <p className="text-xs text-slate-500">Up to 4 shops per account. Each shop has its own data and staff.</p>
+              <h3 className="font-bold text-slate-950">
+                {isOwner ? "My Shops" : "Your Shop"}
+              </h3>
+              <p className="text-xs text-slate-500">
+                {isOwner
+                  ? "Up to 4 shops per account. Each shop has its own data and staff."
+                  : "You are logged in as staff. Contact your owner to make changes."}
+              </p>
             </div>
           </div>
-          <button
-            type="button"
-            className="btn-primary h-9 rounded-lg px-3 text-xs"
-            onClick={() => setShowAddShop(c => !c)}
-            disabled={myShops.length >= 4}
-          >
-            <Plus className="h-4 w-4" />
-            {myShops.length >= 4 ? "Max shops reached" : "Add Shop"}
-          </button>
+
+          {/* Add Shop — OWNER ONLY */}
+          {isOwner && (
+            <button
+              type="button"
+              className="btn-primary h-9 rounded-lg px-3 text-xs"
+              onClick={() => setShowAddShop(c => !c)}
+              disabled={myShops.length >= 4}
+            >
+              <Plus className="h-4 w-4" />
+              {myShops.length >= 4 ? "Max shops reached" : "Add Shop"}
+            </button>
+          )}
         </div>
 
-        {showAddShop && (
+        {/* Add shop form — OWNER ONLY */}
+        {isOwner && showAddShop && (
           <form onSubmit={handleAddShop} className="mb-4 rounded-xl border border-blue-200 bg-blue-50 p-4 space-y-2">
             <p className="text-sm font-bold text-slate-700">New Shop Details</p>
             <input className="field" placeholder="Shop name *" value={newShop.shop_name} onChange={e => setNewShop({ ...newShop, shop_name: e.target.value })} required />
@@ -237,7 +254,7 @@ export default function Settings() {
         )}
 
         {loadingShops ? (
-          <p className="text-sm text-slate-400">Loading your shops…</p>
+          <p className="text-sm text-slate-400">Loading your shops...</p>
         ) : myShops.length === 0 ? (
           <div className="rounded-xl border border-dashed border-slate-200 p-6 text-center">
             <p className="text-sm font-semibold text-slate-500">No shops yet. Click "Add Shop" to create one.</p>
@@ -258,31 +275,62 @@ export default function Settings() {
                       {s.phone    && <span className="flex items-center gap-1"><Phone className="h-3 w-3" />{s.phone}</span>}
                     </div>
                   </div>
+
                   <div className="flex items-center gap-2 pl-2">
-                    <button type="button" className="btn-secondary h-8 rounded-lg px-3 text-xs" onClick={() => { const next = expandedShop === s.id ? null : s.id; setExpandedShop(next); if (next) loadShopStaff(s.id); }}>
-                      <Users className="h-3.5 w-3.5" /> Staff
-                    </button>
-                    {s.id !== shop?.id && (
+                    {/* Staff button — OWNER ONLY */}
+                    {isOwner && (
+                      <button
+                        type="button"
+                        className="btn-secondary h-8 rounded-lg px-3 text-xs"
+                        onClick={() => {
+                          const next = expandedShop === s.id ? null : s.id;
+                          setExpandedShop(next);
+                          if (next) loadShopStaff(s.id);
+                        }}
+                      >
+                        <Users className="h-3.5 w-3.5" /> Staff
+                      </button>
+                    )}
+
+                    {/* Switch & Delete — OWNER ONLY */}
+                    {isOwner && s.id !== shop?.id && (
                       <>
-                        <button type="button" className="btn-primary h-8 rounded-lg px-3 text-xs" onClick={() => handleSwitchShop(s)} disabled={switchingShop === s.id}>
-                          {switchingShop === s.id ? "…" : "Switch"}
+                        <button
+                          type="button"
+                          className="btn-primary h-8 rounded-lg px-3 text-xs"
+                          onClick={() => handleSwitchShop(s)}
+                          disabled={switchingShop === s.id}
+                        >
+                          {switchingShop === s.id ? "..." : "Switch"}
                         </button>
-                        <button type="button" className="h-8 w-8 rounded-lg border border-rose-200 bg-rose-50 text-rose-600 hover:bg-rose-100 flex items-center justify-center" onClick={() => handleDeleteShop(s)} disabled={deletingShop === s.id} title="Delete shop">
-                          {deletingShop === s.id ? "…" : <Trash2 className="h-3.5 w-3.5" />}
+                        <button
+                          type="button"
+                          className="h-8 w-8 rounded-lg border border-rose-200 bg-rose-50 text-rose-600 hover:bg-rose-100 flex items-center justify-center"
+                          onClick={() => handleDeleteShop(s)}
+                          disabled={deletingShop === s.id}
+                          title="Delete shop"
+                        >
+                          {deletingShop === s.id ? "..." : <Trash2 className="h-3.5 w-3.5" />}
                         </button>
                       </>
                     )}
                   </div>
                 </div>
 
-                {expandedShop === s.id && (
+                {/* Staff panel — OWNER ONLY */}
+                {isOwner && expandedShop === s.id && (
                   <div className="border-t border-slate-200 p-3">
                     <div className="mb-3 flex items-center justify-between">
                       <p className="text-sm font-bold text-slate-700">Staff — {s.shop_name}</p>
-                      <button type="button" className="inline-flex items-center gap-1 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-blue-700" onClick={() => setShowAddStaff(showAddStaff === s.id ? null : s.id)}>
+                      <button
+                        type="button"
+                        className="inline-flex items-center gap-1 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-blue-700"
+                        onClick={() => setShowAddStaff(showAddStaff === s.id ? null : s.id)}
+                      >
                         <Plus className="h-3.5 w-3.5" /> Add Staff
                       </button>
                     </div>
+
                     {showAddStaff === s.id && (
                       <form onSubmit={e => handleAddStaff(e, s.id)} className="mb-3 rounded-xl border border-slate-200 bg-slate-50 p-3 space-y-2">
                         <p className="text-xs font-bold text-slate-600">Create a staff login for {s.shop_name}</p>
@@ -293,20 +341,29 @@ export default function Settings() {
                           <input className="field pl-9 text-sm" type="tel" placeholder="Phone number *" value={newStaff.phone} onChange={e => setNewStaff({ ...newStaff, phone: e.target.value })} required />
                         </div>
                         <div className="relative">
-                          <input className="field pr-10 text-sm" type={showPassword ? "text" : "password"} placeholder="Password (min 8 characters) *" value={newStaff.password} onChange={e => setNewStaff({ ...newStaff, password: e.target.value })} required minLength={8} />
+                          <input
+                            className="field pr-10 text-sm"
+                            type={showPassword ? "text" : "password"}
+                            placeholder="Password (min 8 characters) *"
+                            value={newStaff.password}
+                            onChange={e => setNewStaff({ ...newStaff, password: e.target.value })}
+                            required
+                            minLength={8}
+                          />
                           <button type="button" className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" onClick={() => setShowPassword(c => !c)}>
                             {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                           </button>
                         </div>
                         <div className="rounded-lg bg-blue-50 border border-blue-200 p-2 text-xs text-blue-700 font-semibold">
-                          Staff log in at <strong>mysahelapp.com/login</strong> with their email & password.
+                          Staff log in at <strong>mysahelapp.com/login</strong> with their email and password. They will only see this shop.
                         </div>
                         <div className="flex gap-2 pt-1">
-                          <button className="btn-primary h-8 rounded-lg px-3 text-xs" disabled={addingStaff}>{addingStaff ? "Creating…" : "Create Login"}</button>
+                          <button className="btn-primary h-8 rounded-lg px-3 text-xs" disabled={addingStaff}>{addingStaff ? "Creating..." : "Create Login"}</button>
                           <button type="button" className="btn-secondary h-8 rounded-lg px-3 text-xs" onClick={() => setShowAddStaff(null)}>Cancel</button>
                         </div>
                       </form>
                     )}
+
                     {shopStaff[s.id]?.length > 0 ? (
                       <div className="space-y-2">
                         {shopStaff[s.id].map(staff => (
@@ -334,6 +391,7 @@ export default function Settings() {
         )}
       </section>
 
+      {/* LOGIN DETAILS */}
       <section className="grid gap-5 xl:grid-cols-2">
         <div className="panel p-5">
           <div className="mb-4 flex items-center gap-2">
@@ -346,11 +404,14 @@ export default function Settings() {
               <p className="mt-1 font-bold text-slate-950">{user?.email || t("notAvailable")}</p>
             </div>
             <div className="rounded-lg bg-slate-50 p-4">
-              <p className="text-sm text-slate-500">{t("shopId")}</p>
-              <p className="mt-1 break-all font-mono text-xs font-bold text-slate-700">{shop?.id || t("notAvailable")}</p>
+              <p className="text-sm text-slate-500">{isStaff ? "Role" : t("shopId")}</p>
+              <p className="mt-1 break-all font-mono text-xs font-bold text-slate-700">
+                {isStaff ? "Staff Member" : (shop?.id || t("notAvailable"))}
+              </p>
             </div>
           </div>
         </div>
+
         <div className="panel p-5">
           <div className="mb-4 flex items-center gap-2">
             <Sun className="h-5 w-5 text-blue-600" />
@@ -369,6 +430,7 @@ export default function Settings() {
         </div>
       </section>
 
+      {/* LANGUAGE & CURRENCY */}
       <section className="grid gap-5 xl:grid-cols-2">
         <div className="panel p-5">
           <div className="mb-4 flex items-center gap-2">
@@ -393,19 +455,22 @@ export default function Settings() {
         </div>
       </section>
 
-      <section className="grid gap-5 xl:grid-cols-2">
-        <form onSubmit={saveShopDetails} className="panel p-5">
-          <div className="mb-4 flex items-center gap-2">
-            <Store className="h-5 w-5 text-blue-600" />
-            <h3 className="font-bold text-slate-950">{t("shopDetails")}</h3>
-          </div>
-          <div className="space-y-3">
-            <input className="field" value={shopName} onChange={e => setShopName(e.target.value)} placeholder="Shop name" />
-            <input className="field" value={location} onChange={e => setLocation(e.target.value)} placeholder="Location" />
-            <button className="btn-primary w-full">{t("saveSettings")}</button>
-          </div>
-        </form>
-      </section>
+      {/* SHOP DETAILS — OWNER ONLY */}
+      {isOwner && (
+        <section className="grid gap-5 xl:grid-cols-2">
+          <form onSubmit={saveShopDetails} className="panel p-5">
+            <div className="mb-4 flex items-center gap-2">
+              <Store className="h-5 w-5 text-blue-600" />
+              <h3 className="font-bold text-slate-950">{t("shopDetails")}</h3>
+            </div>
+            <div className="space-y-3">
+              <input className="field" value={shopName} onChange={e => setShopName(e.target.value)} placeholder="Shop name" />
+              <input className="field" value={location} onChange={e => setLocation(e.target.value)} placeholder="Location" />
+              <button className="btn-primary w-full">{t("saveSettings")}</button>
+            </div>
+          </form>
+        </section>
+      )}
 
     </div>
   );
