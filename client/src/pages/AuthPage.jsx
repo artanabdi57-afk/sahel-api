@@ -89,14 +89,14 @@ export default function AuthPage({ mode }) {
   }
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-white via-[#f7fbff] to-[#edf6ff] p-4">
+    <main className="min-h-screen bg-gradient-to-br from-[#FBF8F2] via-[#FAF6EE] to-[#F4EDDD] p-4">
       <div className="mx-auto flex min-h-[calc(100vh-2rem)] max-w-6xl items-center justify-center">
-        <div className="grid w-full overflow-hidden rounded-[1.75rem] border border-slate-200/80 bg-white shadow-[0_24px_70px_rgba(15,23,42,0.10)] lg:grid-cols-[0.9fr_1.1fr]">
-          <section className="hidden border-r border-slate-100 bg-[#f8fbff] p-10 lg:flex lg:flex-col lg:justify-between">
+        <div className="grid w-full overflow-hidden rounded-[1.75rem] border border-[#EAE3D3] bg-white shadow-[0_24px_70px_rgba(21,32,59,0.12)] lg:grid-cols-[0.9fr_1.1fr]">
+          <section className="hidden border-r border-[#EAE3D3] bg-[#FBF8F2] p-10 lg:flex lg:flex-col lg:justify-between">
             <div>
               <img className="h-11 w-auto" src={sahelLogo} alt="Sahel" />
-              <h1 className="mt-10 max-w-md text-4xl font-black tracking-tight text-slate-950">Fresh tools for trusted shop management.</h1>
-              <p className="mt-4 max-w-md text-sm font-medium leading-6 text-slate-500">Keep each shop workspace private, organized, and easy to run from day one.</p>
+              <h1 className="mt-10 max-w-md text-4xl font-black tracking-tight text-[#15203B]">Fresh tools for trusted shop management.</h1>
+              <p className="mt-4 max-w-md text-sm font-medium leading-6 text-[#4B5170]">Keep each shop workspace private, organized, and easy to run from day one.</p>
             </div>
             <div className="grid gap-3">
               {[
@@ -104,9 +104,9 @@ export default function AuthPage({ mode }) {
                 ["Secure sign in", "Password hashes and session tokens protect access."],
                 ["Simple daily flow", "Sales, stock, credits, expenses, and reports stay together."],
               ].map(([title, text]) => (
-                <div key={title} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-                  <p className="text-sm font-black text-slate-950">{title}</p>
-                  <p className="mt-1 text-xs font-medium leading-5 text-slate-500">{text}</p>
+                <div key={title} className="rounded-2xl border border-[#EAE3D3] bg-white p-4 shadow-sm">
+                  <p className="text-sm font-black text-[#15203B]">{title}</p>
+                  <p className="mt-1 text-xs font-medium leading-5 text-[#6B7290]">{text}</p>
                 </div>
               ))}
             </div>
@@ -116,10 +116,10 @@ export default function AuthPage({ mode }) {
             <div className="w-full max-w-sm">
               <div className="mb-8 text-center">
                 <img className="mx-auto h-14 w-14" src={sahelIcon} alt="Sahel" />
-                <h2 className="mt-5 text-3xl font-black tracking-tight text-slate-950">
+                <h2 className="mt-5 text-3xl font-black tracking-tight text-[#15203B]">
                   {isSignup ? "Create your shop" : "Welcome back"}
                 </h2>
-                <p className="mx-auto mt-2 max-w-xs text-sm font-medium leading-6 text-slate-500">
+                <p className="mx-auto mt-2 max-w-xs text-sm font-medium leading-6 text-[#6B7290]">
                   {isSignup ? "Set up your shop in under two minutes." : "Log in with your email and password."}
                 </p>
               </div>
@@ -128,43 +128,43 @@ export default function AuthPage({ mode }) {
                 type="button"
                 onClick={handleGoogleSignIn}
                 disabled={googleLoading}
-                className="flex h-12 w-full items-center justify-center gap-3 rounded-xl border border-slate-200 bg-white text-sm font-bold text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:opacity-60"
+                className="flex h-12 w-full items-center justify-center gap-3 rounded-xl border border-[#EAE3D3] bg-white text-sm font-bold text-[#15203B] shadow-sm transition hover:bg-[#FBF8F2] disabled:opacity-60"
               >
                 <GoogleIcon />
                 {googleLoading ? "Redirecting..." : isSignup ? "Sign up with Google" : "Continue with Google"}
               </button>
 
               <div className="my-5 flex items-center gap-3">
-                <div className="h-px flex-1 bg-slate-200" />
-                <span className="text-xs font-bold uppercase text-slate-400">or</span>
-                <div className="h-px flex-1 bg-slate-200" />
+                <div className="h-px flex-1 bg-[#EAE3D3]" />
+                <span className="text-xs font-bold uppercase text-[#B0A98F]">or</span>
+                <div className="h-px flex-1 bg-[#EAE3D3]" />
               </div>
 
               <form onSubmit={handleSubmit} className="space-y-3">
-                <label className="flex h-12 items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 shadow-sm transition focus-within:border-blue-500 focus-within:ring-4 focus-within:ring-blue-100">
-                  <Mail className="h-4 w-4 text-slate-400" />
-                  <input className="w-full bg-transparent text-sm font-medium outline-none" type="email" placeholder="Email address" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required />
+                <label className="flex h-12 items-center gap-3 rounded-xl border border-[#EAE3D3] bg-white px-4 shadow-sm transition focus-within:border-[#E8622C] focus-within:ring-4 focus-within:ring-[#E8622C]/15">
+                  <Mail className="h-4 w-4 text-[#9B9686]" />
+                  <input className="w-full bg-transparent text-sm font-medium text-[#15203B] outline-none placeholder:text-[#9B9686]" type="email" placeholder="Email address" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required />
                 </label>
 
-                <label className="flex h-12 items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 shadow-sm transition focus-within:border-blue-500 focus-within:ring-4 focus-within:ring-blue-100">
-                  <Lock className="h-4 w-4 text-slate-400" />
-                  <input className="w-full bg-transparent text-sm font-medium outline-none" type="password" placeholder="Password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} required minLength={8} />
+                <label className="flex h-12 items-center gap-3 rounded-xl border border-[#EAE3D3] bg-white px-4 shadow-sm transition focus-within:border-[#E8622C] focus-within:ring-4 focus-within:ring-[#E8622C]/15">
+                  <Lock className="h-4 w-4 text-[#9B9686]" />
+                  <input className="w-full bg-transparent text-sm font-medium text-[#15203B] outline-none placeholder:text-[#9B9686]" type="password" placeholder="Password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} required minLength={8} />
                 </label>
 
                 {isSignup && (
                   <>
-                    <label className="flex h-12 items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 shadow-sm transition focus-within:border-blue-500 focus-within:ring-4 focus-within:ring-blue-100">
-                      <Phone className="h-4 w-4 text-slate-400" />
-                      <input className="w-full bg-transparent text-sm font-medium outline-none" inputMode="numeric" maxLength={9} placeholder="Phone number (optional)" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value.replace(/\D/g, "").slice(0, 9) })} />
+                    <label className="flex h-12 items-center gap-3 rounded-xl border border-[#EAE3D3] bg-white px-4 shadow-sm transition focus-within:border-[#E8622C] focus-within:ring-4 focus-within:ring-[#E8622C]/15">
+                      <Phone className="h-4 w-4 text-[#9B9686]" />
+                      <input className="w-full bg-transparent text-sm font-medium text-[#15203B] outline-none placeholder:text-[#9B9686]" inputMode="numeric" maxLength={9} placeholder="Phone number (optional)" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value.replace(/\D/g, "").slice(0, 9) })} />
                     </label>
-                    <p className="px-1 text-xs font-semibold text-slate-400">Optional phone: 9 digits starting with 61, 62, or 68.</p>
-                    <label className="flex h-12 items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 shadow-sm transition focus-within:border-blue-500 focus-within:ring-4 focus-within:ring-blue-100">
-                      <Store className="h-4 w-4 text-slate-400" />
-                      <input className="w-full bg-transparent text-sm font-medium outline-none" placeholder="Shop name" value={form.shop_name} onChange={(e) => setForm({ ...form, shop_name: e.target.value })} required />
+                    <p className="px-1 text-xs font-semibold text-[#9B9686]">Optional phone: 9 digits starting with 61, 62, or 68.</p>
+                    <label className="flex h-12 items-center gap-3 rounded-xl border border-[#EAE3D3] bg-white px-4 shadow-sm transition focus-within:border-[#E8622C] focus-within:ring-4 focus-within:ring-[#E8622C]/15">
+                      <Store className="h-4 w-4 text-[#9B9686]" />
+                      <input className="w-full bg-transparent text-sm font-medium text-[#15203B] outline-none placeholder:text-[#9B9686]" placeholder="Shop name" value={form.shop_name} onChange={(e) => setForm({ ...form, shop_name: e.target.value })} required />
                     </label>
-                    <label className="flex h-12 items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 shadow-sm transition focus-within:border-blue-500 focus-within:ring-4 focus-within:ring-blue-100">
-                      <MapPin className="h-4 w-4 text-slate-400" />
-                      <input className="w-full bg-transparent text-sm font-medium outline-none" placeholder="Location" value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} />
+                    <label className="flex h-12 items-center gap-3 rounded-xl border border-[#EAE3D3] bg-white px-4 shadow-sm transition focus-within:border-[#E8622C] focus-within:ring-4 focus-within:ring-[#E8622C]/15">
+                      <MapPin className="h-4 w-4 text-[#9B9686]" />
+                      <input className="w-full bg-transparent text-sm font-medium text-[#15203B] outline-none placeholder:text-[#9B9686]" placeholder="Location" value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} />
                     </label>
                   </>
                 )}
@@ -173,7 +173,7 @@ export default function AuthPage({ mode }) {
                   <div className="rounded-xl bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">{status.error}</div>
                 )}
 
-                <button className="btn-primary h-12 w-full rounded-xl bg-blue-600 shadow-[0_12px_25px_rgba(37,99,235,0.20)]" disabled={status.loading}>
+                <button className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#15203B] text-sm font-bold text-white shadow-[0_12px_25px_rgba(21,32,59,0.25)] transition hover:bg-[#0D1529] disabled:opacity-60" disabled={status.loading}>
                   {status.loading ? "Please wait..." : isSignup ? "Create account" : "Log in"}
                   <ArrowRight className="h-4 w-4" />
                 </button>
@@ -181,16 +181,16 @@ export default function AuthPage({ mode }) {
 
               {!isSignup && (
                 <p className="mt-4 text-center text-sm font-medium">
-                  <Link className="font-black text-blue-600 hover:text-blue-700" to="/forgot-password">Forgot password?</Link>
+                  <Link className="font-black text-[#E8622C] hover:text-[#C94F1E]" to="/forgot-password">Forgot password?</Link>
                 </p>
               )}
 
-              <p className="mt-4 text-center text-xs font-medium leading-5 text-slate-400">Your shop data stays separated and protected.</p>
-              <p className="mt-4 text-center text-sm font-medium text-slate-500">
+              <p className="mt-4 text-center text-xs font-medium leading-5 text-[#9B9686]">Your shop data stays separated and protected.</p>
+              <p className="mt-4 text-center text-sm font-medium text-[#6B7290]">
                 {isSignup ? (
-                  <>Already have an account?{" "}<Link className="font-black text-blue-600 hover:text-blue-700" to="/login">Log in</Link></>
+                  <>Already have an account?{" "}<Link className="font-black text-[#E8622C] hover:text-[#C94F1E]" to="/login">Log in</Link></>
                 ) : (
-                  <>Don't have an account?{" "}<Link className="font-black text-blue-600 hover:text-blue-700" to="/signup">Sign up</Link></>
+                  <>Don't have an account?{" "}<Link className="font-black text-[#E8622C] hover:text-[#C94F1E]" to="/signup">Sign up</Link></>
                 )}
               </p>
             </div>
