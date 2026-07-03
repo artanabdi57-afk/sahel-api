@@ -357,9 +357,13 @@ export default function Dashboard() {
 
         /* Print: only show the printable sales sheet */
         @media print {
+          @page { margin: 14mm; }
+          html, body { height: auto !important; overflow: visible !important; }
           body * { visibility: hidden; }
           .print-area, .print-area * { visibility: visible; }
-          .print-area { position: absolute; top: 0; left: 0; width: 100%; }
+          /* position:fixed (not absolute) so the receipt escapes the modal's
+             max-height/overflow:auto clipping instead of printing blank/cut off */
+          .print-area { position: fixed; top: 0; left: 0; width: 100%; margin: 0; box-shadow: none !important; }
           .no-print { display: none !important; }
           .print-only { display: block !important; }
         }
@@ -577,58 +581,84 @@ export default function Dashboard() {
             {!salesModal.loading && !salesModal.error && salesModal.rows.length > 0 && (
               <>
                 {/* Printable / exportable receipt card */}
-                <div ref={receiptRef} className="print-area" style={{ padding: "36px 28px 24px", background: "#fff" }}>
-                  <div style={{ width: 56, height: 56, borderRadius: 14, background: "#1E40AF", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 14px", color: "#fff", fontSize: 22, fontWeight: 700 }}>
+                <div
+                  ref={receiptRef}
+                  className="print-area"
+                  style={{ padding: "36px 28px 26px", background: "#fff", fontFamily: "'SF Mono', 'JetBrains Mono', 'Courier New', monospace" }}
+                >
+                  <div style={{ width: 56, height: 56, borderRadius: 16, background: "linear-gradient(150deg, #2B5CE6, #1E40AF)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 14px", color: "#fff", fontSize: 22, fontWeight: 700, fontFamily: "'Inter', sans-serif", boxShadow: "0 6px 16px rgba(30,64,175,0.28)" }}>
                     {SHOP_NAME.charAt(0).toUpperCase()}
                   </div>
-                  <p style={{ textAlign: "center", fontSize: 16, fontWeight: 700, color: "#0F1F45", margin: 0 }}>{SHOP_NAME}</p>
-                  {SHOP_PHONE && <p style={{ textAlign: "center", fontSize: 12, color: "#A0B3D6", margin: "2px 0 0" }}>{SHOP_PHONE}</p>}
+                  <p style={{ textAlign: "center", fontSize: 17, fontWeight: 700, color: "#0F1F45", margin: 0, fontFamily: "'Inter', sans-serif", letterSpacing: "-0.2px" }}>{SHOP_NAME}</p>
+                  {SHOP_PHONE && <p style={{ textAlign: "center", fontSize: 11, color: "#A0B3D6", margin: "3px 0 0", fontFamily: "'Inter', sans-serif" }}>{SHOP_PHONE}</p>}
+                  <p style={{ textAlign: "center", fontSize: 9, fontWeight: 700, color: "#B9C6E8", margin: "10px 0 0", letterSpacing: "3px", fontFamily: "'Inter', sans-serif" }}>SALES RECEIPT</p>
 
-                  <div style={{ borderTop: "1px dashed #E2EBFF", margin: "18px 0" }} />
+                  <div style={{ borderTop: "1.5px dashed #E2EBFF", margin: "18px 0" }} />
 
-                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 6 }}>
-                    <span style={{ color: "#A0B3D6", fontWeight: 600 }}>Date</span>
-                    <span style={{ color: "#0F1F45", fontWeight: 600 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11.5, marginBottom: 7, color: "#4B5A7A" }}>
+                    <span style={{ color: "#A0B3D6" }}>Date</span>
+                    <span style={{ fontWeight: 700, color: "#0F1F45" }}>
                       {new Date(todayISO()).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}
                     </span>
                   </div>
-                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 6 }}>
-                    <span style={{ color: "#A0B3D6", fontWeight: 600 }}>Report</span>
-                    <span style={{ color: "#0F1F45", fontWeight: 600 }}>Daily Sales</span>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11.5, marginBottom: 7, color: "#4B5A7A" }}>
+                    <span style={{ color: "#A0B3D6" }}>Report</span>
+                    <span style={{ fontWeight: 700, color: "#0F1F45" }}>Daily Sales</span>
                   </div>
-                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12 }}>
-                    <span style={{ color: "#A0B3D6", fontWeight: 600 }}>Sales</span>
-                    <span style={{ color: "#0F1F45", fontWeight: 600 }}>{salesModal.rows.length}</span>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11.5, color: "#4B5A7A" }}>
+                    <span style={{ color: "#A0B3D6" }}>Sales</span>
+                    <span style={{ fontWeight: 700, color: "#0F1F45" }}>{salesModal.rows.length}</span>
                   </div>
 
-                  <div style={{ borderTop: "1px dashed #E2EBFF", margin: "18px 0 10px" }} />
+                  <div style={{ borderTop: "1.5px dashed #E2EBFF", margin: "18px 0 12px" }} />
 
-                  <div style={{ display: "flex", fontSize: 10, fontWeight: 700, color: "#A0B3D6", textTransform: "uppercase", letterSpacing: "0.6px", marginBottom: 8 }}>
+                  <div style={{ display: "flex", fontSize: 9.5, fontWeight: 700, color: "#B9C6E8", textTransform: "uppercase", letterSpacing: "1px", marginBottom: 10, fontFamily: "'Inter', sans-serif" }}>
                     <span style={{ flex: 1 }}>Item</span>
-                    <span style={{ width: 64, textAlign: "right" }}>Amount</span>
+                    <span>Amount</span>
                   </div>
 
                   {(printTarget ? salesModal.rows.filter(s => s.id === printTarget) : salesModal.rows).map((s, idx) => (
-                    <div key={s.id || idx} style={{ display: "flex", alignItems: "center", fontSize: 13, marginBottom: 8 }}>
-                      <span style={{ flex: 1, color: "#0F1F45", fontWeight: 500 }}>{s.product_name}</span>
-                      <span style={{ width: 64, textAlign: "right", color: "#0F1F45", fontWeight: 700 }}>{formatMoney(s.total)}</span>
+                    <div key={s.id || idx} style={{ marginBottom: 11 }}>
+                      <div style={{ display: "flex", alignItems: "baseline" }}>
+                        <span style={{ fontSize: 13, color: "#0F1F45", fontWeight: 600, whiteSpace: "nowrap" }}>{s.product_name}</span>
+                        <span style={{ flex: 1, borderBottom: "1px dotted #D6E0FF", margin: "0 6px", transform: "translateY(-3px)" }} />
+                        <span style={{ fontSize: 13, color: "#0F1F45", fontWeight: 700, whiteSpace: "nowrap" }}>{formatMoney(s.total)}</span>
+                      </div>
+                      {s.payment_type && (
+                        <span style={{ fontSize: 9.5, color: "#A0B3D6", textTransform: "capitalize", fontFamily: "'Inter', sans-serif" }}>{s.payment_type}</span>
+                      )}
                     </div>
                   ))}
 
-                  <div style={{ borderTop: "1px dashed #E2EBFF", margin: "10px 0 14px" }} />
+                  <div style={{ borderTop: "1.5px dashed #E2EBFF", margin: "8px 0 14px" }} />
 
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <span style={{ fontSize: 15, fontWeight: 700, color: "#0F1F45" }}>Total</span>
-                    <span style={{ fontSize: 20, fontWeight: 700, color: "#1E40AF" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "#F5F8FF", borderRadius: 12, padding: "12px 14px" }}>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: "#0F1F45", fontFamily: "'Inter', sans-serif" }}>Total</span>
+                    <span style={{ fontSize: 21, fontWeight: 800, color: "#1E40AF", letterSpacing: "-0.5px" }}>
                       {formatMoney(printTarget ? (salesModal.rows.find(s => s.id === printTarget)?.total || 0) : todaySalesTotal)}
                     </span>
                   </div>
 
-                  <p className="print-only" style={{ display: "none", textAlign: "center", fontSize: 11, color: "#A0B3D6", marginTop: 24 }}>Thank you for your business</p>
+                  <p className="print-only" style={{ display: "none", textAlign: "center", fontSize: 11, color: "#A0B3D6", marginTop: 24, fontFamily: "'Inter', sans-serif" }}>Thank you for your business</p>
+
+                  {/* barcode flourish */}
+                  <div style={{ height: 26, marginTop: 20, backgroundImage: "repeating-linear-gradient(90deg, #0F1F45 0px, #0F1F45 1.5px, transparent 1.5px, transparent 4px)", opacity: 0.75 }} />
+                  <p style={{ textAlign: "center", fontSize: 9, color: "#C7D2EE", margin: "6px 0 0", letterSpacing: "2px" }}>{todayISO().replace(/-/g, "")}-{salesModal.rows.length}</p>
                 </div>
 
+                {/* Torn-edge divider — screen/PDF only, marks where the receipt "tears off" from the app UI */}
+                <div className="no-print" style={{
+                  height: 14,
+                  backgroundImage: "linear-gradient(-45deg, #fff 8px, transparent 0), linear-gradient(45deg, #fff 8px, transparent 0)",
+                  backgroundSize: "16px 16px",
+                  backgroundPosition: "left top",
+                  backgroundRepeat: "repeat-x",
+                  backgroundColor: "rgba(15,31,69,0.45)",
+                  marginTop: -1,
+                }} />
+
                 {/* Actions */}
-                <div className="no-print" style={{ display: "flex", gap: 10, padding: "8px 20px 20px" }}>
+                <div className="no-print" style={{ display: "flex", gap: 10, padding: "14px 20px 20px" }}>
                   <button
                     onClick={printAll}
                     style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "11px 14px", borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", background: "#fff", color: "#1E40AF", border: "1.5px solid #D6E0FF" }}
