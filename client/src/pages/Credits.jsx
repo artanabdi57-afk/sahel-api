@@ -83,6 +83,12 @@ function ModalShell({ title, onClose, children }) {
 // If creditId is present, the payment applies to that single credit line.
 // If creditId is absent, the payment applies across the customer's open items,
 // oldest first, until the amount (or full balance) is exhausted.
+//
+// Backend contract (matches the existing working routes):
+//   PUT /credits/:id/partial  { amount_paid, payment_method, notes }
+//   PUT /credits/:id/paid     { amount_paid, payment_method, notes }
+// Use "paid" only when the payment fully clears that specific credit line's
+// remaining balance; otherwise use "partial".
 function PaymentModal({ paymentTarget, onClose, onSuccess }) {
   const { customer, mode, creditId } = paymentTarget;
 
@@ -92,6 +98,8 @@ function PaymentModal({ paymentTarget, onClose, onSuccess }) {
   const maxRemaining = targetItems.reduce((s, i) => s + remainingOf(i), 0);
 
   const [amount, setAmount] = useState(mode === "full" ? String(maxRemaining) : "");
+  const [paymentMethod, setPaymentMethod] = useState("cash");
+  const [notes, setNotes] = useState("");
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
@@ -109,7 +117,6 @@ function PaymentModal({ paymentTarget, onClose, onSuccess }) {
     setSubmitting(true);
     try {
       let remainingToApply = value;
-      // Apply payment across the relevant items, oldest first, until exhausted.
       const orderedItems = [...targetItems].sort(
         (a, b) => new Date(a.created_at) - new Date(b.created_at)
       );
@@ -118,9 +125,15 @@ function PaymentModal({ paymentTarget, onClose, onSuccess }) {
         const itemRemaining = remainingOf(item);
         if (itemRemaining <= 0) continue;
         const portion = Math.min(itemRemaining, remainingToApply);
-        await apiRequest(`/credits/${item.id}/payments`, {
-          method: "POST",
-          body: JSON.stringify({ amount: portion }),
+        const clearsItem = portion >= itemRemaining - 0.01;
+        const endpoint = clearsItem ? `/credits/${item.id}/paid` : `/credits/${item.id}/partial`;
+        await apiRequest(endpoint, {
+          method: "PUT",
+          body: JSON.stringify({
+            amount_paid: portion,
+            payment_method: paymentMethod,
+            notes: notes.trim(),
+          }),
         });
         remainingToApply -= portion;
       }
@@ -154,8 +167,34 @@ function PaymentModal({ paymentTarget, onClose, onSuccess }) {
             onChange={e => { setAmount(e.target.value); setError(""); }}
             placeholder="0"
           />
-          {error && <p className="text-orange-600 text-xs font-bold mt-2">{error}</p>}
         </div>
+
+        <div>
+          <label className="text-[10px] font-black text-slate-400 uppercase mb-1 block">
+            Payment Method
+          </label>
+          <select
+            className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 font-bold outline-none focus:ring-2 focus:ring-blue-500"
+            value={paymentMethod}
+            onChange={e => setPaymentMethod(e.target.value)}
+          >
+            <option value="cash">Cash</option>
+            <option value="bank">Bank Transfer</option>
+          </select>
+        </div>
+
+        <div>
+          <label className="text-[10px] font-black text-slate-400 uppercase mb-1 block">
+            Notes (optional)
+          </label>
+          <textarea
+            className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 font-bold outline-none focus:ring-2 focus:ring-blue-500 min-h-[64px]"
+            value={notes}
+            onChange={e => setNotes(e.target.value)}
+          />
+        </div>
+
+        {error && <p className="text-orange-600 text-xs font-bold">{error}</p>}
 
         <div className="flex gap-3 pt-2">
           <button
@@ -183,14 +222,14 @@ function PaymentModal({ paymentTarget, onClose, onSuccess }) {
 }
 
 function GiveMoneyModal({ onClose, onSuccess }) {
-  const [form, setForm] = useState({ customer_name: "", customer_phone: "", product_name: "", amount_owed: "" });
+  const [form, setForm] = useState({ customer_name: "", customer_phone: "", notes: "", amount_owed: "" });
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   const update = (field) => (e) => setForm(f => ({ ...f, [field]: e.target.value }));
 
   const handleSubmit = async () => {
-    if (!form.customer_name.trim() || !form.customer_phone.trim() || !Number(form.amount_owed)) {
+    if (!form.customer_name.trim() || !Number(form.amount_owed)) {
       setError(t("fieldsRequired"));
       return;
     }
@@ -202,8 +241,8 @@ function GiveMoneyModal({ onClose, onSuccess }) {
         body: JSON.stringify({
           customer_name: form.customer_name.trim(),
           customer_phone: form.customer_phone.trim(),
-          product_name: form.product_name.trim() || null,
           amount_owed: Number(form.amount_owed),
+          notes: form.notes.trim(),
         }),
       });
       onSuccess();
@@ -234,11 +273,11 @@ function GiveMoneyModal({ onClose, onSuccess }) {
           />
         </div>
         <div>
-          <label className="text-[10px] font-black text-slate-400 uppercase mb-1 block">{t("productName")}</label>
+          <label className="text-[10px] font-black text-slate-400 uppercase mb-1 block">Notes (optional)</label>
           <input
             className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 font-bold outline-none focus:ring-2 focus:ring-blue-500"
-            value={form.product_name}
-            onChange={update("product_name")}
+            value={form.notes}
+            onChange={update("notes")}
           />
         </div>
         <div>
