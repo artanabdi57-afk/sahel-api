@@ -50,10 +50,11 @@ const payChipStyle = (type) => {
   return { background: "#EEF2FF", color: "#1E40AF" };
 };
 
-// Sales rows from the API may use different field names for the date
-// depending on what the backend serializer returns. Check the common ones.
+// The sales table's real date column is `sale_date` (confirmed from the
+// backend controller). The /sales endpoint supports gte/lte filtering via
+// ?from= and ?to= query params directly on that column.
 function saleDateString(sale) {
-  const raw = sale.created_at || sale.sale_date || sale.date || sale.createdAt;
+  const raw = sale.sale_date;
   if (!raw) return null;
   try {
     return new Date(raw).toISOString().slice(0, 10);
@@ -99,14 +100,17 @@ export default function Dashboard() {
   async function openTodaySales() {
     setSalesModal({ open: true, loading: true, rows: [], error: "" });
     try {
-      // Reuse the same /sales endpoint already used for Recent Sales, just pull
-      // more rows and filter to today's date on the client.
-      const res = await apiRequest("/sales?limit=500");
-      const all = res.data || [];
+      // Backend filters sale_date with gte(from) / lte(to). sale_date is a full
+      // timestamp, so `to` must be end-of-day, not just today's date, or sales
+      // recorded any time after midnight get excluded.
       const today = todayISO();
-      const todaysRows = all.filter(s => {
+      const toEndOfDay = `${today}T23:59:59.999`;
+      const res = await apiRequest(`/sales?from=${today}&to=${toEndOfDay}&limit=1000`);
+      const rows = res.data || [];
+      // Safety net in case the backend ever returns extra rows outside range.
+      const todaysRows = rows.filter(s => {
         const d = saleDateString(s);
-        return d ? d === today : true; // if no date field found, don't silently drop everything
+        return d ? d === today : true;
       });
       setSalesModal({ open: true, loading: false, rows: todaysRows, error: "" });
     } catch (err) {
