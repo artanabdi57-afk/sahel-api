@@ -1,8 +1,8 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   Search, Plus, ShoppingBag, CreditCard, DollarSign,
   Wallet, Bell, Settings, TrendingUp, BarChart3, Users, Package,
-  Printer, X, AlertTriangle, PackageX
+  Printer, X, AlertTriangle, PackageX, Download, ChevronDown
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -12,8 +12,17 @@ import {
 import { apiRequest, formatMoney, monthISO, todayISO } from "../lib/api";
 import { LoadingState } from "../components/AsyncState";
 import { useLanguage } from "../lib/i18n";
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
+// npm install jspdf html2canvas
 
 const COLORS = ["#1E40AF", "#3B82F6", "#F97316", "#FB923C", "#60A5FA"];
+
+// TODO: wire these up to real shop profile data (e.g. state.data.shop) once
+// that's available from the API — for now they're placeholders so the
+// printable receipt has a header like the rest of the app.
+const SHOP_NAME = "My Shop";
+const SHOP_PHONE = "";
 
 function useCountUp(target, duration = 800) {
   const [value, setValue] = useState(0);
@@ -73,6 +82,9 @@ export default function Dashboard() {
   // Today's Sales print modal
   const [salesModal, setSalesModal] = useState({ open: false, loading: false, rows: [], error: "", debug: null });
   const [printTarget, setPrintTarget] = useState(null); // null = print all, otherwise a single sale id
+  const [showDebug, setShowDebug] = useState(false);
+  const [pdfBusy, setPdfBusy] = useState(false);
+  const receiptRef = useRef(null);
 
   // Notification dropdown
   const [notifOpen, setNotifOpen] = useState(false);
@@ -140,9 +152,20 @@ export default function Dashboard() {
     setTimeout(() => window.print(), 50);
   }
 
-  function printOne(saleId) {
-    setPrintTarget(saleId);
-    setTimeout(() => window.print(), 50);
+  async function downloadPDF() {
+    if (!receiptRef.current || pdfBusy) return;
+    setPdfBusy(true);
+    try {
+      const canvas = await html2canvas(receiptRef.current, { scale: 2, backgroundColor: "#ffffff" });
+      const imgData = canvas.toDataURL("image/png");
+      const pdf = new jsPDF({ unit: "pt", format: [canvas.width / 2, canvas.height / 2] });
+      pdf.addImage(imgData, "PNG", 0, 0, canvas.width / 2, canvas.height / 2);
+      pdf.save(`daily-sales-${todayISO()}.pdf`);
+    } catch (err) {
+      console.error("PDF export failed", err);
+    } finally {
+      setPdfBusy(false);
+    }
   }
 
   useEffect(() => {
@@ -502,103 +525,126 @@ export default function Dashboard() {
 
       </div>
 
-      {/* Today's Sales modal / printable sheet */}
+      {/* Today's Sales modal / printable receipt */}
       {salesModal.open && (
-        <div className="no-print" style={{ position: "fixed", inset: 0, zIndex: 200, background: "rgba(15,31,69,0.45)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
-          <div style={{ background: "#fff", borderRadius: 20, width: "100%", maxWidth: 560, maxHeight: "90vh", overflowY: "auto", boxShadow: "0 24px 64px rgba(15,31,69,0.18)" }}>
-            <div style={{ background: "#1E40AF", borderRadius: "20px 20px 0 0", padding: "18px 20px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-              <div>
-                <p style={{ fontSize: 16, fontWeight: 700, color: "#fff", margin: 0 }}>Today's Sales</p>
-                <p style={{ fontSize: 12, color: "rgba(255,255,255,0.65)", marginTop: 2 }}>{todayISO()}</p>
-              </div>
-              <button onClick={() => setSalesModal({ open: false, loading: false, rows: [], error: "", debug: null })} style={{ background: "rgba(255,255,255,0.15)", border: "none", borderRadius: 8, width: 32, height: 32, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#fff" }}>
-                <X size={16} />
-              </button>
-            </div>
+        <div style={{ position: "fixed", inset: 0, zIndex: 200, background: "rgba(15,31,69,0.45)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
+          <div className="no-print" style={{ position: "fixed", inset: 0 }} onClick={() => setSalesModal({ open: false, loading: false, rows: [], error: "", debug: null })} />
+          <div style={{ background: "#fff", borderRadius: 20, width: "100%", maxWidth: 420, maxHeight: "90vh", overflowY: "auto", boxShadow: "0 24px 64px rgba(15,31,69,0.18)", position: "relative" }}>
 
-            <div style={{ padding: 20 }}>
-              {salesModal.loading && <div style={{ textAlign: "center", padding: 30, color: "#A0B3D6", fontSize: 13 }}>Loading…</div>}
-              {salesModal.error && <div style={{ background: "#FEF2F2", borderRadius: 10, padding: "12px 16px", color: "#B91C1C", fontSize: 13 }}>{salesModal.error}</div>}
+            <button
+              className="no-print"
+              onClick={() => setSalesModal({ open: false, loading: false, rows: [], error: "", debug: null })}
+              style={{ position: "absolute", top: 16, right: 16, background: "none", border: "none", cursor: "pointer", color: "#A0B3D6", zIndex: 2 }}
+            >
+              <X size={18} />
+            </button>
 
-              {!salesModal.loading && !salesModal.error && salesModal.rows.length === 0 && (
-                <div>
-                  <div style={{ textAlign: "center", padding: "20px 10px", color: "#A0B3D6", fontSize: 13 }}>No sales matched today's date filter.</div>
-                  {salesModal.debug && (
-                    <div style={{ background: "#F7F9FF", border: "1px solid #E2EBFF", borderRadius: 12, padding: "12px 14px", fontSize: 11, color: "#4B5A7A", fontFamily: "monospace", overflowX: "auto" }}>
-                      <p style={{ margin: "0 0 6px", fontWeight: 700, color: "#1E40AF" }}>Debug info (screenshot this):</p>
-                      <p style={{ margin: "0 0 4px" }}>today = {salesModal.debug.today}</p>
-                      <p style={{ margin: "0 0 8px", wordBreak: "break-all" }}>url = {salesModal.debug.url}</p>
-                      <p style={{ margin: "0 0 4px", fontWeight: 700, color: "#1E40AF" }}>Most recent sales (unfiltered):</p>
-                      {salesModal.debug.recentSample.length === 0 ? (
-                        <p style={{ margin: 0 }}>No sales found at all — none have ever been recorded, or the /sales endpoint itself is failing.</p>
-                      ) : (
-                        salesModal.debug.recentSample.map((s, i) => (
-                          <p key={i} style={{ margin: "0 0 2px" }}>{s.product_name}: sale_date = {String(s.sale_date)}</p>
-                        ))
-                      )}
-                    </div>
-                  )}
+            {salesModal.loading && <div style={{ textAlign: "center", padding: 60, color: "#A0B3D6", fontSize: 13 }}>Loading…</div>}
+            {salesModal.error && <div style={{ margin: 20, background: "#FEF2F2", borderRadius: 10, padding: "12px 16px", color: "#B91C1C", fontSize: 13 }}>{salesModal.error}</div>}
+
+            {!salesModal.loading && !salesModal.error && salesModal.rows.length === 0 && (
+              <div style={{ padding: "40px 24px 24px" }}>
+                <div style={{ width: 56, height: 56, borderRadius: 14, background: "#EEF2FF", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
+                  <ShoppingBag size={24} color="#1E40AF" />
                 </div>
-              )}
+                <p style={{ textAlign: "center", fontSize: 13, fontWeight: 600, color: "#0F1F45", margin: "0 0 4px" }}>No sales recorded for today</p>
+                <p style={{ textAlign: "center", fontSize: 12, color: "#A0B3D6", margin: "0 0 16px" }}>Once you make a sale, it'll show up here ready to print or save as a PDF.</p>
 
-              {!salesModal.loading && !salesModal.error && salesModal.rows.length > 0 && (
-                <>
-                  <div className="no-print" style={{ display: "flex", justifyContent: "flex-end", marginBottom: 10 }}>
-                    <button
-                      onClick={printAll}
-                      style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 14px", borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", background: "#F97316", color: "#fff", border: "none" }}
-                    >
-                      <Printer size={14} /> Print All
+                {salesModal.debug && (
+                  <div style={{ borderTop: "1px solid #F0F4FF", paddingTop: 10 }}>
+                    <button onClick={() => setShowDebug(v => !v)} style={{ display: "flex", alignItems: "center", gap: 4, margin: "0 auto", background: "none", border: "none", cursor: "pointer", fontSize: 11, color: "#A0B3D6", fontFamily: "inherit" }}>
+                      Technical details <ChevronDown size={12} style={{ transform: showDebug ? "rotate(180deg)" : "none" }} />
                     </button>
-                  </div>
-
-                  {/* Printable area: shows all rows, or just one if printTarget is set */}
-                  <div className="print-area">
-                    <div className="print-only" style={{ display: "none", marginBottom: 12 }}>
-                      <p style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>Sahel Shop</p>
-                      <p style={{ fontSize: 12, margin: "2px 0 0" }}>Daily Sales — {todayISO()}</p>
-                    </div>
-
-                    <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: 16 }}>
-                      <thead>
-                        <tr style={{ background: "#FAFBFF" }}>
-                          {["#", "Product", "Amount", "Payment", ""].map((h, i) => (
-                            <th key={h} className={i === 4 ? "no-print" : ""} style={{ fontSize: 10, fontWeight: 700, color: "#A0B3D6", textTransform: "uppercase", letterSpacing: "0.6px", padding: "9px 10px", textAlign: i >= 2 ? "right" : "left", borderBottom: "1px solid #F0F4FF" }}>{h}</th>
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {(printTarget ? salesModal.rows.filter(s => s.id === printTarget) : salesModal.rows).map((s, idx) => (
-                          <tr key={s.id || idx} style={{ borderBottom: "1px solid #F0F4FF" }}>
-                            <td style={{ padding: "9px 10px", fontSize: 12, color: "#A0B3D6" }}>{idx + 1}</td>
-                            <td style={{ padding: "9px 10px", fontSize: 12, color: "#0F1F45", fontWeight: 500 }}>{s.product_name}</td>
-                            <td style={{ padding: "9px 10px", fontSize: 12, color: "#1E40AF", fontWeight: 700, textAlign: "right" }}>{formatMoney(s.total)}</td>
-                            <td style={{ padding: "9px 10px", textAlign: "right" }}>
-                              <span style={{ fontSize: 10, fontWeight: 700, padding: "3px 9px", borderRadius: 20, ...payChipStyle(s.payment_type) }}>{s.payment_type}</span>
-                            </td>
-                            <td className="no-print" style={{ padding: "9px 10px", textAlign: "right" }}>
-                              <button
-                                onClick={() => printOne(s.id)}
-                                title="Print this sale"
-                                style={{ background: "#EEF2FF", border: "none", borderRadius: 6, width: 26, height: 26, display: "inline-flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#1E40AF" }}
-                              >
-                                <Printer size={12} />
-                              </button>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                    {!printTarget && (
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "#EEF2FF", borderRadius: 10, padding: "12px 16px" }}>
-                        <span style={{ fontSize: 12, fontWeight: 700, color: "#1E40AF" }}>Total ({salesModal.rows.length} sales)</span>
-                        <span style={{ fontSize: 16, fontWeight: 700, color: "#1E40AF" }}>{formatMoney(todaySalesTotal)}</span>
+                    {showDebug && (
+                      <div style={{ marginTop: 10, background: "#F7F9FF", border: "1px solid #E2EBFF", borderRadius: 12, padding: "12px 14px", fontSize: 11, color: "#4B5A7A", fontFamily: "monospace", overflowX: "auto" }}>
+                        <p style={{ margin: "0 0 4px" }}>today = {salesModal.debug.today}</p>
+                        <p style={{ margin: "0 0 8px", wordBreak: "break-all" }}>url = {salesModal.debug.url}</p>
+                        <p style={{ margin: "0 0 4px", fontWeight: 700, color: "#1E40AF" }}>Most recent sales (unfiltered):</p>
+                        {salesModal.debug.recentSample.length === 0 ? (
+                          <p style={{ margin: 0 }}>No sales found at all — none have ever been recorded, or the /sales endpoint itself is failing.</p>
+                        ) : (
+                          salesModal.debug.recentSample.map((s, i) => (
+                            <p key={i} style={{ margin: "0 0 2px" }}>{s.product_name}: sale_date = {String(s.sale_date)}</p>
+                          ))
+                        )}
                       </div>
                     )}
                   </div>
-                </>
-              )}
-            </div>
+                )}
+              </div>
+            )}
+
+            {!salesModal.loading && !salesModal.error && salesModal.rows.length > 0 && (
+              <>
+                {/* Printable / exportable receipt card */}
+                <div ref={receiptRef} className="print-area" style={{ padding: "36px 28px 24px", background: "#fff" }}>
+                  <div style={{ width: 56, height: 56, borderRadius: 14, background: "#1E40AF", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 14px", color: "#fff", fontSize: 22, fontWeight: 700 }}>
+                    {SHOP_NAME.charAt(0).toUpperCase()}
+                  </div>
+                  <p style={{ textAlign: "center", fontSize: 16, fontWeight: 700, color: "#0F1F45", margin: 0 }}>{SHOP_NAME}</p>
+                  {SHOP_PHONE && <p style={{ textAlign: "center", fontSize: 12, color: "#A0B3D6", margin: "2px 0 0" }}>{SHOP_PHONE}</p>}
+
+                  <div style={{ borderTop: "1px dashed #E2EBFF", margin: "18px 0" }} />
+
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 6 }}>
+                    <span style={{ color: "#A0B3D6", fontWeight: 600 }}>Date</span>
+                    <span style={{ color: "#0F1F45", fontWeight: 600 }}>
+                      {new Date(todayISO()).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}
+                    </span>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 6 }}>
+                    <span style={{ color: "#A0B3D6", fontWeight: 600 }}>Report</span>
+                    <span style={{ color: "#0F1F45", fontWeight: 600 }}>Daily Sales</span>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12 }}>
+                    <span style={{ color: "#A0B3D6", fontWeight: 600 }}>Sales</span>
+                    <span style={{ color: "#0F1F45", fontWeight: 600 }}>{salesModal.rows.length}</span>
+                  </div>
+
+                  <div style={{ borderTop: "1px dashed #E2EBFF", margin: "18px 0 10px" }} />
+
+                  <div style={{ display: "flex", fontSize: 10, fontWeight: 700, color: "#A0B3D6", textTransform: "uppercase", letterSpacing: "0.6px", marginBottom: 8 }}>
+                    <span style={{ flex: 1 }}>Item</span>
+                    <span style={{ width: 64, textAlign: "right" }}>Amount</span>
+                  </div>
+
+                  {(printTarget ? salesModal.rows.filter(s => s.id === printTarget) : salesModal.rows).map((s, idx) => (
+                    <div key={s.id || idx} style={{ display: "flex", alignItems: "center", fontSize: 13, marginBottom: 8 }}>
+                      <span style={{ flex: 1, color: "#0F1F45", fontWeight: 500 }}>{s.product_name}</span>
+                      <span style={{ width: 64, textAlign: "right", color: "#0F1F45", fontWeight: 700 }}>{formatMoney(s.total)}</span>
+                    </div>
+                  ))}
+
+                  <div style={{ borderTop: "1px dashed #E2EBFF", margin: "10px 0 14px" }} />
+
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <span style={{ fontSize: 15, fontWeight: 700, color: "#0F1F45" }}>Total</span>
+                    <span style={{ fontSize: 20, fontWeight: 700, color: "#1E40AF" }}>
+                      {formatMoney(printTarget ? (salesModal.rows.find(s => s.id === printTarget)?.total || 0) : todaySalesTotal)}
+                    </span>
+                  </div>
+
+                  <p className="print-only" style={{ display: "none", textAlign: "center", fontSize: 11, color: "#A0B3D6", marginTop: 24 }}>Thank you for your business</p>
+                </div>
+
+                {/* Actions */}
+                <div className="no-print" style={{ display: "flex", gap: 10, padding: "8px 20px 20px" }}>
+                  <button
+                    onClick={printAll}
+                    style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "11px 14px", borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", background: "#fff", color: "#1E40AF", border: "1.5px solid #D6E0FF" }}
+                  >
+                    <Printer size={14} /> Print
+                  </button>
+                  <button
+                    onClick={downloadPDF}
+                    disabled={pdfBusy}
+                    style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "11px 14px", borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: pdfBusy ? "default" : "pointer", fontFamily: "inherit", background: "#1E40AF", color: "#fff", border: "none", opacity: pdfBusy ? 0.7 : 1 }}
+                  >
+                    <Download size={14} /> {pdfBusy ? "Preparing…" : "Download PDF"}
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}
