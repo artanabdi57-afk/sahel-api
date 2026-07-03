@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from "react";
 import {
   Search, Plus, ShoppingBag, CreditCard, DollarSign,
-  Wallet, Bell, Settings, TrendingUp, BarChart3, Users, Package
+  Wallet, Bell, Settings, TrendingUp, BarChart3, Users, Package,
+  Printer, X, AlertTriangle, PackageX
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -49,12 +50,31 @@ const payChipStyle = (type) => {
   return { background: "#EEF2FF", color: "#1E40AF" };
 };
 
+// Sales rows from the API may use different field names for the date
+// depending on what the backend serializer returns. Check the common ones.
+function saleDateString(sale) {
+  const raw = sale.created_at || sale.sale_date || sale.date || sale.createdAt;
+  if (!raw) return null;
+  try {
+    return new Date(raw).toISOString().slice(0, 10);
+  } catch {
+    return null;
+  }
+}
+
 // ─── Main Dashboard ───────────────────────────────────────────────────────────
 
 export default function Dashboard() {
   const { t } = useLanguage();
   const navigate = useNavigate();
   const [state, setState] = useState({ loading: true, data: null });
+
+  // Today's Sales print modal
+  const [salesModal, setSalesModal] = useState({ open: false, loading: false, rows: [], error: "" });
+
+  // Notification dropdown
+  const [notifOpen, setNotifOpen] = useState(false);
+  const [notifState, setNotifState] = useState({ loading: false, overdueCredits: [], loaded: false, error: "" });
 
   useEffect(() => {
     async function load() {
@@ -76,6 +96,38 @@ export default function Dashboard() {
     load();
   }, []);
 
+  async function openTodaySales() {
+    setSalesModal({ open: true, loading: true, rows: [], error: "" });
+    try {
+      // Reuse the same /sales endpoint already used for Recent Sales, just pull
+      // more rows and filter to today's date on the client.
+      const res = await apiRequest("/sales?limit=500");
+      const all = res.data || [];
+      const today = todayISO();
+      const todaysRows = all.filter(s => {
+        const d = saleDateString(s);
+        return d ? d === today : true; // if no date field found, don't silently drop everything
+      });
+      setSalesModal({ open: true, loading: false, rows: todaysRows, error: "" });
+    } catch (err) {
+      setSalesModal({ open: true, loading: false, rows: [], error: err.message || "Could not load today's sales" });
+    }
+  }
+
+  async function toggleNotifications() {
+    const opening = !notifOpen;
+    setNotifOpen(opening);
+    if (opening && !notifState.loaded) {
+      setNotifState(s => ({ ...s, loading: true }));
+      try {
+        const res = await apiRequest("/credits?status=overdue");
+        setNotifState({ loading: false, overdueCredits: res.data || [], loaded: true, error: "" });
+      } catch (err) {
+        setNotifState({ loading: false, overdueCredits: [], loaded: true, error: err.message || "Could not load overdue credits" });
+      }
+    }
+  }
+
   if (state.loading) return <LoadingState />;
   if (!state.data) return <div style={{ padding: 40, color: "#6B87C4", textAlign: "center" }}>Could not load dashboard.</div>;
 
@@ -87,6 +139,7 @@ export default function Dashboard() {
   const netProfit = profit?.net_profit || 0;
   const margin = monthRevenue > 0 ? Math.round((netProfit / monthRevenue) * 100) : 0;
   const topTotal = (top || []).reduce((a, b) => a + b.revenue, 0);
+  const notifCount = lowStock.length + (notifState.loaded ? notifState.overdueCredits.length : 0);
 
   const iconBtn = {
     background: "#fff", border: "1px solid #D6E0FF", borderRadius: 10,
@@ -200,6 +253,8 @@ export default function Dashboard() {
     { label: "Customers", path: "/credits", bg: "#fff", color: "#1E40AF", border: "1.5px solid #D6E0FF" },
   ];
 
+  const todaySalesTotal = salesModal.rows.reduce((s, r) => s + Number(r.total || 0), 0);
+
   return (
     <div style={{ background: "#F0F4FF", minHeight: "100vh", fontFamily: "'Inter', 'Plus Jakarta Sans', sans-serif" }}>
 
@@ -239,6 +294,14 @@ export default function Dashboard() {
           .donut-side { flex-direction: row !important; align-items: center; gap: 16px; }
           .donut-side-inner { width: 140px !important; height: 140px !important; }
         }
+
+        /* Print: only show the printable sales sheet */
+        @media print {
+          body * { visibility: hidden; }
+          .print-area, .print-area * { visibility: visible; }
+          .print-area { position: absolute; top: 0; left: 0; width: 100%; }
+          .no-print { display: none !important; }
+        }
       `}</style>
 
       <div className="dash-inner">
@@ -254,8 +317,61 @@ export default function Dashboard() {
               <Settings size={16} />
             </button>
             <div style={{ position: "relative" }}>
-              <button onClick={() => {}} style={iconBtn}><Bell size={16} /></button>
-              {lowStock.length > 0 && <span style={{ position: "absolute", top: 7, right: 7, width: 7, height: 7, background: "#F97316", borderRadius: "50%", border: "1.5px solid #fff" }} />}
+              <button onClick={toggleNotifications} style={iconBtn}><Bell size={16} /></button>
+              {notifCount > 0 && <span style={{ position: "absolute", top: 7, right: 7, width: 7, height: 7, background: "#F97316", borderRadius: "50%", border: "1.5px solid #fff" }} />}
+
+              {notifOpen && (
+                <>
+                  <div onClick={() => setNotifOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 90 }} />
+                  <div style={{ position: "absolute", top: 44, right: 0, width: 300, maxHeight: 380, overflowY: "auto", background: "#fff", border: "1px solid #E2EBFF", borderRadius: 14, boxShadow: "0 12px 32px rgba(15,31,69,0.14)", zIndex: 100 }}>
+                    <div style={{ padding: "12px 16px", borderBottom: "1px solid #F0F4FF", fontSize: 12, fontWeight: 700, color: "#0F1F45" }}>
+                      Notifications
+                    </div>
+
+                    {lowStock.length === 0 && notifState.loaded && notifState.overdueCredits.length === 0 && (
+                      <div style={{ padding: 20, textAlign: "center", fontSize: 12, color: "#A0B3D6" }}>You're all caught up.</div>
+                    )}
+
+                    {lowStock.length > 0 && (
+                      <div>
+                        <div style={{ padding: "10px 16px 4px", fontSize: 10, fontWeight: 700, color: "#A0B3D6", textTransform: "uppercase" }}>Low / Out of Stock</div>
+                        {lowStock.map(p => (
+                          <div key={p.id} onClick={() => { setNotifOpen(false); navigate("/inventory"); }} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 16px", cursor: "pointer" }}>
+                            <div style={{ width: 28, height: 28, borderRadius: 8, background: "#FFF2E8", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                              <PackageX size={14} color="#C2550A" />
+                            </div>
+                            <div style={{ minWidth: 0 }}>
+                              <div style={{ fontSize: 12, fontWeight: 600, color: "#0F1F45", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{p.name}</div>
+                              <div style={{ fontSize: 10, color: "#C2550A" }}>{Number(p.quantity)} left</div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {notifState.loading && (
+                      <div style={{ padding: 16, textAlign: "center", fontSize: 12, color: "#A0B3D6" }}>Loading overdue customers…</div>
+                    )}
+
+                    {!notifState.loading && notifState.overdueCredits.length > 0 && (
+                      <div>
+                        <div style={{ padding: "10px 16px 4px", fontSize: 10, fontWeight: 700, color: "#A0B3D6", textTransform: "uppercase" }}>Overdue Customers</div>
+                        {notifState.overdueCredits.map(c => (
+                          <div key={c.id} onClick={() => { setNotifOpen(false); navigate("/credits"); }} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, padding: "8px 16px", cursor: "pointer" }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
+                              <div style={{ width: 28, height: 28, borderRadius: 8, background: "#FEF2F2", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                                <AlertTriangle size={14} color="#B91C1C" />
+                              </div>
+                              <div style={{ fontSize: 12, fontWeight: 600, color: "#0F1F45", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.customer_name}</div>
+                            </div>
+                            <div style={{ fontSize: 11, fontWeight: 700, color: "#B91C1C", flexShrink: 0 }}>{formatMoney(c.amount_owed)}</div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
             </div>
             <div onClick={() => navigate("/profile")} style={{ width: 36, height: 36, background: "#1E40AF", borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>
               SA
@@ -280,8 +396,9 @@ export default function Dashboard() {
 
         {/* Cards — single unified grid, responsive */}
         <div className="cards-grid" style={{ marginBottom: 20 }}>
-          {/* Today's Sales — spans full width on mobile */}
+          {/* Today's Sales — spans full width on mobile, click to view + print */}
           <div className="card-today-sales" style={{ background: "#1E40AF", borderRadius: 14, padding: 16, cursor: "pointer" }}
+            onClick={openTodaySales}
             onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "0 8px 24px rgba(30,64,175,0.2)"; }}
             onMouseLeave={e => { e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = ""; }}
           >
@@ -294,7 +411,7 @@ export default function Dashboard() {
               </div>
             </div>
             <AnimatedValue value={todayRevenue} style={{ fontSize: 22, fontWeight: 700, color: "#fff", letterSpacing: "-0.8px", marginBottom: 3 }} />
-            <div style={{ fontSize: 10, color: "rgba(255,255,255,0.55)", marginBottom: 10 }}>Live volume</div>
+            <div style={{ fontSize: 10, color: "rgba(255,255,255,0.55)", marginBottom: 10 }}>Tap to view &amp; print</div>
             <div style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 10, fontWeight: 600, padding: "3px 8px", borderRadius: 20, background: "rgba(255,255,255,0.18)", color: "#fff" }}>
               <TrendingUp size={11} /> +12% vs yesterday
             </div>
@@ -346,6 +463,73 @@ export default function Dashboard() {
         </div>
 
       </div>
+
+      {/* Today's Sales modal / printable sheet */}
+      {salesModal.open && (
+        <div className="no-print" style={{ position: "fixed", inset: 0, zIndex: 200, background: "rgba(15,31,69,0.45)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
+          <div style={{ background: "#fff", borderRadius: 20, width: "100%", maxWidth: 560, maxHeight: "90vh", overflowY: "auto", boxShadow: "0 24px 64px rgba(15,31,69,0.18)" }}>
+            <div style={{ background: "#1E40AF", borderRadius: "20px 20px 0 0", padding: "18px 20px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <div>
+                <p style={{ fontSize: 16, fontWeight: 700, color: "#fff", margin: 0 }}>Today's Sales</p>
+                <p style={{ fontSize: 12, color: "rgba(255,255,255,0.65)", marginTop: 2 }}>{todayISO()}</p>
+              </div>
+              <button onClick={() => setSalesModal({ open: false, loading: false, rows: [], error: "" })} style={{ background: "rgba(255,255,255,0.15)", border: "none", borderRadius: 8, width: 32, height: 32, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#fff" }}>
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="print-area" style={{ padding: 20 }}>
+              {salesModal.loading && <div style={{ textAlign: "center", padding: 30, color: "#A0B3D6", fontSize: 13 }}>Loading…</div>}
+              {salesModal.error && <div style={{ background: "#FEF2F2", borderRadius: 10, padding: "12px 16px", color: "#B91C1C", fontSize: 13 }}>{salesModal.error}</div>}
+
+              {!salesModal.loading && !salesModal.error && (
+                salesModal.rows.length === 0 ? (
+                  <div style={{ textAlign: "center", padding: 30, color: "#A0B3D6", fontSize: 13 }}>No sales recorded today yet.</div>
+                ) : (
+                  <>
+                    <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: 16 }}>
+                      <thead>
+                        <tr style={{ background: "#FAFBFF" }}>
+                          {["#", "Product", "Amount", "Payment"].map((h, i) => (
+                            <th key={h} style={{ fontSize: 10, fontWeight: 700, color: "#A0B3D6", textTransform: "uppercase", letterSpacing: "0.6px", padding: "9px 10px", textAlign: i >= 2 ? "right" : "left", borderBottom: "1px solid #F0F4FF" }}>{h}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {salesModal.rows.map((s, idx) => (
+                          <tr key={s.id || idx} style={{ borderBottom: "1px solid #F0F4FF" }}>
+                            <td style={{ padding: "9px 10px", fontSize: 12, color: "#A0B3D6" }}>{idx + 1}</td>
+                            <td style={{ padding: "9px 10px", fontSize: 12, color: "#0F1F45", fontWeight: 500 }}>{s.product_name}</td>
+                            <td style={{ padding: "9px 10px", fontSize: 12, color: "#1E40AF", fontWeight: 700, textAlign: "right" }}>{formatMoney(s.total)}</td>
+                            <td style={{ padding: "9px 10px", textAlign: "right" }}>
+                              <span style={{ fontSize: 10, fontWeight: 700, padding: "3px 9px", borderRadius: 20, ...payChipStyle(s.payment_type) }}>{s.payment_type}</span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "#EEF2FF", borderRadius: 10, padding: "12px 16px" }}>
+                      <span style={{ fontSize: 12, fontWeight: 700, color: "#1E40AF" }}>Total ({salesModal.rows.length} sales)</span>
+                      <span style={{ fontSize: 16, fontWeight: 700, color: "#1E40AF" }}>{formatMoney(todaySalesTotal)}</span>
+                    </div>
+                  </>
+                )
+              )}
+            </div>
+
+            {!salesModal.loading && !salesModal.error && salesModal.rows.length > 0 && (
+              <div className="no-print" style={{ padding: "0 20px 20px" }}>
+                <button
+                  onClick={() => window.print()}
+                  style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "12px 0", borderRadius: 10, fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", background: "#F97316", color: "#fff", border: "none" }}
+                >
+                  <Printer size={16} /> Print
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
