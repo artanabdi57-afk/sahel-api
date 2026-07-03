@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { 
   AlertTriangle, Check, CreditCard, Phone, Plus, Search, 
-  ChevronDown, ChevronRight, Wallet, History, ArrowUpRight 
+  ChevronDown, ChevronRight, Wallet, History, ArrowUpRight, X, Loader2
 } from "lucide-react";
 import { apiRequest, formatMoney } from "../lib/api";
 import { EmptyState, LoadingState } from "../components/AsyncState";
@@ -25,6 +25,18 @@ const t = (key) => ({
   partialPay: "Partial Payment",
   markPaid: "Mark Fully Paid",
   grandTotal: "Total Outstanding",
+  amountToPay: "Amount to Pay",
+  cancel: "Cancel",
+  confirmPayment: "Confirm Payment",
+  processing: "Processing...",
+  amountExceeds: "Amount cannot exceed remaining balance",
+  amountRequired: "Enter a valid amount",
+  customerName: "Customer Name",
+  customerPhone: "Phone Number",
+  productName: "Item / Reason (optional)",
+  amountOwed: "Amount Owed",
+  recordDebt: "Record Debt",
+  fieldsRequired: "Please fill in all required fields",
 })[key] || key;
 
 // --- UTILS ---
@@ -35,6 +47,7 @@ const formatDT = (v) => {
     month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit"
   });
 };
+const remainingOf = (item) => Math.max(0, Number(item.amount_owed || 0) - Number(item.total_paid || 0));
 
 // --- COMPONENTS ---
 function SummaryCard({ label, value, icon: Icon, colorClass }) {
@@ -46,6 +59,222 @@ function SummaryCard({ label, value, icon: Icon, colorClass }) {
       </div>
       <h3 className="text-2xl font-black text-slate-900">{formatMoney(value)}</h3>
     </div>
+  );
+}
+
+function ModalShell({ title, onClose, children }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
+      <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-md p-6 relative animate-in fade-in zoom-in-95 duration-150">
+        <button
+          onClick={onClose}
+          className="absolute top-5 right-5 text-slate-400 hover:text-slate-700 transition-colors"
+        >
+          <X size={20} />
+        </button>
+        <h3 className="text-lg font-black text-slate-900 mb-6 pr-8">{title}</h3>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+// paymentTarget: { customer, mode: 'full' | 'partial', creditId?: string }
+// If creditId is present, the payment applies to that single credit line.
+// If creditId is absent, the payment applies across the customer's open items,
+// oldest first, until the amount (or full balance) is exhausted.
+function PaymentModal({ paymentTarget, onClose, onSuccess }) {
+  const { customer, mode, creditId } = paymentTarget;
+
+  const targetItems = creditId
+    ? customer.items.filter(i => i.id === creditId)
+    : customer.items;
+  const maxRemaining = targetItems.reduce((s, i) => s + remainingOf(i), 0);
+
+  const [amount, setAmount] = useState(mode === "full" ? String(maxRemaining) : "");
+  const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleSubmit = async () => {
+    const value = Number(amount);
+    if (!value || value <= 0) {
+      setError(t("amountRequired"));
+      return;
+    }
+    if (value > maxRemaining + 0.01) {
+      setError(t("amountExceeds"));
+      return;
+    }
+    setError("");
+    setSubmitting(true);
+    try {
+      let remainingToApply = value;
+      // Apply payment across the relevant items, oldest first, until exhausted.
+      const orderedItems = [...targetItems].sort(
+        (a, b) => new Date(a.created_at) - new Date(b.created_at)
+      );
+      for (const item of orderedItems) {
+        if (remainingToApply <= 0) break;
+        const itemRemaining = remainingOf(item);
+        if (itemRemaining <= 0) continue;
+        const portion = Math.min(itemRemaining, remainingToApply);
+        await apiRequest(`/credits/${item.id}/payments`, {
+          method: "POST",
+          body: JSON.stringify({ amount: portion }),
+        });
+        remainingToApply -= portion;
+      }
+      onSuccess();
+    } catch (err) {
+      setError(err.message || "Payment failed");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <ModalShell title={mode === "full" ? t("markPaid") : t("partialPay")} onClose={onClose}>
+      <div className="space-y-4">
+        <div>
+          <p className="text-[10px] font-black text-slate-400 uppercase mb-1">{customer.customer_name}</p>
+          <p className="text-2xl font-black text-blue-900">{formatMoney(maxRemaining)}</p>
+          <p className="text-[10px] font-bold text-slate-400 uppercase">{t("remaining")}</p>
+        </div>
+
+        <div>
+          <label className="text-[10px] font-black text-slate-400 uppercase mb-1 block">
+            {t("amountToPay")}
+          </label>
+          <input
+            type="number"
+            inputMode="decimal"
+            className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 text-lg font-black outline-none focus:ring-2 focus:ring-blue-500"
+            value={amount}
+            disabled={mode === "full"}
+            onChange={e => { setAmount(e.target.value); setError(""); }}
+            placeholder="0"
+          />
+          {error && <p className="text-orange-600 text-xs font-bold mt-2">{error}</p>}
+        </div>
+
+        <div className="flex gap-3 pt-2">
+          <button
+            onClick={onClose}
+            disabled={submitting}
+            className="flex-1 py-3 rounded-xl font-black text-sm bg-slate-100 text-slate-600 hover:bg-slate-200 transition-all disabled:opacity-50"
+          >
+            {t("cancel")}
+          </button>
+          <button
+            onClick={handleSubmit}
+            disabled={submitting}
+            className="flex-1 py-3 rounded-xl font-black text-sm bg-orange-500 hover:bg-orange-600 text-white shadow-lg transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+          >
+            {submitting ? (
+              <><Loader2 size={16} className="animate-spin" /> {t("processing")}</>
+            ) : (
+              <><Check size={16} /> {t("confirmPayment")}</>
+            )}
+          </button>
+        </div>
+      </div>
+    </ModalShell>
+  );
+}
+
+function GiveMoneyModal({ onClose, onSuccess }) {
+  const [form, setForm] = useState({ customer_name: "", customer_phone: "", product_name: "", amount_owed: "" });
+  const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  const update = (field) => (e) => setForm(f => ({ ...f, [field]: e.target.value }));
+
+  const handleSubmit = async () => {
+    if (!form.customer_name.trim() || !form.customer_phone.trim() || !Number(form.amount_owed)) {
+      setError(t("fieldsRequired"));
+      return;
+    }
+    setError("");
+    setSubmitting(true);
+    try {
+      await apiRequest("/credits", {
+        method: "POST",
+        body: JSON.stringify({
+          customer_name: form.customer_name.trim(),
+          customer_phone: form.customer_phone.trim(),
+          product_name: form.product_name.trim() || null,
+          amount_owed: Number(form.amount_owed),
+        }),
+      });
+      onSuccess();
+    } catch (err) {
+      setError(err.message || "Failed to record debt");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <ModalShell title={t("recordDebt")} onClose={onClose}>
+      <div className="space-y-4">
+        <div>
+          <label className="text-[10px] font-black text-slate-400 uppercase mb-1 block">{t("customerName")}</label>
+          <input
+            className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 font-bold outline-none focus:ring-2 focus:ring-blue-500"
+            value={form.customer_name}
+            onChange={update("customer_name")}
+          />
+        </div>
+        <div>
+          <label className="text-[10px] font-black text-slate-400 uppercase mb-1 block">{t("customerPhone")}</label>
+          <input
+            className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 font-bold outline-none focus:ring-2 focus:ring-blue-500"
+            value={form.customer_phone}
+            onChange={update("customer_phone")}
+          />
+        </div>
+        <div>
+          <label className="text-[10px] font-black text-slate-400 uppercase mb-1 block">{t("productName")}</label>
+          <input
+            className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 font-bold outline-none focus:ring-2 focus:ring-blue-500"
+            value={form.product_name}
+            onChange={update("product_name")}
+          />
+        </div>
+        <div>
+          <label className="text-[10px] font-black text-slate-400 uppercase mb-1 block">{t("amountOwed")}</label>
+          <input
+            type="number"
+            inputMode="decimal"
+            className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 text-lg font-black outline-none focus:ring-2 focus:ring-blue-500"
+            value={form.amount_owed}
+            onChange={update("amount_owed")}
+            placeholder="0"
+          />
+        </div>
+        {error && <p className="text-orange-600 text-xs font-bold">{error}</p>}
+        <div className="flex gap-3 pt-2">
+          <button
+            onClick={onClose}
+            disabled={submitting}
+            className="flex-1 py-3 rounded-xl font-black text-sm bg-slate-100 text-slate-600 hover:bg-slate-200 transition-all disabled:opacity-50"
+          >
+            {t("cancel")}
+          </button>
+          <button
+            onClick={handleSubmit}
+            disabled={submitting}
+            className="flex-1 py-3 rounded-xl font-black text-sm bg-orange-500 hover:bg-orange-600 text-white shadow-lg transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+          >
+            {submitting ? (
+              <><Loader2 size={16} className="animate-spin" /> {t("processing")}</>
+            ) : (
+              <><Plus size={16} /> {t("recordDebt")}</>
+            )}
+          </button>
+        </div>
+      </div>
+    </ModalShell>
   );
 }
 
@@ -90,6 +319,16 @@ export default function Credits() {
   }, [credits, search]);
 
   const grandTotalOwed = customers.reduce((s, c) => s + c.total_owed, 0);
+
+  const handlePaymentSuccess = () => {
+    setPaymentTarget(null);
+    loadCredits(filter);
+  };
+
+  const handleGiveMoneySuccess = () => {
+    setGiveMoneyOpen(false);
+    loadCredits(filter);
+  };
 
   if (status.loading) return <LoadingState />;
 
@@ -202,13 +441,15 @@ export default function Credits() {
                             <p className="text-[10px] font-bold text-slate-400">{formatDT(item.created_at)}</p>
                           </div>
                           <div className="text-right">
-                            <p className="font-black text-slate-900">{formatMoney(item.amount_owed)}</p>
-                            <button
-                              onClick={() => setPaymentTarget({ customer, mode: "full", creditId: item.id })}
-                              className="text-[10px] font-black text-orange-500 hover:text-orange-700 uppercase mt-1"
-                            >
-                              {t("payThis")}
-                            </button>
+                            <p className="font-black text-slate-900">{formatMoney(remainingOf(item))}</p>
+                            {remainingOf(item) > 0 && (
+                              <button
+                                onClick={() => setPaymentTarget({ customer, mode: "partial", creditId: item.id })}
+                                className="text-[10px] font-black text-orange-500 hover:text-orange-700 uppercase mt-1"
+                              >
+                                {t("payThis")}
+                              </button>
+                            )}
                           </div>
                         </div>
                       ))}
@@ -254,6 +495,21 @@ export default function Credits() {
         </div>
         <span className="text-2xl font-black">{formatMoney(grandTotalOwed)}</span>
       </div>
+
+      {/* MODALS */}
+      {paymentTarget && (
+        <PaymentModal
+          paymentTarget={paymentTarget}
+          onClose={() => setPaymentTarget(null)}
+          onSuccess={handlePaymentSuccess}
+        />
+      )}
+      {giveMoneyOpen && (
+        <GiveMoneyModal
+          onClose={() => setGiveMoneyOpen(false)}
+          onSuccess={handleGiveMoneySuccess}
+        />
+      )}
 
     </div>
   );
