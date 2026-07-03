@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import {
   Search, Plus, ShoppingBag, CreditCard, DollarSign,
   Wallet, Bell, Settings, TrendingUp, BarChart3, Users, Package,
-  Printer, X, AlertTriangle, PackageX, Download, ChevronDown
+  Printer, X, AlertTriangle, PackageX, Download, ChevronDown, ChevronRight, ArrowLeft
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -79,12 +79,13 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const [state, setState] = useState({ loading: true, data: null });
 
-  // Today's Sales print modal
+  // Today's Sales modal: list of today's sales, drill into one for its own receipt
   const [salesModal, setSalesModal] = useState({ open: false, loading: false, rows: [], error: "", debug: null });
-  const [printTarget, setPrintTarget] = useState(null); // null = print all, otherwise a single sale id
+  const [salesView, setSalesView] = useState("list"); // "list" | "detail"
+  const [selectedSale, setSelectedSale] = useState(null);
   const [showDebug, setShowDebug] = useState(false);
   const [pdfBusy, setPdfBusy] = useState(false);
-  const receiptRef = useRef(null);
+  const printRef = useRef(null);
 
   // Notification dropdown
   const [notifOpen, setNotifOpen] = useState(false);
@@ -112,6 +113,8 @@ export default function Dashboard() {
 
   async function openTodaySales() {
     setSalesModal({ open: true, loading: true, rows: [], error: "", debug: null });
+    setSalesView("list");
+    setSelectedSale(null);
     try {
       // Backend filters sale_date with gte(from) / lte(to). sale_date is a full
       // timestamp, so `to` must be end-of-day, not just today's date.
@@ -147,32 +150,44 @@ export default function Dashboard() {
     }
   }
 
-  function printAll() {
-    setPrintTarget(null);
+  function closeSalesModal() {
+    setSalesModal({ open: false, loading: false, rows: [], error: "", debug: null });
+    setSalesView("list");
+    setSelectedSale(null);
+  }
+
+  function openSale(sale) {
+    setSelectedSale(sale);
+    setSalesView("detail");
+  }
+
+  function backToList() {
+    setSalesView("list");
+    setSelectedSale(null);
+  }
+
+  function handlePrint() {
     setTimeout(() => window.print(), 50);
   }
 
   async function downloadPDF() {
-    if (!receiptRef.current || pdfBusy) return;
+    if (!printRef.current || pdfBusy) return;
     setPdfBusy(true);
     try {
-      const canvas = await html2canvas(receiptRef.current, { scale: 2, backgroundColor: "#ffffff" });
+      const canvas = await html2canvas(printRef.current, { scale: 2, backgroundColor: "#ffffff" });
       const imgData = canvas.toDataURL("image/png");
       const pdf = new jsPDF({ unit: "pt", format: [canvas.width / 2, canvas.height / 2] });
       pdf.addImage(imgData, "PNG", 0, 0, canvas.width / 2, canvas.height / 2);
-      pdf.save(`daily-sales-${todayISO()}.pdf`);
+      const filename = salesView === "detail" && selectedSale
+        ? `sale-${selectedSale.id || "receipt"}.pdf`
+        : `daily-sales-${todayISO()}.pdf`;
+      pdf.save(filename);
     } catch (err) {
       console.error("PDF export failed", err);
     } finally {
       setPdfBusy(false);
     }
   }
-
-  useEffect(() => {
-    const reset = () => setPrintTarget(null);
-    window.addEventListener("afterprint", reset);
-    return () => window.removeEventListener("afterprint", reset);
-  }, []);
 
   async function toggleNotifications() {
     const opening = !notifOpen;
@@ -209,6 +224,18 @@ export default function Dashboard() {
 
   const chartCard = (extra = {}) => ({
     background: "#fff", border: "1px solid #E2EBFF", borderRadius: 14, padding: 18, ...extra
+  });
+
+  const outlineBtn = {
+    flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+    padding: "10px 12px", borderRadius: 10, fontSize: 12.5, fontWeight: 600, cursor: "pointer",
+    fontFamily: "inherit", background: "#fff", color: "#1E40AF", border: "1.5px solid #D6E0FF"
+  };
+
+  const filledBtn = (busy) => ({
+    flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+    padding: "10px 12px", borderRadius: 10, fontSize: 12.5, fontWeight: 600, cursor: busy ? "default" : "pointer",
+    fontFamily: "inherit", background: "#1E40AF", color: "#fff", border: "none", opacity: busy ? 0.7 : 1
   });
 
   const Badge = ({ label, orange }) => (
@@ -529,19 +556,33 @@ export default function Dashboard() {
 
       </div>
 
-      {/* Today's Sales modal / printable receipt */}
+      {/* Today's Sales modal: list of today's sales, drill into one for its own receipt */}
       {salesModal.open && (
         <div style={{ position: "fixed", inset: 0, zIndex: 200, background: "rgba(15,31,69,0.45)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
-          <div className="no-print" style={{ position: "fixed", inset: 0 }} onClick={() => setSalesModal({ open: false, loading: false, rows: [], error: "", debug: null })} />
-          <div style={{ background: "#fff", borderRadius: 20, width: "100%", maxWidth: 420, maxHeight: "90vh", overflowY: "auto", boxShadow: "0 24px 64px rgba(15,31,69,0.18)", position: "relative" }}>
+          <div className="no-print" style={{ position: "fixed", inset: 0 }} onClick={closeSalesModal} />
+          <div style={{ background: "#fff", borderRadius: 20, width: "100%", maxWidth: 440, maxHeight: "90vh", overflowY: "auto", boxShadow: "0 24px 64px rgba(15,31,69,0.18)", position: "relative" }}>
 
-            <button
-              className="no-print"
-              onClick={() => setSalesModal({ open: false, loading: false, rows: [], error: "", debug: null })}
-              style={{ position: "absolute", top: 16, right: 16, background: "none", border: "none", cursor: "pointer", color: "#A0B3D6", zIndex: 2 }}
-            >
-              <X size={18} />
-            </button>
+            {/* Header */}
+            <div className="no-print" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 18px", borderBottom: "1px solid #F0F4FF", position: "sticky", top: 0, background: "#fff", borderRadius: "20px 20px 0 0", zIndex: 2 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                {salesView === "detail" && (
+                  <button onClick={backToList} style={{ background: "#F0F4FF", border: "none", borderRadius: 8, width: 30, height: 30, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#1E40AF", flexShrink: 0 }}>
+                    <ArrowLeft size={15} />
+                  </button>
+                )}
+                <div>
+                  <p style={{ fontSize: 14, fontWeight: 700, color: "#0F1F45", margin: 0 }}>
+                    {salesView === "detail" ? "Sale Details" : "Today's Sales"}
+                  </p>
+                  <p style={{ fontSize: 11, color: "#A0B3D6", margin: "1px 0 0" }}>
+                    {new Date(todayISO()).toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" })}
+                  </p>
+                </div>
+              </div>
+              <button onClick={closeSalesModal} style={{ background: "#F0F4FF", border: "none", borderRadius: 8, width: 30, height: 30, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#6B87C4", flexShrink: 0 }}>
+                <X size={15} />
+              </button>
+            </div>
 
             {salesModal.loading && <div style={{ textAlign: "center", padding: 60, color: "#A0B3D6", fontSize: 13 }}>Loading…</div>}
             {salesModal.error && <div style={{ margin: 20, background: "#FEF2F2", borderRadius: 10, padding: "12px 16px", color: "#B91C1C", fontSize: 13 }}>{salesModal.error}</div>}
@@ -552,7 +593,7 @@ export default function Dashboard() {
                   <ShoppingBag size={24} color="#1E40AF" />
                 </div>
                 <p style={{ textAlign: "center", fontSize: 13, fontWeight: 600, color: "#0F1F45", margin: "0 0 4px" }}>No sales recorded for today</p>
-                <p style={{ textAlign: "center", fontSize: 12, color: "#A0B3D6", margin: "0 0 16px" }}>Once you make a sale, it'll show up here ready to print or save as a PDF.</p>
+                <p style={{ textAlign: "center", fontSize: 12, color: "#A0B3D6", margin: "0 0 16px" }}>Once you make a sale, it'll show up here — tap into any sale to see or print its receipt.</p>
 
                 {salesModal.debug && (
                   <div style={{ borderTop: "1px solid #F0F4FF", paddingTop: 10 }}>
@@ -578,100 +619,101 @@ export default function Dashboard() {
               </div>
             )}
 
-            {!salesModal.loading && !salesModal.error && salesModal.rows.length > 0 && (
+            {/* ── List view: every sale today, tap one to open it ────────────── */}
+            {!salesModal.loading && !salesModal.error && salesModal.rows.length > 0 && salesView === "list" && (
               <>
-                {/* Printable / exportable receipt card */}
-                <div
-                  ref={receiptRef}
-                  className="print-area"
-                  style={{ padding: "36px 28px 26px", background: "#fff", fontFamily: "'SF Mono', 'JetBrains Mono', 'Courier New', monospace" }}
-                >
-                  <div style={{ width: 56, height: 56, borderRadius: 16, background: "linear-gradient(150deg, #2B5CE6, #1E40AF)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 14px", color: "#fff", fontSize: 22, fontWeight: 700, fontFamily: "'Inter', sans-serif", boxShadow: "0 6px 16px rgba(30,64,175,0.28)" }}>
-                    {SHOP_NAME.charAt(0).toUpperCase()}
-                  </div>
-                  <p style={{ textAlign: "center", fontSize: 17, fontWeight: 700, color: "#0F1F45", margin: 0, fontFamily: "'Inter', sans-serif", letterSpacing: "-0.2px" }}>{SHOP_NAME}</p>
-                  {SHOP_PHONE && <p style={{ textAlign: "center", fontSize: 11, color: "#A0B3D6", margin: "3px 0 0", fontFamily: "'Inter', sans-serif" }}>{SHOP_PHONE}</p>}
-                  <p style={{ textAlign: "center", fontSize: 9, fontWeight: 700, color: "#B9C6E8", margin: "10px 0 0", letterSpacing: "3px", fontFamily: "'Inter', sans-serif" }}>SALES RECEIPT</p>
-
-                  <div style={{ borderTop: "1.5px dashed #E2EBFF", margin: "18px 0" }} />
-
-                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11.5, marginBottom: 7, color: "#4B5A7A" }}>
-                    <span style={{ color: "#A0B3D6" }}>Date</span>
-                    <span style={{ fontWeight: 700, color: "#0F1F45" }}>
-                      {new Date(todayISO()).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}
-                    </span>
-                  </div>
-                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11.5, marginBottom: 7, color: "#4B5A7A" }}>
-                    <span style={{ color: "#A0B3D6" }}>Report</span>
-                    <span style={{ fontWeight: 700, color: "#0F1F45" }}>Daily Sales</span>
-                  </div>
-                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11.5, color: "#4B5A7A" }}>
-                    <span style={{ color: "#A0B3D6" }}>Sales</span>
-                    <span style={{ fontWeight: 700, color: "#0F1F45" }}>{salesModal.rows.length}</span>
-                  </div>
-
-                  <div style={{ borderTop: "1.5px dashed #E2EBFF", margin: "18px 0 12px" }} />
-
-                  <div style={{ display: "flex", fontSize: 9.5, fontWeight: 700, color: "#B9C6E8", textTransform: "uppercase", letterSpacing: "1px", marginBottom: 10, fontFamily: "'Inter', sans-serif" }}>
-                    <span style={{ flex: 1 }}>Item</span>
-                    <span>Amount</span>
-                  </div>
-
-                  {(printTarget ? salesModal.rows.filter(s => s.id === printTarget) : salesModal.rows).map((s, idx) => (
-                    <div key={s.id || idx} style={{ marginBottom: 11 }}>
-                      <div style={{ display: "flex", alignItems: "baseline" }}>
-                        <span style={{ fontSize: 13, color: "#0F1F45", fontWeight: 600, whiteSpace: "nowrap" }}>{s.product_name}</span>
-                        <span style={{ flex: 1, borderBottom: "1px dotted #D6E0FF", margin: "0 6px", transform: "translateY(-3px)" }} />
-                        <span style={{ fontSize: 13, color: "#0F1F45", fontWeight: 700, whiteSpace: "nowrap" }}>{formatMoney(s.total)}</span>
-                      </div>
-                      {s.payment_type && (
-                        <span style={{ fontSize: 9.5, color: "#A0B3D6", textTransform: "capitalize", fontFamily: "'Inter', sans-serif" }}>{s.payment_type}</span>
-                      )}
-                    </div>
-                  ))}
-
-                  <div style={{ borderTop: "1.5px dashed #E2EBFF", margin: "8px 0 14px" }} />
-
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "#F5F8FF", borderRadius: 12, padding: "12px 14px" }}>
-                    <span style={{ fontSize: 13, fontWeight: 700, color: "#0F1F45", fontFamily: "'Inter', sans-serif" }}>Total</span>
-                    <span style={{ fontSize: 21, fontWeight: 800, color: "#1E40AF", letterSpacing: "-0.5px" }}>
-                      {formatMoney(printTarget ? (salesModal.rows.find(s => s.id === printTarget)?.total || 0) : todaySalesTotal)}
-                    </span>
-                  </div>
-
-                  <p className="print-only" style={{ display: "none", textAlign: "center", fontSize: 11, color: "#A0B3D6", marginTop: 24, fontFamily: "'Inter', sans-serif" }}>Thank you for your business</p>
-
-                  {/* barcode flourish */}
-                  <div style={{ height: 26, marginTop: 20, backgroundImage: "repeating-linear-gradient(90deg, #0F1F45 0px, #0F1F45 1.5px, transparent 1.5px, transparent 4px)", opacity: 0.75 }} />
-                  <p style={{ textAlign: "center", fontSize: 9, color: "#C7D2EE", margin: "6px 0 0", letterSpacing: "2px" }}>{todayISO().replace(/-/g, "")}-{salesModal.rows.length}</p>
+                <div className="no-print" style={{ display: "flex", gap: 8, padding: "14px 18px 4px" }}>
+                  <button onClick={handlePrint} style={outlineBtn}><Printer size={13} /> Print All</button>
+                  <button onClick={downloadPDF} disabled={pdfBusy} style={filledBtn(pdfBusy)}><Download size={13} /> {pdfBusy ? "Preparing…" : "Download All"}</button>
                 </div>
 
-                {/* Torn-edge divider — screen/PDF only, marks where the receipt "tears off" from the app UI */}
-                <div className="no-print" style={{
-                  height: 14,
-                  backgroundImage: "linear-gradient(-45deg, #fff 8px, transparent 0), linear-gradient(45deg, #fff 8px, transparent 0)",
-                  backgroundSize: "16px 16px",
-                  backgroundPosition: "left top",
-                  backgroundRepeat: "repeat-x",
-                  backgroundColor: "rgba(15,31,69,0.45)",
-                  marginTop: -1,
-                }} />
+                <div ref={printRef} className="print-area">
+                  <p className="print-only" style={{ display: "none", padding: "0 20px", fontSize: 13, fontWeight: 700, color: "#0F1F45", marginBottom: 4 }}>
+                    {SHOP_NAME} — Daily Sales, {new Date(todayISO()).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}
+                  </p>
 
-                {/* Actions */}
-                <div className="no-print" style={{ display: "flex", gap: 10, padding: "14px 20px 20px" }}>
-                  <button
-                    onClick={printAll}
-                    style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "11px 14px", borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", background: "#fff", color: "#1E40AF", border: "1.5px solid #D6E0FF" }}
-                  >
-                    <Printer size={14} /> Print
-                  </button>
-                  <button
-                    onClick={downloadPDF}
-                    disabled={pdfBusy}
-                    style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "11px 14px", borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: pdfBusy ? "default" : "pointer", fontFamily: "inherit", background: "#1E40AF", color: "#fff", border: "none", opacity: pdfBusy ? 0.7 : 1 }}
-                  >
-                    <Download size={14} /> {pdfBusy ? "Preparing…" : "Download PDF"}
-                  </button>
+                  <div style={{ padding: "8px 6px 4px" }}>
+                    {salesModal.rows.map((s, idx) => (
+                      <button
+                        key={s.id || idx}
+                        onClick={() => openSale(s)}
+                        style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, padding: "12px 14px", background: "none", border: "none", borderRadius: 12, cursor: "pointer", textAlign: "left", fontFamily: "inherit" }}
+                        onMouseEnter={e => e.currentTarget.style.background = "#F7F9FF"}
+                        onMouseLeave={e => e.currentTarget.style.background = ""}
+                      >
+                        <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
+                          <div style={{ width: 36, height: 36, borderRadius: 10, background: "#EEF2FF", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                            <ShoppingBag size={15} color="#1E40AF" />
+                          </div>
+                          <div style={{ minWidth: 0 }}>
+                            <div style={{ fontSize: 13, fontWeight: 600, color: "#0F1F45", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{s.product_name}</div>
+                            <span style={{ fontSize: 9.5, fontWeight: 700, padding: "2px 8px", borderRadius: 20, display: "inline-block", marginTop: 4, textTransform: "capitalize", ...payChipStyle(s.payment_type) }}>{s.payment_type || "—"}</span>
+                          </div>
+                        </div>
+                        <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+                          <span style={{ fontSize: 13.5, fontWeight: 700, color: "#1E40AF" }}>{formatMoney(s.total)}</span>
+                          <ChevronRight className="no-print" size={16} color="#C7D2EE" />
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", margin: "8px 18px 20px", background: "#EEF2FF", borderRadius: 12, padding: "13px 16px" }}>
+                    <span style={{ fontSize: 12.5, fontWeight: 700, color: "#1E40AF" }}>Total ({salesModal.rows.length} sales)</span>
+                    <span style={{ fontSize: 17, fontWeight: 700, color: "#1E40AF" }}>{formatMoney(todaySalesTotal)}</span>
+                  </div>
+                </div>
+              </>
+            )}
+
+            {/* ── Detail view: a single sale, ready to print or save on its own ── */}
+            {!salesModal.loading && !salesModal.error && salesView === "detail" && selectedSale && (
+              <>
+                <div ref={printRef} className="print-area" style={{ padding: "28px 22px 20px" }}>
+                  <p className="print-only" style={{ display: "none", fontSize: 13, fontWeight: 700, color: "#0F1F45", marginBottom: 14 }}>{SHOP_NAME}</p>
+
+                  <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 20 }}>
+                    <div style={{ width: 52, height: 52, borderRadius: 14, background: "#EEF2FF", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                      <ShoppingBag size={22} color="#1E40AF" />
+                    </div>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontSize: 16, fontWeight: 700, color: "#0F1F45" }}>{selectedSale.product_name}</div>
+                      <span style={{ fontSize: 10.5, fontWeight: 700, padding: "3px 9px", borderRadius: 20, display: "inline-block", marginTop: 5, textTransform: "capitalize", ...payChipStyle(selectedSale.payment_type) }}>
+                        {selectedSale.payment_type === "cash" ? "Cash sale" : selectedSale.payment_type === "credit" ? "Credit sale" : (selectedSale.payment_type || "—")}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div style={{ background: "#F7F9FF", border: "1px solid #EEF2FF", borderRadius: 14, padding: "14px 16px", marginBottom: 16 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12.5, marginBottom: 9 }}>
+                      <span style={{ color: "#A0B3D6", fontWeight: 600 }}>Date</span>
+                      <span style={{ color: "#0F1F45", fontWeight: 700 }}>
+                        {new Date(selectedSale.sale_date || todayISO()).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}
+                      </span>
+                    </div>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12.5, marginBottom: 9 }}>
+                      <span style={{ color: "#A0B3D6", fontWeight: 600 }}>Time</span>
+                      <span style={{ color: "#0F1F45", fontWeight: 700 }}>
+                        {selectedSale.sale_date ? new Date(selectedSale.sale_date).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" }) : "—"}
+                      </span>
+                    </div>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12.5 }}>
+                      <span style={{ color: "#A0B3D6", fontWeight: 600 }}>Receipt #</span>
+                      <span style={{ color: "#0F1F45", fontWeight: 700 }}>{String(selectedSale.id || "—").slice(0, 8)}</span>
+                    </div>
+                  </div>
+
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "#1E40AF", borderRadius: 14, padding: "16px 18px" }}>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: "rgba(255,255,255,0.75)" }}>Amount Paid</span>
+                    <span style={{ fontSize: 22, fontWeight: 700, color: "#fff", letterSpacing: "-0.5px" }}>{formatMoney(selectedSale.total)}</span>
+                  </div>
+
+                  <p className="print-only" style={{ display: "none", textAlign: "center", fontSize: 11, color: "#A0B3D6", marginTop: 24 }}>Thank you for your business</p>
+                </div>
+
+                <div className="no-print" style={{ display: "flex", gap: 8, padding: "6px 18px 20px" }}>
+                  <button onClick={handlePrint} style={outlineBtn}><Printer size={13} /> Print</button>
+                  <button onClick={downloadPDF} disabled={pdfBusy} style={filledBtn(pdfBusy)}><Download size={13} /> {pdfBusy ? "Preparing…" : "Download PDF"}</button>
                 </div>
               </>
             )}
