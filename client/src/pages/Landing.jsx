@@ -16,6 +16,7 @@ import {
   Twitter,
   Smartphone,
   Rocket,
+  Zap,
 } from "lucide-react";
 
 const CHART_DATA = [
@@ -224,11 +225,12 @@ const ANIM_CSS = `
 @keyframes float-d{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
 @keyframes pulse-ring{0%{transform:scale(1);opacity:.5}100%{transform:scale(2);opacity:0}}
 @keyframes wa-bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
-.anim-up{opacity:0;transform:translateY(36px);transition:all .8s cubic-bezier(.22,1,.36,1)}
+@keyframes shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}
+.anim-up{opacity:0;transform:translateY(28px);transition:all .7s cubic-bezier(.22,1,.36,1)}
 .anim-up.visible{opacity:1;transform:translateY(0)}
-.anim-up-d1{transition-delay:.1s}.anim-up-d2{transition-delay:.2s}
-.anim-up-d3{transition-delay:.3s}.anim-up-d4{transition-delay:.4s}.anim-up-d5{transition-delay:.5s}
-.anim-scale{opacity:0;transform:scale(.9);transition:all .8s cubic-bezier(.22,1,.36,1)}
+.anim-up-d1{transition-delay:.08s}.anim-up-d2{transition-delay:.16s}
+.anim-up-d3{transition-delay:.24s}.anim-up-d4{transition-delay:.32s}.anim-up-d5{transition-delay:.4s}
+.anim-scale{opacity:0;transform:scale(.95);transition:all .7s cubic-bezier(.22,1,.36,1)}
 .anim-scale.visible{opacity:1;transform:scale(1)}
 .float{animation:float 6s ease-in-out infinite}
 .float-d{animation:float-d 6s ease-in-out 2s infinite}
@@ -236,19 +238,23 @@ const ANIM_CSS = `
 .stat-bar::after{content:'';position:absolute;bottom:0;left:0;height:3px;width:0;background:linear-gradient(90deg,#F2C14E,#D4A83A);border-radius:0 0 12px 12px;transition:width 1.4s cubic-bezier(.22,1,.36,1)}
 .stat-bar.visible::after{width:100%}
 .card-shine{position:relative;overflow:hidden}
-.card-shine::before{content:'';position:absolute;top:0;left:-75%;width:50%;height:100%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.35),transparent);transform:skewX(-15deg);transition:left .6s ease}
+.card-shine::before{content:'';position:absolute;top:0;left:-75%;width:50%;height:100%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.3),transparent);transform:skewX(-15deg);transition:left .6s ease}
 .card-shine:hover::before{left:125%}
 .feat-icon{transition:all .4s cubic-bezier(.22,1,.36,1)}
-.tool-card:hover .feat-icon{transform:scale(1.15) rotate(-5deg)}
-.grid-bg{background-image:linear-gradient(to right,rgba(21,32,59,.035)1px,transparent 1px),linear-gradient(to bottom,rgba(21,32,59,.035)1px,transparent 1px);background-size:48px 48px}
-.glow-gold{background:radial-gradient(ellipse 600px 400px at 70% 30%,rgba(242,193,78,.1),transparent 70%)}
-.glow-ink{background:radial-gradient(ellipse 500px 500px at 30% 60%,rgba(21,32,59,.05),transparent 70%)}
+.tool-card:hover .feat-icon{transform:scale(1.12) rotate(-4deg)}
+.grid-bg{background-image:linear-gradient(to right,rgba(21,32,59,.03)1px,transparent 1px),linear-gradient(to bottom,rgba(21,32,59,.03)1px,transparent 1px);background-size:48px 48px}
+.glow-gold{background:radial-gradient(ellipse 500px 350px at 70% 30%,rgba(242,193,78,.08),transparent 70%)}
+.glow-ink{background:radial-gradient(ellipse 400px 400px at 30% 60%,rgba(21,32,59,.04),transparent 70%)}
 .curve-connector{position:relative}
-.curve-connector::after{content:'';position:absolute;bottom:-1px;left:0;right:0;height:40px;background:#FBF8F2;clip-path:ellipse(55% 100% at 50% 100%)}
-.line-tip{position:absolute;background:#15203B;color:#FBF8F2;font-size:11px;font-weight:700;padding:6px 14px;border-radius:8px;white-space:nowrap;pointer-events:none;z-index:20;opacity:0;transition:opacity .2s ease,transform .2s ease;transform:translateX(-50%) translateY(-8px)}
+.curve-connector::after{content:'';position:absolute;bottom:-1px;left:0;right:0;height:32px;background:#FBF8F2;clip-path:ellipse(55% 100% at 50% 100%)}
+.line-tip{position:absolute;background:#15203B;color:#FBF8F2;font-size:11px;font-weight:700;padding:5px 12px;border-radius:8px;white-space:nowrap;pointer-events:none;z-index:20;opacity:0;transition:opacity .2s ease,transform .2s ease;transform:translateX(-50%) translateY(-6px)}
 .line-tip.show{opacity:1;transform:translateX(-50%) translateY(0)}
 .line-tip::after{content:'';position:absolute;top:100%;left:50%;transform:translateX(-50%);border-left:5px solid transparent;border-right:5px solid transparent;border-top:5px solid #15203B}
 @media(max-width:768px){.cursor-glow{display:none!important}}
+.hero-highlight{position:relative;display:inline}
+.hero-highlight::after{content:'';position:absolute;bottom:2px;left:0;right:0;height:8px;background:linear-gradient(90deg,transparent,rgba(242,193,78,.35),transparent);border-radius:4px;opacity:0;animation:shimmer 3s ease-in-out infinite}
+@keyframes shimmer{0%{opacity:0}50%{opacity:1}100%{opacity:0}}
+.chart-glow{position:absolute;inset:-1px;border-radius:inherit;background:linear-gradient(135deg,rgba(242,193,78,.15),transparent 40%,transparent 60%,rgba(21,32,59,.08));pointer-events:none;z-index:1}
 `;
 
 function catmullRom(pts, tension) {
@@ -296,7 +302,7 @@ export default function SahelLanding() {
   }, []);
 
   useEffect(() => {
-    const obs = new IntersectionObserver((ents) => { ents.forEach((e) => { if (e.isIntersecting) e.target.classList.add("visible"); }); }, { threshold: 0.1 });
+    const obs = new IntersectionObserver((ents) => { ents.forEach((e) => { if (e.isIntersecting) e.target.classList.add("visible"); }); }, { threshold: 0.08 });
     document.querySelectorAll(".anim-up,.anim-scale,.stat-bar").forEach((el) => obs.observe(el));
     return () => obs.disconnect();
   }, [lang]);
@@ -313,7 +319,7 @@ export default function SahelLanding() {
     const n = CHART_DATA.length;
 
     const defs = document.createElementNS(NS, "defs");
-    defs.innerHTML = `<linearGradient id="aG" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#15203B" stop-opacity=".18"/><stop offset="100%" stop-color="#15203B" stop-opacity=".01"/></linearGradient><linearGradient id="lG" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#1E2D50"/><stop offset="100%" stop-color="#15203B"/></linearGradient><filter id="gl"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>`;
+    defs.innerHTML = `<linearGradient id="aG" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#15203B" stop-opacity=".2"/><stop offset="100%" stop-color="#15203B" stop-opacity=".01"/></linearGradient><linearGradient id="lG" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#1E2D50"/><stop offset="50%" stop-color="#15203B"/><stop offset="100%" stop-color="#D4A83A"/></linearGradient><filter id="gl"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>`;
     svg.appendChild(defs);
 
     for (let i = 0; i <= 3; i++) {
@@ -423,120 +429,165 @@ export default function SahelLanding() {
       <div className="fixed top-0 left-0 z-[9999] h-[3px]" style={{ width: scrollPct + "%", background: "linear-gradient(90deg,#15203B,#F2C14E)", transition: "width .05s linear" }} />
       <div className="cursor-glow fixed pointer-events-none z-[1]" style={{ width: 300, height: 300, borderRadius: "50%", background: "radial-gradient(circle,rgba(242,193,78,0.06)0%,transparent 70%)", transform: "translate(-50%,-50%)", left: cursor.x, top: cursor.y, transition: "left .05s, top .05s" }} />
 
-      <div className="fixed bottom-6 right-6 z-[9999] flex items-center gap-2.5 text-[#FBF8F2] text-sm font-semibold rounded-[14px] px-6 py-3.5" style={{ background: "#15203B", boxShadow: "0 20px 40px rgba(21,32,59,.3)", transform: toastShow ? "translateY(0)" : "translateY(120px)", opacity: toastShow ? 1 : 0, transition: "all .4s cubic-bezier(.22,1,.36,1)" }}>
-        <Info size={16} className="text-[#F2C14E] shrink-0" /><span>{toastMsg}</span>
+      <div className="fixed bottom-5 right-5 z-[9999] flex items-center gap-2.5 text-[#FBF8F2] text-sm font-semibold rounded-xl px-5 py-3" style={{ background: "#15203B", boxShadow: "0 16px 32px rgba(21,32,59,.3)", transform: toastShow ? "translateY(0)" : "translateY(120px)", opacity: toastShow ? 1 : 0, transition: "all .4s cubic-bezier(.22,1,.36,1)" }}>
+        <Info size={15} className="text-[#F2C14E] shrink-0" /><span>{toastMsg}</span>
       </div>
 
-      <div className="fixed bottom-6 left-6 z-[9998]" style={{ animation: "wa-bounce 2s ease-in-out infinite" }}>
-        <a href="https://wa.me/252624407283" target="_blank" rel="noopener" className="flex items-center justify-center w-[60px] h-[60px] rounded-full hover:scale-110 transition-transform" style={{ background: "#25D366", boxShadow: "0 6px 24px rgba(37,211,102,.4)" }}>
-          <WAIcon size={30} fill="white" />
+      <div className="fixed bottom-5 left-5 z-[9998]" style={{ animation: "wa-bounce 2s ease-in-out infinite" }}>
+        <a href="https://wa.me/252624407283" target="_blank" rel="noopener" className="flex items-center justify-center w-14 h-14 rounded-full hover:scale-110 transition-transform" style={{ background: "#25D366", boxShadow: "0 6px 20px rgba(37,211,102,.4)" }}>
+          <WAIcon size={28} fill="white" />
         </a>
       </div>
 
       {/* NAVBAR */}
-      <nav className="fixed top-0 left-0 right-0 z-50 transition-all duration-300" style={{ background: "rgba(251,248,242,.8)", backdropFilter: "blur(14px)" }}>
-        <div className="max-w-7xl mx-auto px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <Link to="/" className="flex items-center gap-3 group">
+      <nav className="fixed top-0 left-0 right-0 z-50 transition-all duration-300" style={{ background: "rgba(251,248,242,.85)", backdropFilter: "blur(12px)" }}>
+        <div className="max-w-7xl mx-auto px-5 lg:px-8">
+          <div className="flex items-center justify-between h-14">
+            <Link to="/" className="flex items-center gap-2.5 group">
               <div className="relative">
-                <img src={LOGO_SRC} alt="Sahel" className="w-9 h-9 rounded-[10px] transition-transform group-hover:scale-105 group-hover:-rotate-1" />
+                <img src={LOGO_SRC} alt="Sahel" className="w-8 h-8 rounded-lg transition-transform group-hover:scale-105 group-hover:-rotate-1" />
                 <div className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-[#F2C14E] rounded-full" style={{ animation: "pulse-ring 2s ease-out infinite" }} />
               </div>
-              <span className="font-['Lora'] text-xl font-bold tracking-tight">Sahel</span>
+              <span className="font-['Lora'] text-lg font-bold tracking-tight">Sahel</span>
             </Link>
-            <div className="hidden md:flex items-center gap-1">
-              <div className="flex bg-[#F1ECDE] rounded-full p-1 border border-[#E2D9C2] mr-2">
+            <div className="hidden md:flex items-center gap-0.5">
+              <div className="flex bg-[#F1ECDE] rounded-full p-0.5 border border-[#E2D9C2] mr-2">
                 {["en", "so", "ar"].map((l) => (
-                  <button key={l} onClick={() => { setLang(l); setSelectedDay(-1); setOpenFaq(-1); }} className={`px-3 py-1 rounded-full text-[11px] font-bold transition-all ${lang === l ? "bg-[#15203B] text-[#FBF8F2]" : "text-[#B0A98F]"}`} style={l === "ar" ? { fontFamily: "'Noto Sans Arabic'" } : {}}>
+                  <button key={l} onClick={() => { setLang(l); setSelectedDay(-1); setOpenFaq(-1); }} className={`px-2.5 py-1 rounded-full text-[10px] font-bold transition-all ${lang === l ? "bg-[#15203B] text-[#FBF8F2]" : "text-[#B0A98F]"}`} style={l === "ar" ? { fontFamily: "'Noto Sans Arabic'" } : {}}>
                     {l === "en" ? "EN" : l === "so" ? "SO" : "ع"}
                   </button>
                 ))}
               </div>
               {[["#features", "nav.features"], ["#how", "nav.how"], ["#testimonials", "nav.stories"], ["#faq", "nav.faq"]].map(([href, key]) => (
-                <a key={key} href={href} className="px-3 py-2 text-[13px] font-medium text-[#4B5170] hover:text-[#15203B] transition-colors">{tr(key)}</a>
+                <a key={key} href={href} className="px-2.5 py-2 text-[12px] font-medium text-[#4B5170] hover:text-[#15203B] transition-colors">{tr(key)}</a>
               ))}
-              <div className="w-px h-5 bg-[#D8CFB8] mx-1" />
-              <a href="https://wa.me/252624407283" target="_blank" className="flex items-center gap-1.5 px-2.5 py-2 text-[13px] font-semibold text-[#25D366] hover:text-green-700 transition-colors">
-                <WAIcon size={14} /><span>{tr("nav.whatsapp")}</span>
+              <div className="w-px h-4 bg-[#D8CFB8] mx-1" />
+              <a href="https://wa.me/252624407283" target="_blank" className="flex items-center gap-1.5 px-2 py-2 text-[12px] font-semibold text-[#25D366] hover:text-green-700 transition-colors">
+                <WAIcon size={13} /><span className="hidden lg:inline">{tr("nav.whatsapp")}</span>
               </a>
-              <Link to="/login" className="px-3 py-2 text-[13px] font-medium text-[#4B5170] hover:text-[#15203B] transition-colors">{tr("nav.login")}</Link>
-              <Link to="/signup" className="bg-[#15203B] text-[#FBF8F2] px-4 py-2 rounded-xl text-[13px] font-bold hover:bg-[#0D1529] hover:shadow-lg hover:shadow-[#15203B]/20 transition-all">{tr("nav.register")}</Link>
+              <Link to="/login" className="px-2.5 py-2 text-[12px] font-medium text-[#4B5170] hover:text-[#15203B] transition-colors">{tr("nav.login")}</Link>
+              <Link to="/signup" className="bg-[#15203B] text-[#FBF8F2] px-4 py-1.5 rounded-lg text-[12px] font-bold hover:bg-[#0D1529] hover:shadow-lg hover:shadow-[#15203B]/20 transition-all">{tr("nav.register")}</Link>
             </div>
-            <button onClick={() => setMobileOpen(!mobileOpen)} className="md:hidden w-9 h-9 flex items-center justify-center rounded-xl hover:bg-[#F1ECDE] transition-colors"><Menu size={18} /></button>
+            <button onClick={() => setMobileOpen(!mobileOpen)} className="md:hidden w-8 h-8 flex items-center justify-center rounded-lg hover:bg-[#F1ECDE] transition-colors"><Menu size={16} /></button>
           </div>
-          <div className="md:hidden overflow-hidden transition-all duration-300" style={{ maxHeight: mobileOpen ? 360 : 0, opacity: mobileOpen ? 1 : 0 }}>
+          <div className="md:hidden overflow-hidden transition-all duration-300" style={{ maxHeight: mobileOpen ? 320 : 0, opacity: mobileOpen ? 1 : 0 }}>
             <div className="py-3 border-t border-[#EAE3D3] space-y-0.5">
               {[["#features", "nav.features"], ["#how", "nav.how"], ["#testimonials", "nav.stories"], ["#faq", "nav.faq"]].map(([href, key]) => (
-                <a key={key} href={href} onClick={() => setMobileOpen(false)} className="block px-4 py-2.5 rounded-xl text-sm font-medium text-[#4B5170] hover:bg-[#F1ECDE] transition-colors">{tr(key)}</a>
+                <a key={key} href={href} onClick={() => setMobileOpen(false)} className="block px-4 py-2.5 rounded-lg text-sm font-medium text-[#4B5170] hover:bg-[#F1ECDE] transition-colors">{tr(key)}</a>
               ))}
-              <a href="https://wa.me/252624407283" target="_blank" className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-[#25D366]"><WAIcon size={16} /><span>{tr("nav.whatsapp")}</span></a>
+              <a href="https://wa.me/252624407283" target="_blank" className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-[#25D366]"><WAIcon size={15} /><span>{tr("nav.whatsapp")}</span></a>
               <div className="flex gap-2 px-4 pt-2">
-                <Link to="/login" onClick={() => setMobileOpen(false)} className="flex-1 text-center py-2.5 rounded-xl text-sm font-bold border-2 border-[#D8CFB8] text-[#15203B]">{tr("nav.login")}</Link>
-                <Link to="/signup" onClick={() => setMobileOpen(false)} className="flex-1 text-center py-2.5 rounded-xl text-sm font-bold bg-[#15203B] text-[#FBF8F2]">{tr("nav.register")}</Link>
+                <Link to="/login" onClick={() => setMobileOpen(false)} className="flex-1 text-center py-2.5 rounded-lg text-sm font-bold border border-[#D8CFB8] text-[#15203B]">{tr("nav.login")}</Link>
+                <Link to="/signup" onClick={() => setMobileOpen(false)} className="flex-1 text-center py-2.5 rounded-lg text-sm font-bold bg-[#15203B] text-[#FBF8F2]">{tr("nav.register")}</Link>
               </div>
             </div>
           </div>
         </div>
       </nav>
 
-      {/* HERO */}
-      <section className="relative pt-16 grid-bg glow-gold curve-connector">
-        <div className="max-w-7xl mx-auto px-6 lg:px-8 py-12 md:py-16">
-          <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
+      {/* HERO — redesigned with better visual hierarchy */}
+      <section className="relative pt-14 grid-bg glow-gold curve-connector">
+        <div className="max-w-7xl mx-auto px-5 lg:px-8 py-10 md:py-14">
+          <div className="grid lg:grid-cols-[1.1fr_0.9fr] gap-6 lg:gap-10 items-center">
+
+            {/* Left column — cleaner type hierarchy */}
             <div className="relative z-10">
-              <div className="anim-up inline-flex items-center gap-2 bg-[#FBF1DA] border border-[#F2C14E]/30 rounded-full px-3.5 py-1 mb-4">
+              <div className="anim-up inline-flex items-center gap-2 bg-[#FBF1DA] border border-[#F2C14E]/25 rounded-full px-3 py-1 mb-5">
                 <span className="w-1.5 h-1.5 bg-[#F2C14E] rounded-full animate-pulse" />
-                <span className="text-[11px] font-extrabold tracking-widest uppercase text-[#D4A83A]">{tr("hero.eyebrow")}</span>
+                <span className="text-[10px] font-extrabold tracking-[0.12em] uppercase text-[#D4A83A]">{tr("hero.eyebrow")}</span>
               </div>
-              <h1 className="anim-up font-['Lora'] text-[2rem] md:text-[2.75rem] lg:text-[3.25rem] font-bold leading-[1.1] tracking-tight mb-4">{tr("hero.headline")}</h1>
-              <p className="anim-up anim-up-d3 text-base md:text-lg text-[#4B5170] leading-relaxed max-w-xl mb-6">{tr("hero.sub")}</p>
-              <div className="anim-up anim-up-d4 flex flex-wrap gap-3">
-                <a href="https://wa.me/252624407283?text=I%20want%20to%20use%20Sahel" target="_blank" className="bg-[#25D366] text-white px-6 py-3 rounded-2xl text-sm font-bold hover:bg-green-600 hover:-translate-y-1 hover:shadow-2xl hover:shadow-[#25D366]/30 transition-all duration-300">{tr("hero.ctaPrimary")}</a>
-                <a href="#how" className="flex items-center gap-2 px-5 py-3 rounded-2xl text-sm font-bold border-2 border-[#D8CFB8] hover:border-[#15203B]/30 hover:bg-white/60 transition-all"><span>{tr("hero.ctaSecondary")}</span><ArrowDown size={18} className="text-[#D4A83A]" /></a>
+
+              <h1 className="anim-up font-['Lora'] text-[1.85rem] md:text-[2.5rem] lg:text-[2.85rem] font-bold leading-[1.12] tracking-tight mb-4">
+                <span className="hero-highlight">{tr("hero.headline")}</span>
+              </h1>
+
+              <p className="anim-up anim-up-d3 text-[15px] md:text-base text-[#4B5170] leading-[1.7] max-w-[460px] mb-6">
+                {tr("hero.sub")}
+              </p>
+
+              {/* CTA buttons — more refined */}
+              <div className="anim-up anim-up-d4 flex flex-wrap gap-2.5 mb-7">
+                <a href="https://wa.me/252624407283?text=I%20want%20to%20use%20Sahel" target="_blank"
+                   className="group relative inline-flex items-center gap-2 bg-[#25D366] text-white pl-5 pr-6 py-3 rounded-xl text-[13px] font-bold hover:bg-green-600 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-[#25D366]/25 transition-all duration-300">
+                  <WAIcon size={16} fill="white" />
+                  <span>{tr("hero.ctaPrimary")}</span>
+                  <Zap size={14} className="opacity-60 group-hover:opacity-100 transition-opacity" />
+                </a>
+                <a href="#how"
+                   className="inline-flex items-center gap-2 px-5 py-3 rounded-xl text-[13px] font-bold border border-[#D8CFB8] hover:border-[#15203B]/20 hover:bg-white/80 transition-all">
+                  <span>{tr("hero.ctaSecondary")}</span>
+                  <ArrowDown size={15} className="text-[#D4A83A]" />
+                </a>
               </div>
-              <div className="anim-up anim-up-d5 flex items-center gap-5 mt-6 pt-5 border-t border-[#EAE3D3]">
-                <div className="flex -space-x-2">
-                  {[1, 2, 3, 4].map((s) => <img key={s} src={`https://picsum.photos/seed/shop${s}/40/40.jpg`} className="w-8 h-8 rounded-full border-2 border-[#FBF8F2] object-cover" alt="" />)}
-                  <div className="w-8 h-8 rounded-full border-2 border-[#FBF8F2] bg-[#FBF1DA] flex items-center justify-center text-[10px] font-bold text-[#D4A83A]">+2k</div>
+
+              {/* Social proof — tighter */}
+              <div className="anim-up anim-up-d5 flex items-center gap-4 pt-4 border-t border-[#EAE3D3]">
+                <div className="flex -space-x-1.5">
+                  {[1, 2, 3, 4].map((s) => (
+                    <img key={s} src={`https://picsum.photos/seed/shop${s}/40/40.jpg`} className="w-7 h-7 rounded-full border-2 border-[#FBF8F2] object-cover" alt="" />
+                  ))}
+                  <div className="w-7 h-7 rounded-full border-2 border-[#FBF8F2] bg-[#FBF1DA] flex items-center justify-center text-[9px] font-bold text-[#D4A83A]">+2k</div>
                 </div>
-                <div>
-                  <div className="flex items-center gap-0.5 text-[#D4A83A]">{[1, 2, 3, 4, 5].map((i) => <Star key={i} size={12} className="fill-current" />)}</div>
-                  <p className="text-[11px] text-[#B0A98F] font-medium mt-0.5">{tr("hero.trust")}</p>
+                <div className="flex items-center gap-1">
+                  <div className="flex gap-px text-[#D4A83A]">{[1, 2, 3, 4, 5].map((i) => <Star key={i} size={11} className="fill-current" />)}</div>
+                  <span className="text-[10px] text-[#B0A98F] font-medium ml-1">{tr("hero.trust")}</span>
                 </div>
               </div>
             </div>
 
+            {/* Chart card — refined with glow border */}
             <div className="anim-scale anim-up-d2 relative">
-              <div className="absolute -top-4 -right-4 w-16 h-16 bg-[#F2C14E]/10 rounded-3xl rotate-12 float" />
-              <div className="absolute -bottom-3 -left-3 w-12 h-12 bg-[#15203B]/5 rounded-2xl -rotate-12 float-d" />
-              <div className="relative bg-white rounded-2xl border border-[#EAE3D3] p-5 md:p-6" style={{ boxShadow: "0 16px 32px rgba(21,32,59,.06)" }}>
-                <div className="flex items-center justify-between mb-4">
-                  <div>
-                    <p className="text-[9px] font-extrabold tracking-widest uppercase text-[#B0A98F] mb-0.5">{tr("hero.eyebrow")}</p>
-                    <h3 className="text-base font-bold">{tr("hero.chartTitle")}</h3>
+              <div className="absolute -top-3 -right-3 w-14 h-14 bg-[#F2C14E]/10 rounded-2xl rotate-12 float" />
+              <div className="absolute -bottom-2 -left-2 w-10 h-10 bg-[#15203B]/5 rounded-xl -rotate-12 float-d" />
+              <div className="relative bg-white rounded-2xl p-4 md:p-5 overflow-hidden" style={{ boxShadow: "0 12px 28px rgba(21,32,59,.07), 0 0 0 1px rgba(21,32,59,.06)" }}>
+                <div className="chart-glow rounded-2xl" />
+
+                <div className="relative z-10">
+                  <div className="flex items-center justify-between mb-3">
+                    <div>
+                      <p className="text-[9px] font-extrabold tracking-[0.1em] uppercase text-[#B0A98F] mb-0.5">{tr("hero.eyebrow")}</p>
+                      <h3 className="text-sm font-bold">{tr("hero.chartTitle")}</h3>
+                    </div>
+                    <div className="w-8 h-8 bg-[#FBF1DA] rounded-lg flex items-center justify-center">
+                      <TrendingUp size={15} className="text-[#D4A83A]" />
+                    </div>
                   </div>
-                  <div className="w-9 h-9 bg-[#FBF1DA] rounded-lg flex items-center justify-center"><TrendingUp size={18} className="text-[#D4A83A]" /></div>
-                </div>
-                <div className="relative" style={{ height: 180 }}>
-                  <div ref={tipRef} className="line-tip" />
-                  <svg ref={svgRef} width="100%" height="100%" viewBox="0 0 500 192" preserveAspectRatio="none" style={{ overflow: "visible" }} />
-                </div>
-                <div className="flex justify-between px-1 pt-0.5">
-                  {CHART_DATA.map((d, i) => (
-                    <span key={d.day} id={"l" + i} onClick={() => doSelect(i)} className="flex-1 text-center text-[9px] font-semibold text-[#B0A98F] cursor-pointer transition-colors">{days[i] || d.day}</span>
-                  ))}
-                </div>
-                <div className="overflow-hidden" style={{ maxHeight: selectedDay !== -1 ? 70 : 0, opacity: selectedDay !== -1 ? 1 : 0, marginTop: selectedDay !== -1 ? 10 : 0, transitionProperty: "max-height, opacity, margin", transitionTimingFunction: "cubic-bezier(.22,1,.36,1)", transitionDuration: "400ms" }}>
-                  <div className="bg-[#FBF8F2] rounded-lg p-3 border border-[#EAE3D3] flex items-center justify-between text-sm">
-                    <div><p className="text-[9px] font-extrabold tracking-widest uppercase text-[#B0A98F]">{CHART_DATA[selectedDay]?.full.toUpperCase()}</p><p className="text-sm font-bold">{days[selectedDay]}</p></div>
-                    <div className="text-right"><p className="text-[9px] font-extrabold tracking-widest uppercase text-[#B0A98F]">{tr("chart.sales")}</p><p className="text-lg font-bold text-[#D4A83A]">${CHART_DATA[selectedDay]?.sales.toLocaleString()}</p></div>
-                    <div className="text-right"><p className="text-[9px] font-extrabold tracking-widest uppercase text-[#B0A98F]">{tr("chart.transactions")}</p><p className="text-lg font-bold">{CHART_DATA[selectedDay]?.tx}</p></div>
+
+                  <div className="relative" style={{ height: 170 }}>
+                    <div ref={tipRef} className="line-tip" />
+                    <svg ref={svgRef} width="100%" height="100%" viewBox="0 0 500 192" preserveAspectRatio="none" style={{ overflow: "visible" }} />
                   </div>
-                </div>
-                <div className="grid grid-cols-3 gap-3 mt-4 pt-3 border-t border-[#EAE3D3]">
-                  <div><p className="text-[9px] font-extrabold tracking-widest text-[#B0A98F] mb-0.5">{tr("hero.topProduct")}</p><p className="text-xs font-bold">{selectedDay !== -1 ? CHART_DATA[selectedDay].product : "Sugar (50kg)"}</p></div>
-                  <div className="text-center"><p className="text-[9px] font-extrabold tracking-widest text-[#B0A98F] mb-0.5">{tr("hero.revenue")}</p><p className="text-xs font-bold text-[#D4A83A]">${weekTotal.toLocaleString()}</p></div>
-                  <div className="text-right"><p className="text-[9px] font-extrabold tracking-widest text-[#B0A98F] mb-0.5">{tr("hero.growth")}</p><p className="text-xs font-bold text-emerald-600">+24.5%</p></div>
+
+                  <div className="flex justify-between px-0.5 pt-0.5">
+                    {CHART_DATA.map((d, i) => (
+                      <span key={d.day} id={"l" + i} onClick={() => doSelect(i)} className="flex-1 text-center text-[9px] font-semibold text-[#B0A98F] cursor-pointer transition-colors">{days[i] || d.day}</span>
+                    ))}
+                  </div>
+
+                  {/* Selected day detail — slide down */}
+                  <div className="overflow-hidden" style={{ maxHeight: selectedDay !== -1 ? 64 : 0, opacity: selectedDay !== -1 ? 1 : 0, marginTop: selectedDay !== -1 ? 8 : 0, transitionProperty: "max-height, opacity, margin", transitionTimingFunction: "cubic-bezier(.22,1,.36,1)", transitionDuration: "350ms" }}>
+                    <div className="bg-[#FBF8F2] rounded-lg p-2.5 border border-[#EAE3D3] flex items-center justify-between text-xs">
+                      <div><p className="text-[8px] font-extrabold tracking-[0.08em] uppercase text-[#B0A98F]">{CHART_DATA[selectedDay]?.full.toUpperCase()}</p><p className="text-xs font-bold mt-0.5">{days[selectedDay]}</p></div>
+                      <div className="text-right"><p className="text-[8px] font-extrabold tracking-[0.08em] uppercase text-[#B0A98F]">{tr("chart.sales")}</p><p className="text-base font-bold text-[#D4A83A]">${CHART_DATA[selectedDay]?.sales.toLocaleString()}</p></div>
+                      <div className="text-right"><p className="text-[8px] font-extrabold tracking-[0.08em] uppercase text-[#B0A98F]">{tr("chart.transactions")}</p><p className="text-base font-bold">{CHART_DATA[selectedDay]?.tx}</p></div>
+                    </div>
+                  </div>
+
+                  {/* Bottom stats — 3 columns tighter */}
+                  <div className="grid grid-cols-3 gap-2 mt-3 pt-3 border-t border-[#EAE3D3]">
+                    <div>
+                      <p className="text-[8px] font-extrabold tracking-[0.08em] uppercase text-[#B0A98F]">{tr("hero.topProduct")}</p>
+                      <p className="text-[11px] font-bold mt-0.5">{selectedDay !== -1 ? CHART_DATA[selectedDay].product : "Sugar (50kg)"}</p>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-[8px] font-extrabold tracking-[0.08em] uppercase text-[#B0A98F]">{tr("hero.revenue")}</p>
+                      <p className="text-[11px] font-bold text-[#D4A83A] mt-0.5">${weekTotal.toLocaleString()}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-[8px] font-extrabold tracking-[0.08em] uppercase text-[#B0A98F]">{tr("hero.growth")}</p>
+                      <p className="text-[11px] font-bold text-emerald-600 mt-0.5">+24.5%</p>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -545,33 +596,33 @@ export default function SahelLanding() {
       </section>
 
       {/* TRUST BAR */}
-      <section className="py-8 bg-white/50 relative z-10">
-        <div className="max-w-7xl mx-auto px-6 lg:px-8">
-          <p className="text-center text-[10px] font-extrabold tracking-widest uppercase text-[#B0A98F] mb-4 anim-up">{tr("trust.bar")}</p>
-          <div className="anim-up anim-up-d1 flex flex-wrap items-center justify-center gap-x-8 gap-y-3">
+      <section className="py-6 bg-white/50 relative z-10">
+        <div className="max-w-7xl mx-auto px-5 lg:px-8">
+          <p className="text-center text-[9px] font-extrabold tracking-[0.12em] uppercase text-[#B0A98F] mb-3 anim-up">{tr("trust.bar")}</p>
+          <div className="anim-up anim-up-d1 flex flex-wrap items-center justify-center gap-x-7 gap-y-2">
             {TRUST_NAMES.map((n) => (
-              <span key={n} className="font-['Lora'] text-lg md:text-xl font-bold text-[#15203B] opacity-25 cursor-default hover:opacity-50 hover:scale-105 transition-all">{n}</span>
+              <span key={n} className="font-['Lora'] text-base md:text-lg font-bold text-[#15203B] opacity-20 cursor-default hover:opacity-45 hover:scale-105 transition-all">{n}</span>
             ))}
           </div>
         </div>
       </section>
 
       {/* FEATURES */}
-      <section id="features" className="py-14 md:py-16 relative glow-ink">
-        <div className="max-w-7xl mx-auto px-6 lg:px-8">
-          <div className="text-center mb-10">
-            <div className="anim-up inline-flex items-center gap-2 bg-[#FBF1DA] border border-[#F2C14E]/30 rounded-full px-3.5 py-1 mb-3"><span className="text-[11px] font-extrabold tracking-widest uppercase text-[#D4A83A]">{tr("features.eyebrow")}</span></div>
-            <h2 className="anim-up anim-up-d1 font-['Lora'] text-2xl md:text-4xl font-bold mb-2">{tr("features.title")}</h2>
-            <p className="anim-up anim-up-d2 text-base text-[#6B7290] max-w-2xl mx-auto">{tr("features.sub")}</p>
+      <section id="features" className="py-12 md:py-14 relative glow-ink">
+        <div className="max-w-7xl mx-auto px-5 lg:px-8">
+          <div className="text-center mb-8">
+            <div className="anim-up inline-flex items-center gap-2 bg-[#FBF1DA] border border-[#F2C14E]/25 rounded-full px-3 py-1 mb-3"><span className="text-[10px] font-extrabold tracking-[0.12em] uppercase text-[#D4A83A]">{tr("features.eyebrow")}</span></div>
+            <h2 className="anim-up anim-up-d1 font-['Lora'] text-xl md:text-3xl font-bold mb-1.5">{tr("features.title")}</h2>
+            <p className="anim-up anim-up-d2 text-sm text-[#6B7290] max-w-xl mx-auto">{tr("features.sub")}</p>
           </div>
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-3.5">
             {FEATS.map((f, i) => {
               const Icon = f.icon;
               return (
-                <div key={f.k[0]} className={`tool-card card-shine anim-up anim-up-d${Math.min(i + 1, 5)} bg-white rounded-2xl border border-[#EAE3D3] p-5 hover:shadow-xl hover:shadow-[#15203B]/[.06] transition-all duration-300`}>
-                  <div className="w-10 h-10 bg-[#15203B] rounded-xl flex items-center justify-center mb-3"><Icon size={20} className="text-[#F2C14E] feat-icon" /></div>
-                  <h3 className="text-base font-bold mb-1.5">{tr(f.k[0])}</h3>
-                  <p className="text-[13px] text-[#6B7290] leading-relaxed">{tr(f.k[1])}</p>
+                <div key={f.k[0]} className={`tool-card card-shine anim-up anim-up-d${Math.min(i + 1, 5)} bg-white rounded-xl border border-[#EAE3D3] p-4 hover:shadow-lg hover:shadow-[#15203B]/[.05] hover:-translate-y-1 transition-all duration-300`}>
+                  <div className="w-9 h-9 bg-[#15203B] rounded-lg flex items-center justify-center mb-2.5"><Icon size={18} className="text-[#F2C14E] feat-icon" /></div>
+                  <h3 className="text-sm font-bold mb-1">{tr(f.k[0])}</h3>
+                  <p className="text-[12px] text-[#6B7290] leading-relaxed">{tr(f.k[1])}</p>
                 </div>
               );
             })}
@@ -580,26 +631,26 @@ export default function SahelLanding() {
       </section>
 
       {/* HOW IT WORKS */}
-      <section id="how" className="py-14 md:py-16 bg-white border-y border-[#EAE3D3] relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-[#F2C14E]/[.04] rounded-full blur-3xl -translate-y-1/2 translate-x-1/3" />
-        <div className="max-w-7xl mx-auto px-6 lg:px-8 relative z-10">
-          <div className="text-center mb-10">
-            <div className="anim-up inline-flex items-center gap-2 bg-[#FBF1DA] border border-[#F2C14E]/30 rounded-full px-3.5 py-1 mb-3"><span className="text-[11px] font-extrabold tracking-widest uppercase text-[#D4A83A]">{tr("how.eyebrow")}</span></div>
-            <h2 className="anim-up anim-up-d1 font-['Lora'] text-2xl md:text-4xl font-bold mb-2">{tr("how.title")}</h2>
-            <p className="anim-up anim-up-d2 text-base text-[#6B7290] max-w-2xl mx-auto">{tr("how.sub")}</p>
+      <section id="how" className="py-12 md:py-14 bg-white border-y border-[#EAE3D3] relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-[350px] h-[350px] bg-[#F2C14E]/[.04] rounded-full blur-3xl -translate-y-1/2 translate-x-1/3" />
+        <div className="max-w-7xl mx-auto px-5 lg:px-8 relative z-10">
+          <div className="text-center mb-8">
+            <div className="anim-up inline-flex items-center gap-2 bg-[#FBF1DA] border border-[#F2C14E]/25 rounded-full px-3 py-1 mb-3"><span className="text-[10px] font-extrabold tracking-[0.12em] uppercase text-[#D4A83A]">{tr("how.eyebrow")}</span></div>
+            <h2 className="anim-up anim-up-d1 font-['Lora'] text-xl md:text-3xl font-bold mb-1.5">{tr("how.title")}</h2>
+            <p className="anim-up anim-up-d2 text-sm text-[#6B7290] max-w-xl mx-auto">{tr("how.sub")}</p>
           </div>
-          <div className="grid md:grid-cols-3 gap-6 lg:gap-10">
+          <div className="grid md:grid-cols-3 gap-5 lg:gap-8">
             {STEPS.map((s, i) => {
               const Icon = s.icon;
               return (
                 <div key={s.k[0]} className={`anim-up anim-up-d${i + 1} text-center relative`}>
-                  <div className="relative inline-flex items-center justify-center w-16 h-16 bg-[#FBF1DA] rounded-2xl mb-4">
-                    <Icon size={28} className="text-[#D4A83A]" />
-                    <div className="absolute -top-1.5 -right-1.5 w-7 h-7 bg-[#15203B] rounded-lg flex items-center justify-center text-xs font-bold text-[#FBF8F2]">{s.n}</div>
+                  <div className="relative inline-flex items-center justify-center w-14 h-14 bg-[#FBF1DA] rounded-xl mb-3">
+                    <Icon size={24} className="text-[#D4A83A]" />
+                    <div className="absolute -top-1 -right-1 w-6 h-6 bg-[#15203B] rounded-md flex items-center justify-center text-[11px] font-bold text-[#FBF8F2]">{s.n}</div>
                   </div>
-                  <h3 className="text-base font-bold mb-1.5">{tr(s.k[0])}</h3>
-                  <p className="text-[13px] text-[#6B7290] leading-relaxed max-w-xs mx-auto">{tr(s.k[1])}</p>
-                  {i < STEPS.length - 1 && <div className="hidden md:block absolute top-8 left-[60%] w-[80%] h-0.5 bg-[#D8CFB8]" />}
+                  <h3 className="text-sm font-bold mb-1">{tr(s.k[0])}</h3>
+                  <p className="text-[12px] text-[#6B7290] leading-relaxed max-w-[240px] mx-auto">{tr(s.k[1])}</p>
+                  {i < STEPS.length - 1 && <div className="hidden md:block absolute top-7 left-[60%] w-[80%] h-px bg-[#D8CFB8]" />}
                 </div>
               );
             })}
@@ -608,15 +659,15 @@ export default function SahelLanding() {
       </section>
 
       {/* STATS */}
-      <section className="py-12 bg-[#15203B] relative overflow-hidden">
-        <div className="absolute inset-0 grid-bg opacity-20" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-[#F2C14E]/[.06] rounded-full blur-3xl" />
-        <div className="max-w-7xl mx-auto px-6 lg:px-8 relative z-10">
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-10">
+      <section className="py-10 bg-[#15203B] relative overflow-hidden">
+        <div className="absolute inset-0 grid-bg opacity-15" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[350px] h-[350px] bg-[#F2C14E]/[.06] rounded-full blur-3xl" />
+        <div className="max-w-7xl mx-auto px-5 lg:px-8 relative z-10">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-5 lg:gap-8">
             {STATS.map((s, i) => (
               <div key={s.k} className={`stat-bar anim-up anim-up-d${i + 1} text-center`}>
-                <p className={`text-3xl md:text-4xl font-bold ${s.g ? "text-[#F2C14E]" : "text-[#FBF8F2]"} mb-1`}>{s.p || ""}{s.v.toLocaleString()}{s.s}</p>
-                <p className="text-xs text-[#FBF8F2]/50">{tr(s.k)}</p>
+                <p className={`text-2xl md:text-3xl font-bold ${s.g ? "text-[#F2C14E]" : "text-[#FBF8F2]"} mb-0.5`}>{s.p || ""}{s.v.toLocaleString()}{s.s}</p>
+                <p className="text-[11px] text-[#FBF8F2]/45">{tr(s.k)}</p>
               </div>
             ))}
           </div>
@@ -624,21 +675,21 @@ export default function SahelLanding() {
       </section>
 
       {/* TESTIMONIALS */}
-      <section id="testimonials" className="py-14 md:py-16 relative glow-gold">
-        <div className="max-w-7xl mx-auto px-6 lg:px-8">
-          <div className="text-center mb-8">
-            <div className="anim-up inline-flex items-center gap-2 bg-[#FBF1DA] border border-[#F2C14E]/30 rounded-full px-3.5 py-1 mb-3"><span className="text-[11px] font-extrabold tracking-widest uppercase text-[#D4A83A]">{tr("testimonials.eyebrow")}</span></div>
-            <h2 className="anim-up anim-up-d1 font-['Lora'] text-2xl md:text-4xl font-bold mb-2">{tr("testimonials.title")}</h2>
+      <section id="testimonials" className="py-12 md:py-14 relative glow-gold">
+        <div className="max-w-7xl mx-auto px-5 lg:px-8">
+          <div className="text-center mb-7">
+            <div className="anim-up inline-flex items-center gap-2 bg-[#FBF1DA] border border-[#F2C14E]/25 rounded-full px-3 py-1 mb-3"><span className="text-[10px] font-extrabold tracking-[0.12em] uppercase text-[#D4A83A]">{tr("testimonials.eyebrow")}</span></div>
+            <h2 className="anim-up anim-up-d1 font-['Lora'] text-xl md:text-3xl font-bold mb-1.5">{tr("testimonials.title")}</h2>
           </div>
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-3.5">
             {TESTS.map((t, i) => (
-              <div key={t.k} className={`anim-up anim-up-d${i + 1} bg-white rounded-2xl border border-[#EAE3D3] p-5 hover:shadow-lg transition-shadow duration-300`}>
-                <div className="flex items-center gap-3 mb-3">
-                  <img src={`https://picsum.photos/seed/${t.img}/48/48.jpg`} className="w-10 h-10 rounded-full object-cover" alt={t.name} />
-                  <div><p className="text-sm font-bold">{t.name}</p><p className="text-[11px] text-[#B0A98F]">{t.loc}</p></div>
+              <div key={t.k} className={`anim-up anim-up-d${i + 1} bg-white rounded-xl border border-[#EAE3D3] p-4 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300`}>
+                <div className="flex items-center gap-2.5 mb-3">
+                  <img src={`https://picsum.photos/seed/${t.img}/48/48.jpg`} className="w-9 h-9 rounded-full object-cover" alt={t.name} />
+                  <div><p className="text-xs font-bold">{t.name}</p><p className="text-[10px] text-[#B0A98F]">{t.loc}</p></div>
                 </div>
-                <p className="text-[13px] text-[#6B7290] leading-relaxed">{tr(t.k)}</p>
-                <div className="flex items-center gap-0.5 mt-3 text-[#D4A83A]">{[1, 2, 3, 4, 5].map((j) => <Star key={j} size={12} className="fill-current" />)}</div>
+                <p className="text-[12px] text-[#6B7290] leading-relaxed">{tr(t.k)}</p>
+                <div className="flex items-center gap-0.5 mt-2.5 text-[#D4A83A]">{[1, 2, 3, 4, 5].map((j) => <Star key={j} size={11} className="fill-current" />)}</div>
               </div>
             ))}
           </div>
@@ -646,21 +697,21 @@ export default function SahelLanding() {
       </section>
 
       {/* FAQ */}
-      <section id="faq" className="py-14 md:py-16 relative glow-ink">
-        <div className="max-w-3xl mx-auto px-6 lg:px-8">
-          <div className="text-center mb-8">
-            <div className="anim-up inline-flex items-center gap-2 bg-[#FBF1DA] border border-[#F2C14E]/30 rounded-full px-3.5 py-1 mb-3"><span className="text-[11px] font-extrabold tracking-widest uppercase text-[#D4A83A]">{tr("faq.eyebrow")}</span></div>
-            <h2 className="anim-up anim-up-d1 font-['Lora'] text-2xl md:text-3xl font-bold">{tr("faq.title")}</h2>
+      <section id="faq" className="py-12 md:py-14 relative glow-ink">
+        <div className="max-w-3xl mx-auto px-5 lg:px-8">
+          <div className="text-center mb-7">
+            <div className="anim-up inline-flex items-center gap-2 bg-[#FBF1DA] border border-[#F2C14E]/25 rounded-full px-3 py-1 mb-3"><span className="text-[10px] font-extrabold tracking-[0.12em] uppercase text-[#D4A83A]">{tr("faq.eyebrow")}</span></div>
+            <h2 className="anim-up anim-up-d1 font-['Lora'] text-xl md:text-2xl font-bold">{tr("faq.title")}</h2>
           </div>
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             {FAQS.map((f, i) => (
               <div key={f.qk} className="bg-white rounded-xl border border-[#EAE3D3] overflow-hidden">
-                <button className="w-full flex items-center justify-between p-4 text-left hover:bg-[#F1ECDE]/50 transition-colors" onClick={() => setOpenFaq(openFaq === i ? -1 : i)}>
-                  <span className="font-bold text-sm pr-4">{tr(f.qk)}</span>
-                  <ChevronDown size={18} className="text-[#B0A98F] shrink-0 transition-transform duration-300" style={{ transform: openFaq === i ? "rotate(180deg)" : "rotate(0deg)" }} />
+                <button className="w-full flex items-center justify-between p-3.5 text-left hover:bg-[#F1ECDE]/40 transition-colors" onClick={() => setOpenFaq(openFaq === i ? -1 : i)}>
+                  <span className="font-bold text-[13px] pr-4">{tr(f.qk)}</span>
+                  <ChevronDown size={16} className="text-[#B0A98F] shrink-0 transition-transform duration-300" style={{ transform: openFaq === i ? "rotate(180deg)" : "rotate(0deg)" }} />
                 </button>
-                <div className="overflow-hidden" style={{ maxHeight: openFaq === i ? 200 : 0, transitionProperty: "max-height", transitionTimingFunction: "cubic-bezier(.22,1,.36,1)", transitionDuration: "400ms" }}>
-                  <p className="px-4 pb-4 text-[13px] text-[#6B7290] leading-relaxed">{tr(f.ak)}</p>
+                <div className="overflow-hidden" style={{ maxHeight: openFaq === i ? 180 : 0, transitionProperty: "max-height", transitionTimingFunction: "cubic-bezier(.22,1,.36,1)", transitionDuration: "350ms" }}>
+                  <p className="px-3.5 pb-3.5 text-[12px] text-[#6B7290] leading-relaxed">{tr(f.ak)}</p>
                 </div>
               </div>
             ))}
@@ -669,55 +720,59 @@ export default function SahelLanding() {
       </section>
 
       {/* FINAL CTA */}
-      <section className="py-14 md:py-16 bg-[#15203B] relative overflow-hidden">
-        <div className="absolute inset-0 grid-bg opacity-10" />
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[300px] bg-[#F2C14E]/[.08] rounded-full blur-3xl" />
-        <div className="max-w-3xl mx-auto px-6 lg:px-8 text-center relative z-10">
-          <div className="anim-up inline-flex items-center gap-2 bg-white/10 border border-white/10 rounded-full px-3.5 py-1 mb-4"><span className="w-1.5 h-1.5 bg-[#F2C14E] rounded-full animate-pulse" /><span className="text-[11px] font-extrabold tracking-widest uppercase text-[#FBF8F2]/60">{tr("cta.eyebrow")}</span></div>
-          <h2 className="anim-up anim-up-d1 font-['Lora'] text-2xl md:text-4xl font-bold text-[#FBF8F2] mb-4 leading-tight">{tr("cta.title")}</h2>
-          <p className="anim-up anim-up-d2 text-base text-[#FBF8F2]/50 mb-8 max-w-xl mx-auto">{tr("cta.sub")}</p>
-          <div className="anim-up anim-up-d3 flex flex-col sm:flex-row gap-3 justify-center">
-            <a href="https://wa.me/252624407283?text=I%20want%20to%20use%20Sahel%20for%20my%20shop" target="_blank" className="bg-[#25D366] text-white px-8 py-3.5 rounded-2xl text-sm font-bold hover:bg-green-600 hover:-translate-y-1 hover:shadow-2xl hover:shadow-[#25D366]/30 transition-all duration-300">{tr("cta.button")}</a>
-            <a href="#features" className="flex items-center justify-center gap-2 px-6 py-3.5 rounded-2xl text-sm font-bold text-[#FBF8F2]/70 border-2 border-[#FBF8F2]/15 hover:border-[#FBF8F2]/30 hover:text-[#FBF8F2] transition-all"><span>{tr("cta.secondary")}</span><ArrowDown size={14} /></a>
+      <section className="py-12 md:py-14 bg-[#15203B] relative overflow-hidden">
+        <div className="absolute inset-0 grid-bg opacity-8" />
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[250px] bg-[#F2C14E]/[.08] rounded-full blur-3xl" />
+        <div className="max-w-3xl mx-auto px-5 lg:px-8 text-center relative z-10">
+          <div className="anim-up inline-flex items-center gap-2 bg-white/10 border border-white/10 rounded-full px-3 py-1 mb-4"><span className="w-1.5 h-1.5 bg-[#F2C14E] rounded-full animate-pulse" /><span className="text-[10px] font-extrabold tracking-[0.12em] uppercase text-[#FBF8F2]/50">{tr("cta.eyebrow")}</span></div>
+          <h2 className="anim-up anim-up-d1 font-['Lora'] text-xl md:text-3xl font-bold text-[#FBF8F2] mb-3 leading-tight">{tr("cta.title")}</h2>
+          <p className="anim-up anim-up-d2 text-sm text-[#FBF8F2]/45 mb-6 max-w-lg mx-auto">{tr("cta.sub")}</p>
+          <div className="anim-up anim-up-d3 flex flex-col sm:flex-row gap-2.5 justify-center">
+            <a href="https://wa.me/252624407283?text=I%20want%20to%20use%20Sahel%20for%20my%20shop" target="_blank" className="inline-flex items-center gap-2 bg-[#25D366] text-white px-7 py-3 rounded-xl text-sm font-bold hover:bg-green-600 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-[#25D366]/25 transition-all duration-300">
+              <WAIcon size={16} fill="white" /><span>{tr("cta.button")}</span>
+            </a>
+            <a href="#features" className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl text-sm font-bold text-[#FBF8F2]/60 border border-[#FBF8F2]/15 hover:border-[#FBF8F2]/30 hover:text-[#FBF8F2] transition-all">
+              <span>{tr("cta.secondary")}</span><ArrowDown size={13} />
+            </a>
           </div>
         </div>
       </section>
 
       {/* FOOTER */}
-      <footer className="bg-[#0D1529] py-10 border-t border-white/5">
-        <div className="max-w-7xl mx-auto px-6 lg:px-8">
-          <div className="grid md:grid-cols-4 gap-8 mb-8">
+      <footer className="bg-[#0D1529] py-8 border-t border-white/5">
+        <div className="max-w-7xl mx-auto px-5 lg:px-8">
+          <div className="grid md:grid-cols-4 gap-6 mb-6">
             <div className="md:col-span-2">
-              <div className="flex items-center gap-2.5 mb-3">
-                <img src={LOGO_SRC} alt="Sahel" className="w-8 h-8 rounded-lg" />
-                <span className="font-['Lora'] text-lg font-bold text-[#FBF8F2]">Sahel</span>
+              <div className="flex items-center gap-2 mb-2.5">
+                <img src={LOGO_SRC} alt="Sahel" className="w-7 h-7 rounded-md" />
+                <span className="font-['Lora'] text-base font-bold text-[#FBF8F2]">Sahel</span>
               </div>
-              <p className="text-xs text-[#FBF8F2]/40 leading-relaxed max-w-sm mb-4">{tr("footer.desc")}</p>
-              <div className="flex gap-2.5 mb-4">
-                <a href="https://wa.me/252624407283" target="_blank" className="w-8 h-8 bg-[#25D366]/20 rounded-lg flex items-center justify-center hover:bg-[#25D366]/30 transition-colors"><WAIcon size={14} fill="#25D366" /></a>
-                <a href="#" className="w-8 h-8 bg-white/5 rounded-lg flex items-center justify-center hover:bg-white/10 transition-colors"><Instagram size={14} className="text-[#FBF8F2]/50" /></a>
-                <a href="#" className="w-8 h-8 bg-white/5 rounded-lg flex items-center justify-center hover:bg-white/10 transition-colors"><Twitter size={14} className="text-[#FBF8F2]/50" /></a>
+              <p className="text-[11px] text-[#FBF8F2]/35 leading-relaxed max-w-xs mb-3">{tr("footer.desc")}</p>
+              <div className="flex gap-2 mb-3">
+                <a href="https://wa.me/252624407283" target="_blank" className="w-7 h-7 bg-[#25D366]/20 rounded-md flex items-center justify-center hover:bg-[#25D366]/30 transition-colors"><WAIcon size={13} fill="#25D366" /></a>
+                <a href="#" className="w-7 h-7 bg-white/5 rounded-md flex items-center justify-center hover:bg-white/10 transition-colors"><Instagram size={13} className="text-[#FBF8F2]/40" /></a>
+                <a href="#" className="w-7 h-7 bg-white/5 rounded-md flex items-center justify-center hover:bg-white/10 transition-colors"><Twitter size={13} className="text-[#FBF8F2]/40" /></a>
               </div>
-              <p className="text-xs text-[#FBF8F2]/60 font-semibold flex items-center gap-2"><WAIcon size={12} fill="#25D366" /> +252 624 407 283</p>
+              <p className="text-[11px] text-[#FBF8F2]/50 font-semibold flex items-center gap-1.5"><WAIcon size={11} fill="#25D366" /> +252 624 407 283</p>
             </div>
             <div>
-              <h4 className="text-[10px] font-extrabold tracking-widest uppercase text-[#FBF8F2]/30 mb-3">{tr("footer.product")}</h4>
-              <ul className="space-y-2">
-                <li><a href="#features" className="text-xs text-[#FBF8F2]/50 hover:text-[#FBF8F2] transition-colors">{tr("footer.feat")}</a></li>
-                <li><a href="#how" className="text-xs text-[#FBF8F2]/50 hover:text-[#FBF8F2] transition-colors">{tr("footer.how")}</a></li>
+              <h4 className="text-[9px] font-extrabold tracking-[0.1em] uppercase text-[#FBF8F2]/25 mb-2.5">{tr("footer.product")}</h4>
+              <ul className="space-y-1.5">
+                <li><a href="#features" className="text-[11px] text-[#FBF8F2]/40 hover:text-[#FBF8F2] transition-colors">{tr("footer.feat")}</a></li>
+                <li><a href="#how" className="text-[11px] text-[#FBF8F2]/40 hover:text-[#FBF8F2] transition-colors">{tr("footer.how")}</a></li>
               </ul>
             </div>
             <div>
-              <h4 className="text-[10px] font-extrabold tracking-widest uppercase text-[#FBF8F2]/30 mb-3">{tr("footer.support")}</h4>
-              <ul className="space-y-2">
-                <li><a href="#faq" className="text-xs text-[#FBF8F2]/50 hover:text-[#FBF8F2] transition-colors">{tr("footer.help")}</a></li>
-                <li><a href="https://wa.me/252624407283" target="_blank" className="text-xs text-[#FBF8F2]/50 hover:text-[#FBF8F2] transition-colors">{tr("footer.contact")}</a></li>
+              <h4 className="text-[9px] font-extrabold tracking-[0.1em] uppercase text-[#FBF8F2]/25 mb-2.5">{tr("footer.support")}</h4>
+              <ul className="space-y-1.5">
+                <li><a href="#faq" className="text-[11px] text-[#FBF8F2]/40 hover:text-[#FBF8F2] transition-colors">{tr("footer.help")}</a></li>
+                <li><a href="https://wa.me/252624407283" target="_blank" className="text-[11px] text-[#FBF8F2]/40 hover:text-[#FBF8F2] transition-colors">{tr("footer.contact")}</a></li>
               </ul>
             </div>
           </div>
-          <div className="pt-6 border-t border-white/5 flex flex-col md:flex-row items-center justify-between gap-2">
-            <p className="text-[11px] text-[#FBF8F2]/25">© 2025 Sahel. All rights reserved.</p>
-            <p className="text-[11px] text-[#FBF8F2]/25">{tr("footer.tagline")}</p>
+          <div className="pt-5 border-t border-white/5 flex flex-col md:flex-row items-center justify-between gap-1.5">
+            <p className="text-[10px] text-[#FBF8F2]/20">© 2025 Sahel. All rights reserved.</p>
+            <p className="text-[10px] text-[#FBF8F2]/20">{tr("footer.tagline")}</p>
           </div>
         </div>
       </footer>
