@@ -46,15 +46,8 @@
     .card-shine{position:relative;overflow:hidden;}
     .card-shine::before{content:'';position:absolute;top:0;left:-75%;width:50%;height:100%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.35),transparent);transform:skewX(-15deg);transition:left .6s ease;}
     .card-shine:hover::before{left:125%;}
-    .chart-bar-wrap{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;}
-    .chart-bar-inner{width:100%;border-radius:6px 6px 0 0;transition:all .35s cubic-bezier(.22,1,.36,1);position:relative;min-height:4px;}
-    .chart-bar-wrap:hover .chart-bar-inner{filter:brightness(1.15);transform:scaleX(1.1);}
-    .chart-bar-wrap.selected .chart-bar-inner{box-shadow:0 0 0 2px #F2C14E,0 4px 16px rgba(242,193,78,.35);transform:scaleX(1.08);}
-    .chart-bar-wrap .bar-tip{position:absolute;top:-36px;left:50%;transform:translateX(-50%) scale(.85);background:#15203B;color:#FBF8F2;font-size:11px;font-weight:700;padding:5px 12px;border-radius:8px;white-space:nowrap;opacity:0;transition:all .25s ease;pointer-events:none;z-index:10;}
-    .chart-bar-wrap .bar-tip::after{content:'';position:absolute;bottom:-4px;left:50%;transform:translateX(-50%);border-left:5px solid transparent;border-right:5px solid transparent;border-top:5px solid #15203B;}
-    .chart-bar-wrap:hover .bar-tip,.chart-bar-wrap.selected .bar-tip{opacity:1;transform:translateX(-50%) scale(1);}
     .chart-day{font-size:10px;font-weight:600;color:#B0A98F;transition:all .25s;}
-    .chart-bar-wrap.selected .chart-day{color:#15203B;font-weight:800;}
+    .chart-day.active{color:#15203B;font-weight:800;}
     .chart-detail-panel{overflow:hidden;max-height:0;opacity:0;transition:max-height .4s cubic-bezier(.22,1,.36,1),opacity .3s ease,margin .3s ease;margin-top:0;}
     .chart-detail-panel.open{max-height:80px;opacity:1;margin-top:16px;}
     .stat-bar{position:relative;}
@@ -83,6 +76,18 @@
     #wa-float{position:fixed;bottom:24px;left:24px;z-index:9998;animation:wa-bounce 2s ease-in-out infinite;}
     #wa-float a{display:flex;align-items:center;justify-content:center;width:60px;height:60px;background:#25D366;border-radius:50%;box-shadow:0 6px 24px rgba(37,211,102,.4);transition:all .3s;}
     #wa-float a:hover{transform:scale(1.1);box-shadow:0 8px 32px rgba(37,211,102,.5);}
+    .line-chart-tooltip{position:absolute;background:#15203B;color:#FBF8F2;font-size:11px;font-weight:700;padding:6px 14px;border-radius:8px;white-space:nowrap;pointer-events:none;z-index:20;opacity:0;transition:opacity .2s ease,transform .2s ease;transform:translateX(-50%) translateY(-8px);}
+    .line-chart-tooltip.visible{opacity:1;transform:translateX(-50%) translateY(0);}
+    .line-chart-tooltip::after{content:'';position:absolute;top:100%;left:50%;transform:translateX(-50%);border-left:5px solid transparent;border-right:5px solid transparent;border-top:5px solid #15203B;}
+    .line-point{cursor:pointer;transition:r .2s ease,filter .2s ease;}
+    .line-point:hover{filter:brightness(1.2);}
+    .line-point.selected{filter:brightness(1.15);}
+    @keyframes drawLine{from{stroke-dashoffset:var(--line-length);}to{stroke-dashoffset:0;}}
+    @keyframes fadeArea{from{opacity:0;}to{opacity:1;}}
+    .line-path-animate{animation:drawLine 1.2s cubic-bezier(.22,1,.36,1) forwards;}
+    .line-area-animate{animation:fadeArea .8s .6s ease forwards;opacity:0;}
+    .line-point-animate{opacity:0;animation:pointPop .3s ease forwards;}
+    @keyframes pointPop{from{opacity:0;r:0;}to{opacity:1;}}
   </style>
 </head>
 <body class="bg-cream text-ink font-sans antialiased overflow-x-hidden">
@@ -192,9 +197,11 @@
               </div>
               <div class="w-10 h-10 bg-gold-glow rounded-xl flex items-center justify-center"><i data-lucide="trending-up" class="w-5 h-5 text-gold-dim"></i></div>
             </div>
-            <div class="relative h-48 md:h-56 flex items-end gap-3 pb-2" id="chart-container">
-              <div class="absolute inset-0 flex flex-col justify-between pointer-events-none"><div class="border-b border-dashed border-border w-full"></div><div class="border-b border-dashed border-border w-full"></div><div class="border-b border-dashed border-border w-full"></div><div class="border-b border-border w-full"></div></div>
+            <div class="relative" id="chart-wrapper" style="height:192px;">
+              <div class="line-chart-tooltip" id="line-tooltip"></div>
+              <svg id="chart-container" width="100%" height="100%" viewBox="0 0 500 192" preserveAspectRatio="none" style="overflow:visible;"></svg>
             </div>
+            <div class="flex justify-between px-1 pt-1" id="chart-labels"></div>
             <div class="chart-detail-panel" id="chart-detail">
               <div class="bg-cream rounded-xl p-4 border border-border flex items-center justify-between">
                 <div><p class="text-[10px] font-extrabold tracking-widest uppercase text-slate-faint" id="detail-day-label">SUNDAY</p><p class="text-base font-bold text-ink" id="detail-day-name">Sunday</p></div>
@@ -246,7 +253,7 @@
       <div class="text-center mb-16 md:mb-20">
         <div class="anim-up inline-flex items-center gap-2 bg-gold-glow border border-gold/30 rounded-full px-4 py-1.5 mb-5"><span class="text-xs font-extrabold tracking-widest uppercase text-gold-dim" data-t="how.eyebrow">Get started</span></div>
         <h2 class="anim-up anim-up-delay-1 font-serif text-3xl md:text-5xl font-bold text-ink mb-4" data-t="how.title">Three steps, five minutes, you're running</h2>
-        <p class="anim-up anim-up-delay-2 text-lg text-slate-light max-w-2xl mx-auto" data-t="how.sub">No setup wizard. No training videos. If you've ever sent a WhatsApp message, you can use Sahel right now.</p>
+        <p class="anim-up anim-up-delay-2 text-lg text-slate-light max-w-2xl mx-auto" data-t="how.sub":"No setup wizard. No training videos. If you've ever sent a WhatsApp message, you can use Sahel right now.</p>
       </div>
       <div class="grid md:grid-cols-3 gap-8 lg:gap-12" id="steps-grid"></div>
     </div>
@@ -378,6 +385,8 @@
     const FAQS=[{qk:'fq1',ak:'fa1'},{qk:'fq2',ak:'fa2'},{qk:'fq3',ak:'fa3'},{qk:'fq4',ak:'fa4'}];
 
     let L='en';
+    let selectedDayIndex = -1;
+    let chartPoints = [];
 
     const T={
       en:{
@@ -452,13 +461,11 @@
       });
       document.getElementById('lang-'+lang).classList.add('bg-ink','text-cream');
       document.getElementById('lang-'+lang).classList.remove('text-slate-faint');
-      
       if(lang === 'ar'){
         document.documentElement.classList.add('lang-ar');
       } else {
         document.documentElement.classList.remove('lang-ar');
       }
-      
       renderChart();
       renderFeatures();
       renderSteps();
@@ -479,35 +486,276 @@
     }
 
     function renderChart(){
-      const container = document.getElementById('chart-container');
-      const gridLines = container.querySelector('.absolute');
-      container.innerHTML = '';
-      container.appendChild(gridLines);
-      
-      const maxSales = Math.max(...CHART.map(d => d.sales));
+      const svg = document.getElementById('chart-container');
+      const labelsContainer = document.getElementById('chart-labels');
+      const tooltip = document.getElementById('line-tooltip');
+      svg.innerHTML = '';
+      labelsContainer.innerHTML = '';
+      chartPoints = [];
+      selectedDayIndex = -1;
+      document.getElementById('chart-detail').classList.remove('open');
+
+      const W = 500, H = 192;
+      const padL = 8, padR = 8, padT = 16, padB = 8;
+      const cW = W - padL - padR;
+      const cH = H - padT - padB;
+      const maxSales = Math.max(...CHART.map(d => d.sales)) * 1.15;
       const days = t('days');
-      
-      CHART.forEach((d, i) => {
-        const height = (d.sales / maxSales) * 100;
-        const bar = document.createElement('div');
-        bar.className = 'chart-bar-wrap';
-        bar.innerHTML = `
-          <div class="bar-tip">$${d.sales.toLocaleString()}</div>
-          <div class="chart-bar-inner bg-gradient-to-t from-ink to-ink-light" style="height:${height}%"></div>
-          <span class="chart-day">${days[i] || d.day}</span>
-        `;
-        bar.addEventListener('click', () => selectDay(i));
-        container.appendChild(bar);
+      const n = CHART.length;
+
+      // Defs: gradient for area fill
+      const defs = document.createElementNS('http://www.w3.org/2000/svg','defs');
+      defs.innerHTML = `
+        <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#15203B" stop-opacity="0.18"/>
+          <stop offset="100%" stop-color="#15203B" stop-opacity="0.01"/>
+        </linearGradient>
+        <linearGradient id="lineGrad" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stop-color="#1E2D50"/>
+          <stop offset="100%" stop-color="#15203B"/>
+        </linearGradient>
+        <filter id="glow">
+          <feGaussianBlur stdDeviation="3" result="blur"/>
+          <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+      `;
+      svg.appendChild(defs);
+
+      // Grid lines
+      for(let i = 0; i <= 3; i++){
+        const y = padT + (cH / 3) * i;
+        const line = document.createElementNS('http://www.w3.org/2000/svg','line');
+        line.setAttribute('x1', padL);
+        line.setAttribute('y1', y);
+        line.setAttribute('x2', W - padR);
+        line.setAttribute('y2', y);
+        line.setAttribute('stroke', i < 3 ? '#EAE3D3' : '#D8CFB8');
+        line.setAttribute('stroke-width', '1');
+        line.setAttribute('stroke-dasharray', i < 3 ? '4,4' : 'none');
+        svg.appendChild(line);
+      }
+
+      // Calculate points
+      const pts = CHART.map((d, i) => {
+        const x = padL + (cW / (n - 1)) * i;
+        const y = padT + cH - (d.sales / maxSales) * cH;
+        return { x, y, data: d, index: i };
       });
-      
+      chartPoints = pts;
+
+      // Build smooth curve path using catmull-rom to bezier
+      function catmullRomToBezier(points, tension) {
+        let path = `M ${points[0].x} ${points[0].y}`;
+        for (let i = 0; i < points.length - 1; i++) {
+          const p0 = points[Math.max(i - 1, 0)];
+          const p1 = points[i];
+          const p2 = points[i + 1];
+          const p3 = points[Math.min(i + 2, points.length - 1)];
+          const cp1x = p1.x + (p2.x - p0.x) / (6 * tension);
+          const cp1y = p1.y + (p2.y - p0.y) / (6 * tension);
+          const cp2x = p2.x - (p3.x - p1.x) / (6 * tension);
+          const cp2y = p2.y - (p3.y - p1.y) / (6 * tension);
+          path += ` C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${p2.x} ${p2.y}`;
+        }
+        return path;
+      }
+
+      const linePath = catmullRomToBezier(pts, 1);
+      const lineLen = approxPathLength(pts);
+
+      // Area fill
+      const areaPath = linePath + ` L ${pts[pts.length-1].x} ${padT + cH} L ${pts[0].x} ${padT + cH} Z`;
+      const area = document.createElementNS('http://www.w3.org/2000/svg','path');
+      area.setAttribute('d', areaPath);
+      area.setAttribute('fill', 'url(#areaGrad)');
+      area.classList.add('line-area-animate');
+      svg.appendChild(area);
+
+      // Line
+      const line = document.createElementNS('http://www.w3.org/2000/svg','path');
+      line.setAttribute('d', linePath);
+      line.setAttribute('fill', 'none');
+      line.setAttribute('stroke', 'url(#lineGrad)');
+      line.setAttribute('stroke-width', '2.5');
+      line.setAttribute('stroke-linecap', 'round');
+      line.setAttribute('stroke-linejoin', 'round');
+      line.style.strokeDasharray = lineLen;
+      line.style.setProperty('--line-length', lineLen);
+      line.classList.add('line-path-animate');
+      svg.appendChild(line);
+
+      // Invisible wider hit area line
+      const hitLine = document.createElementNS('http://www.w3.org/2000/svg','path');
+      hitLine.setAttribute('d', linePath);
+      hitLine.setAttribute('fill', 'none');
+      hitLine.setAttribute('stroke', 'transparent');
+      hitLine.setAttribute('stroke-width', '24');
+      hitLine.style.cursor = 'pointer';
+      svg.appendChild(hitLine);
+
+      // Points and labels
+      pts.forEach((p, i) => {
+        // Outer glow ring (hidden by default)
+        const outerRing = document.createElementNS('http://www.w3.org/2000/svg','circle');
+        outerRing.setAttribute('cx', p.x);
+        outerRing.setAttribute('cy', p.y);
+        outerRing.setAttribute('r', '14');
+        outerRing.setAttribute('fill', '#F2C14E');
+        outerRing.setAttribute('opacity', '0');
+        outerRing.style.transition = 'opacity .25s ease, r .25s ease';
+        outerRing.setAttribute('filter', 'url(#glow)');
+        outerRing.id = 'ring-' + i;
+        svg.appendChild(outerRing);
+
+        // Point circle
+        const circle = document.createElementNS('http://www.w3.org/2000/svg','circle');
+        circle.setAttribute('cx', p.x);
+        circle.setAttribute('cy', p.y);
+        circle.setAttribute('r', '0');
+        circle.setAttribute('fill', '#FBF8F2');
+        circle.setAttribute('stroke', '#15203B');
+        circle.setAttribute('stroke-width', '2.5');
+        circle.classList.add('line-point', 'line-point-animate');
+        circle.style.animationDelay = (0.6 + i * 0.08) + 's';
+        circle.id = 'point-' + i;
+        circle.addEventListener('click', (e) => { e.stopPropagation(); selectDay(i); });
+        circle.addEventListener('mouseenter', (e) => showTooltip(e, i));
+        circle.addEventListener('mouseleave', hideTooltip);
+        svg.appendChild(circle);
+
+        // Day label
+        const label = document.createElement('span');
+        label.className = 'chart-day flex-1 text-center';
+        label.id = 'label-' + i;
+        label.textContent = days[i] || CHART[i].day;
+        label.style.cursor = 'pointer';
+        label.addEventListener('click', () => selectDay(i));
+        labelsContainer.appendChild(label);
+      });
+
+      // Hover on hit area line
+      hitLine.addEventListener('mousemove', function(e) {
+        const rect = svg.getBoundingClientRect();
+        const scaleX = W / rect.width;
+        const mouseX = (e.clientX - rect.left) * scaleX;
+        let closest = 0;
+        let closestDist = Infinity;
+        pts.forEach((p, i) => {
+          const dist = Math.abs(p.x - mouseX);
+          if (dist < closestDist) { closestDist = dist; closest = i; }
+        });
+        highlightPoint(closest, false);
+        showTooltipAtPoint(pts[closest], closest);
+      });
+      hitLine.addEventListener('mouseleave', function() {
+        if (selectedDayIndex === -1) unhighlightAll();
+        hideTooltip();
+      });
+      hitLine.addEventListener('click', function(e) {
+        const rect = svg.getBoundingClientRect();
+        const scaleX = W / rect.width;
+        const mouseX = (e.clientX - rect.left) * scaleX;
+        let closest = 0;
+        let closestDist = Infinity;
+        pts.forEach((p, i) => {
+          const dist = Math.abs(p.x - mouseX);
+          if (dist < closestDist) { closestDist = dist; closest = i; }
+        });
+        selectDay(closest);
+      });
+
       updateWeekTotal();
     }
 
-    function selectDay(index){
-      document.querySelectorAll('.chart-bar-wrap').forEach((b, i) => {
-        b.classList.toggle('selected', i === index);
+    function approxPathLength(pts) {
+      let len = 0;
+      for (let i = 1; i < pts.length; i++) {
+        const dx = pts[i].x - pts[i-1].x;
+        const dy = pts[i].y - pts[i-1].y;
+        len += Math.sqrt(dx*dx + dy*dy);
+      }
+      return len * 1.25;
+    }
+
+    function highlightPoint(index, isSelected) {
+      chartPoints.forEach((p, i) => {
+        const point = document.getElementById('point-' + i);
+        const ring = document.getElementById('ring-' + i);
+        const label = document.getElementById('label-' + i);
+        if (i === index) {
+          point.setAttribute('r', isSelected ? '7' : '6');
+          point.setAttribute('stroke', isSelected ? '#F2C14E' : '#15203B');
+          point.setAttribute('stroke-width', isSelected ? '3' : '2.5');
+          ring.setAttribute('opacity', isSelected ? '0.25' : '0.12');
+          ring.setAttribute('r', isSelected ? '16' : '14');
+          label.classList.add('active');
+        } else {
+          point.setAttribute('r', '4');
+          point.setAttribute('stroke', '#15203B');
+          point.setAttribute('stroke-width', '2');
+          ring.setAttribute('opacity', '0');
+          label.classList.remove('active');
+        }
       });
-      
+    }
+
+    function unhighlightAll() {
+      chartPoints.forEach((p, i) => {
+        const point = document.getElementById('point-' + i);
+        const ring = document.getElementById('ring-' + i);
+        const label = document.getElementById('label-' + i);
+        point.setAttribute('r', '4');
+        point.setAttribute('stroke', '#15203B');
+        point.setAttribute('stroke-width', '2');
+        ring.setAttribute('opacity', '0');
+        label.classList.remove('active');
+      });
+    }
+
+    function showTooltip(e, index) {
+      if (selectedDayIndex !== -1) return;
+      const d = CHART[index];
+      const tooltip = document.getElementById('line-tooltip');
+      tooltip.textContent = `$${d.sales.toLocaleString()}`;
+      const rect = document.getElementById('chart-wrapper').getBoundingClientRect();
+      const svgRect = document.getElementById('chart-container').getBoundingClientRect();
+      const scaleX = svgRect.width / 500;
+      const x = chartPoints[index].x * scaleX;
+      tooltip.style.left = x + 'px';
+      tooltip.style.top = (chartPoints[index].y * (svgRect.height / 192) - 12) + 'px';
+      tooltip.classList.add('visible');
+      highlightPoint(index, false);
+    }
+
+    function showTooltipAtPoint(pt, index) {
+      if (selectedDayIndex !== -1) return;
+      const d = CHART[index];
+      const tooltip = document.getElementById('line-tooltip');
+      tooltip.textContent = `$${d.sales.toLocaleString()}`;
+      const svgRect = document.getElementById('chart-container').getBoundingClientRect();
+      const scaleX = svgRect.width / 500;
+      const scaleY = svgRect.height / 192;
+      tooltip.style.left = (pt.x * scaleX) + 'px';
+      tooltip.style.top = (pt.y * scaleY - 12) + 'px';
+      tooltip.classList.add('visible');
+    }
+
+    function hideTooltip() {
+      document.getElementById('line-tooltip').classList.remove('visible');
+    }
+
+    function selectDay(index){
+      if (selectedDayIndex === index) {
+        selectedDayIndex = -1;
+        unhighlightAll();
+        hideTooltip();
+        document.getElementById('chart-detail').classList.remove('open');
+        return;
+      }
+      selectedDayIndex = index;
+      highlightPoint(index, true);
+      hideTooltip();
+
       const d = CHART[index];
       const days = t('days');
       document.getElementById('detail-day-label').textContent = d.full.toUpperCase();
@@ -526,7 +774,6 @@
     function renderFeatures(){
       const grid = document.getElementById('features-grid');
       grid.innerHTML = '';
-      
       FEATS.forEach((f, i) => {
         const card = document.createElement('div');
         card.className = `tool-card card-shine anim-up anim-up-delay-${Math.min(i+1, 5)} bg-white rounded-2xl border border-border p-6 hover:shadow-xl hover:shadow-ink/[0.06] transition-all duration-300`;
@@ -539,7 +786,6 @@
         `;
         grid.appendChild(card);
       });
-      
       lucide.createIcons();
       observeAnimations();
     }
@@ -547,7 +793,6 @@
     function renderSteps(){
       const grid = document.getElementById('steps-grid');
       grid.innerHTML = '';
-      
       STEPS.forEach((s, i) => {
         const step = document.createElement('div');
         step.className = `anim-up anim-up-delay-${i+1} text-center`;
@@ -563,7 +808,6 @@
         step.style.position = 'relative';
         grid.appendChild(step);
       });
-      
       lucide.createIcons();
       observeAnimations();
     }
@@ -571,7 +815,6 @@
     function renderStats(){
       const grid = document.getElementById('stats-grid');
       grid.innerHTML = '';
-      
       STATS.forEach((s, i) => {
         const stat = document.createElement('div');
         stat.className = `stat-bar anim-up anim-up-delay-${i+1} text-center`;
@@ -581,14 +824,12 @@
         `;
         grid.appendChild(stat);
       });
-      
       observeAnimations();
     }
 
     function renderTestimonials(){
       const grid = document.getElementById('testimonials-grid');
       grid.innerHTML = '';
-      
       TESTS.forEach((test, i) => {
         const card = document.createElement('div');
         card.className = `anim-up anim-up-delay-${i+1} bg-white rounded-2xl border border-border p-6 hover:shadow-lg transition-shadow duration-300`;
@@ -611,7 +852,6 @@
         `;
         grid.appendChild(card);
       });
-      
       lucide.createIcons();
       observeAnimations();
     }
@@ -619,7 +859,6 @@
     function renderFAQ(){
       const list = document.getElementById('faq-list');
       list.innerHTML = '';
-      
       FAQS.forEach((faq, i) => {
         const item = document.createElement('div');
         item.className = 'bg-white rounded-xl border border-border overflow-hidden';
@@ -634,7 +873,6 @@
         `;
         list.appendChild(item);
       });
-      
       lucide.createIcons();
     }
 
@@ -642,16 +880,11 @@
       const answer = btn.nextElementSibling;
       const icon = btn.querySelector('[data-lucide]');
       const isOpen = answer.style.maxHeight && answer.style.maxHeight !== '0px';
-      
-      // Close all other FAQs
-      document.querySelectorAll('.faq-answer').forEach(a => {
-        a.style.maxHeight = '0px';
-      });
+      document.querySelectorAll('.faq-answer').forEach(a => { a.style.maxHeight = '0px'; });
       document.querySelectorAll('.faq-answer').forEach(a => {
         const prevIcon = a.previousElementSibling.querySelector('[data-lucide]');
         if(prevIcon) prevIcon.style.transform = 'rotate(0deg)';
       });
-      
       if(!isOpen){
         answer.style.maxHeight = answer.scrollHeight + 'px';
         icon.style.transform = 'rotate(180deg)';
@@ -661,47 +894,30 @@
     function observeAnimations(){
       const observer = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
-          if(entry.isIntersecting){
-            entry.target.classList.add('visible');
-          }
+          if(entry.isIntersecting) entry.target.classList.add('visible');
         });
       }, { threshold: 0.1 });
-      
       document.querySelectorAll('.anim-up, .anim-scale, .stat-bar, .step-line').forEach(el => {
         observer.observe(el);
       });
     }
 
-    // Initialize
     document.addEventListener('DOMContentLoaded', () => {
-      // Set logo images
-      document.querySelectorAll('.brand-logo-img').forEach(img => {
-        img.src = LOGO;
-      });
-      
-      // Render dynamic content
+      document.querySelectorAll('.brand-logo-img').forEach(img => { img.src = LOGO; });
       renderChart();
       renderFeatures();
       renderSteps();
       renderStats();
       renderTestimonials();
       renderFAQ();
-      
-      // Initialize animations
       observeAnimations();
-      
-      // Initialize Lucide icons
       lucide.createIcons();
-      
-      // Scroll progress bar
       window.addEventListener('scroll', () => {
         const scrollTop = document.documentElement.scrollTop;
         const scrollHeight = document.documentElement.scrollHeight - document.documentElement.clientHeight;
         const progress = (scrollTop / scrollHeight) * 100;
         document.getElementById('scroll-progress').style.width = progress + '%';
       });
-      
-      // Cursor glow effect
       document.addEventListener('mousemove', (e) => {
         const glow = document.getElementById('cursor-glow');
         glow.style.left = e.clientX + 'px';
