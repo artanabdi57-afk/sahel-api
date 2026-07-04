@@ -426,210 +426,288 @@
         's1t':'أدخل اسمك ورقم هاتفك','s1b':'هذا كل ما يطلبه ساهل. بدون بريد إلكتروني، بدون كلمة مرور.','s2t':'اكتب اسم المنتج وسعره','s2b':'أضف منتجاً واحداً وابدأ البيع. لا تحتاج لإعداد كل شيء مرة واحدة.','s3t':'اضغط لتسجيل عملية بيع','s3b':'عندما يشتري عميل شيئاً، اختر المنتج واضغط بيع. ساهل يحدّث مخزونك وإيراداتك تلقائياً.',
         'st1':'متجر يستخدم ساهل','st2':'إيرادات متتبعة شهرياً','st3':'وقت التشغيل','st4':'تقييم المستخدمين',
         'testimonials.eyebrow':'من مستخدمينا','testimonials.title':'ماذا يقول أصحاب المتاجر عن ساهل',
-        't1q':'"كنا نخسر المال لأننا كنا ننسى من دفع ومن لم يدفع عبر ثلاثة فروع. ساهل حلّ هذه المشكلة. الآن كل عملية بيع وكل دين مسجّل. استرددنا 1,800 دولار في الشهر الأول."','t2q':'"لدينا 350 موديل جهاز منزلي. عد المخزون على الورق كان مستحيلاً. ساهل يتتبع كل شيء. دقة المخزون انتقلت من التخمين إلى شبه الكمال."','t3q':'"مخزون الأزياء يتغير كل موسم. قبل ساهل، كنت أطلب بناءً على الحدس. الآن أطلب بناءً على ما يُباع فعلاً. تحسنت هوامش ربحي."',
-        'faq.eyebrow':'أسئلة شائعة','faq.title':'إجابات على الأسئلة الشائعة',
-        'fq1':'هل ساهل مجاني؟','fa1':'نعم. تسجيل المبيعات وتتبع المخزون وقائمة ديون العملاء مجاني وسيبقى مجانياً.','fq2':'هل يعمل بدون إنترنت؟','fa2':'نعم. كل عملية بيع وتحديث مخزون يُحفظ على هاتفك أولاً. عندما يتصل هاتفك بالإنترنت مرة أخرى، يتزامن كل شيء تلقائياً.','fq3':'هل يمكن لموظفيّ استخدامه؟','fa3':'نعم. تنشئ حسابات لموظفيك. يمكنهم تسجيل المبيعات، لكنك أنت فقط ترى الصورة المالية الكاملة.','fq4':'هل بياناتي آمنة؟','fa4':'بياناتك مشفرة ومخزنة بأمان. أنت فقط يمكنك الوصول إلى سجلات عملك.',
-        'cta.eyebrow':'مجاني للبدء','cta.title':'توقف عن خسارة المال بسبب الديون المنسية والسجلات الفوضوية.','cta.sub':'تواصل معنا عبر واتساب الآن على +252 624 407 283 وسنُعدّك في دقائق.','cta.button':'تواصل معنا عبر واتساب','cta.secondary':'شاهد المميزات',
-        'footer.desc':'ساهل يسجّل مبيعاتك، يدير مخزونك، ويتتبع من لك عنده دين — من هاتفك، بالصومالية والإنجليزية والعربية.','footer.product':'المنتج','footer.feat':'المميزات','footer.how':'كيف يعمل','footer.support':'الدعم','footer.help':'أسئلة شائعة','footer.contact':'تواصل عبر واتساب','footer.tagline':'صُنع لأصحاب المتاجر، من أصحاب المتاجر.',
-        'chart.sales':'المبيعات','chart.transactions':'العمليات',
-        'days':['الإثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت','الأحد'],
-      },
+        't1q':'"كنا نخسر المال لأننا كنا ننسى من دفع ومن لم يدفع عبر ثلاثة فروع. ساهل حلّ هذه المشكلة. الآن كل عملية بيع وكل دين مسجّل. استرددنا 1,800 دولار في الشهر الأول."','t2q':'"لدينا 350 موديل جهاز منزلي. عد المخزون على الورق كان مستحيلاً. ساهل يتتبع كل شيء. دقة المخزون انتقلت من التخمين إلى شبه الكمال، وقللنا المخزون الزائد بنسبة 30%."','t3q':'"مخزون الأزياء يتغير كل موسم. قبل ساهل، كنت أطلب بناءً على الحدس. الآن أطلب بناءً على ما يباع فعلاً. تحسنت هامش الربح لأنني توقفت عن شراء الأشياء التي لا تتحرك."',
+        'faq.eyebrow':'أسئلة شائعة','faq.title':'إجابات على الأسئلة التي يطرحها الناس علينا',
+        'fq1':'هل ساهل مجاني؟','fa1':'نعم. تسجيل المبيعات وتتبع المخزون وإعداد قائمة ديون العملاء مجاني وسيبقى مجانياً.','fq2':'هل يعمل بدون إنترنت؟','fa2':'نعم. كل عملية بيع وتحديث المخزون يتم حفظه على هاتفك أولاً. عندما يتصل هاتفك بالإنترنت مرة أخرى، يتم المزامنة تلقائياً.','fq3':'هل يمكن لموظفي استخدامها؟','fa3':'نعم. تقوم بإنشاء حسابات لموظفيك. يمكنهم تسجيل المبيعات، ولكن أنت فقط ترى الصورة المالية الكاملة.','fq4':'هل بياناتي آمنة؟','fa4':'بياناتك مشفرة ومخزنة بشكل آمن. أنت فقط يمكنك الوصول إلى سجلات عملك.',
+        'cta.eyebrow':'مجاني للبدء','cta.title':'توقف عن خسارة المال بسبب الديون المنسية والسجلات الفوضوية.','cta.sub':'تواصل معنا عبر واتساب الآن على +252 624 407 283 وسنقوم بإعدادك في دقائق.','cta.button':'تواصل معنا عبر واتساب الآن','cta.secondary':'شاهد المميزات',
+        'footer.desc':'ساهل يسجّل مبيعاتك، يدير مخزونك، ويتتبع من لك عنده دين — من هاتفك، بالصومالية والإنجليزية والعربية.','footer.product':'المنتج','footer.feat':'المميزات','footer.how':'كيف يعمل','footer.support':'الدعم','footer.help':'الأسئلة الشائعة','footer.contact':'تواصل معنا عبر واتساب','footer.tagline':'صُنع لأصحاب المتاجر، من قبل أصحاب المتاجر.',
+        'chart.sales':'المبيعات','chart.transactions':'المعاملات',
+        'days':['الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت','الأحد'],
+      }
     };
 
-    function t(k){return T[L]?.[k]||T.en[k]||k;}
-
-    function applyTranslations(){
-      document.querySelectorAll('[data-t]').forEach(el=>{
-        const k=el.getAttribute('data-t');
-        const v=T[L]?.[k];
-        if(v!==undefined){
-          el.textContent=v;
-          if(L==='ar')el.classList.add('lang-ar');
-          else el.classList.remove('lang-ar');
-        }
-      });
-    }
+    function t(key){ return (T[L] && T[L][key]) || T.en[key] || key; }
 
     function setLang(lang){
-      L=lang;
-      applyTranslations();
-      splitText();
-      document.getElementById('lang-en').className=`lang-btn px-3.5 py-1.5 rounded-full text-xs font-bold transition-all duration-200 ${lang==='en'?'bg-ink text-cream':'text-slate-faint hover:text-ink'}`;
-      document.getElementById('lang-so').className=`lang-btn px-3.5 py-1.5 rounded-full text-xs font-bold transition-all duration-200 ${lang==='so'?'bg-ink text-cream':'text-slate-faint hover:text-ink'}`;
-      document.getElementById('lang-ar').className=`lang-btn px-3.5 py-1.5 rounded-full text-xs font-bold transition-all duration-200 lang-ar ${lang==='ar'?'bg-ink text-cream':'text-slate-faint hover:text-ink'}`;
-      document.documentElement.lang=lang;
-      document.documentElement.dir=lang==='ar'?'rtl':'ltr';
-      if(selectedBar>=0)selectBar(selectedBar);
+      L = lang;
+      document.querySelectorAll('[data-t]').forEach(el => {
+        const key = el.getAttribute('data-t');
+        if(T[L] && T[L][key]){
+          el.textContent = T[L][key];
+        }
+      });
+      document.querySelectorAll('.lang-btn').forEach(btn => {
+        btn.classList.remove('bg-ink','text-cream');
+        btn.classList.add('text-slate-faint');
+      });
+      document.getElementById('lang-'+lang).classList.add('bg-ink','text-cream');
+      document.getElementById('lang-'+lang).classList.remove('text-slate-faint');
+      
+      if(lang === 'ar'){
+        document.documentElement.classList.add('lang-ar');
+      } else {
+        document.documentElement.classList.remove('lang-ar');
+      }
+      
+      renderChart();
+      renderFeatures();
+      renderSteps();
+      renderStats();
+      renderTestimonials();
+      renderFAQ();
     }
 
-    let selectedBar=-1;
-
-    function buildChart(){
-      const c=document.getElementById('chart-container');
-      const mx=Math.max(...CHART.map(d=>d.sales));
-      CHART.forEach((d,i)=>{
-        const pct=(d.sales/mx)*100;
-        const op=.15+(i/(CHART.length-1))*.85;
-        const w=document.createElement('div');
-        w.className='chart-bar-wrap';w.dataset.index=i;
-        w.style.opacity='0';w.style.transform='translateY(20px)';
-        w.style.transition=`all .5s cubic-bezier(.22,1,.36,1) ${i*.08}s`;
-        w.innerHTML=`<div class="chart-bar-inner" style="height:${pct}%;background:#15203B;opacity:${op}"><div class="bar-tip">$${d.sales.toLocaleString()}</div></div><span class="chart-day">${d.day}</span>`;
-        w.addEventListener('click',()=>selectBar(i));
-        c.appendChild(w);
-      });
-      const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
-      svg.setAttribute('class','absolute inset-0 w-full h-full pointer-events-none');
-      svg.setAttribute('viewBox','0 0 280 200');svg.setAttribute('preserveAspectRatio','none');
-      const pts=CHART.map((d,i)=>{const x=20+(i/(CHART.length-1))*240;const y=200-(d.sales/mx)*190-5;return`${x},${y}`;}).join(' ');
-      const lp=pts.split(' ').pop();
-      svg.innerHTML=`<polyline fill="none" stroke="#F2C14E" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" points="${pts}"/><circle cx="${lp.split(',')[0]}" cy="${lp.split(',')[1]}" r="4" fill="#F2C14E"/>`;
-      c.appendChild(svg);
+    function toggleMobile(){
+      document.getElementById('mobile-menu').classList.toggle('open');
     }
 
-    function selectBar(i){
-      selectedBar=i;
-      const d=CHART[i];
-      document.querySelectorAll('.chart-bar-wrap').forEach((w,j)=>{
-        w.classList.toggle('selected',j===i);
-        const inner=w.querySelector('.chart-bar-inner');
-        if(j===i){inner.style.background='#15203B';inner.style.opacity='1';}
-        else{inner.style.opacity=.15+(j/(CHART.length-1))*.85;}
+    function showToast(msg){
+      const toast = document.getElementById('toast');
+      document.getElementById('toast-msg').textContent = msg;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 3000);
+    }
+
+    function renderChart(){
+      const container = document.getElementById('chart-container');
+      const gridLines = container.querySelector('.absolute');
+      container.innerHTML = '';
+      container.appendChild(gridLines);
+      
+      const maxSales = Math.max(...CHART.map(d => d.sales));
+      const days = t('days');
+      
+      CHART.forEach((d, i) => {
+        const height = (d.sales / maxSales) * 100;
+        const bar = document.createElement('div');
+        bar.className = 'chart-bar-wrap';
+        bar.innerHTML = `
+          <div class="bar-tip">$${d.sales.toLocaleString()}</div>
+          <div class="chart-bar-inner bg-gradient-to-t from-ink to-ink-light" style="height:${height}%"></div>
+          <span class="chart-day">${days[i] || d.day}</span>
+        `;
+        bar.addEventListener('click', () => selectDay(i));
+        container.appendChild(bar);
       });
-      const days=T[L].days||T.en.days;
-      document.getElementById('detail-day-label').textContent=d.day.toUpperCase();
-      document.getElementById('detail-day-name').textContent=days[i];
-      document.getElementById('detail-sales-label').textContent=t('chart.sales');
-      document.getElementById('detail-sales-value').textContent='$'+d.sales.toLocaleString();
-      document.getElementById('detail-tx-label').textContent=t('chart.transactions');
-      document.getElementById('detail-tx-value').textContent=d.tx;
-      document.getElementById('stat-top-product').textContent=d.product;
+      
+      updateWeekTotal();
+    }
+
+    function selectDay(index){
+      document.querySelectorAll('.chart-bar-wrap').forEach((b, i) => {
+        b.classList.toggle('selected', i === index);
+      });
+      
+      const d = CHART[index];
+      const days = t('days');
+      document.getElementById('detail-day-label').textContent = d.full.toUpperCase();
+      document.getElementById('detail-day-name').textContent = days[index] || d.full;
+      document.getElementById('detail-sales-value').textContent = `$${d.sales.toLocaleString()}`;
+      document.getElementById('detail-tx-value').textContent = d.tx;
+      document.getElementById('stat-top-product').textContent = d.product;
       document.getElementById('chart-detail').classList.add('open');
     }
 
-    function animateChart(){document.querySelectorAll('.chart-bar-wrap').forEach((b,i)=>{setTimeout(()=>{b.style.opacity='1';b.style.transform='translateY(0)';},i*80);});}
-
-    function buildFeatures(){
-      document.getElementById('features-grid').innerHTML=FEATS.map((f,i)=>`
-        <div class="anim-up ${i>0?'anim-up-delay-'+Math.min(i,5):''} card-shine tool-card group bg-white rounded-2xl border border-border p-8 hover:border-ink/20 hover:-translate-y-2 hover:shadow-2xl hover:shadow-ink/[0.08] transition-all duration-300">
-          <div class="feat-icon w-12 h-12 bg-ink rounded-2xl flex items-center justify-center mb-6"><i data-lucide="${f.icon}" class="w-5 h-5 text-gold"></i></div>
-          <h3 class="font-serif text-xl font-bold text-ink mb-3" data-t="${f.k[0]}">${t(f.k[0])}</h3>
-          <p class="text-sm text-slate-light leading-relaxed" data-t="${f.k[1]}">${t(f.k[1])}</p>
-        </div>`).join('');
+    function updateWeekTotal(){
+      const total = CHART.reduce((sum, d) => sum + d.sales, 0);
+      document.getElementById('stat-week-total').textContent = `$${total.toLocaleString()}`;
     }
 
-    function buildSteps(){
-      document.getElementById('steps-grid').innerHTML=STEPS.map((s,i)=>`
-        <div class="anim-up ${i>0?'anim-up-delay-'+i:''} relative text-center">
-          <div class="relative inline-flex items-center justify-center w-20 h-20 bg-cream rounded-3xl border-2 border-border mb-8">
-            <i data-lucide="${s.icon}" class="w-8 h-8 text-ink"></i>
-            <span class="absolute -top-3 -right-3 w-8 h-8 bg-gold text-ink rounded-full flex items-center justify-center text-sm font-extrabold shadow-lg shadow-gold/30">${s.n}</span>
+    function renderFeatures(){
+      const grid = document.getElementById('features-grid');
+      grid.innerHTML = '';
+      
+      FEATS.forEach((f, i) => {
+        const card = document.createElement('div');
+        card.className = `tool-card card-shine anim-up anim-up-delay-${Math.min(i+1, 5)} bg-white rounded-2xl border border-border p-6 hover:shadow-xl hover:shadow-ink/[0.06] transition-all duration-300`;
+        card.innerHTML = `
+          <div class="w-12 h-12 bg-gold-glow rounded-xl flex items-center justify-center mb-4">
+            <i data-lucide="${f.icon}" class="w-6 h-6 text-gold-dim feat-icon"></i>
           </div>
-          <h3 class="font-serif text-xl font-bold text-ink mb-3" data-t="${s.k[0]}">${t(s.k[0])}</h3>
-          <p class="text-sm text-slate-light leading-relaxed max-w-xs mx-auto" data-t="${s.k[1]}">${t(s.k[1])}</p>
-          ${i<STEPS.length-1?`<svg class="hidden md:block absolute top-10 left-[60%] w-[80%] h-2" viewBox="0 0 200 8"><line x1="0" y1="4" x2="200" y2="4" stroke="#EAE3D3" stroke-width="2" stroke-dasharray="8 6" class="step-line"/></svg>`:''}
-        </div>`).join('');
-    }
-
-    function buildStats(){
-      document.getElementById('stats-grid').innerHTML=STATS.map((s,i)=>`
-        <div class="anim-up ${i>0?'anim-up-delay-'+i:''} stat-bar text-center pb-4">
-          <p class="text-4xl md:text-5xl font-bold ${s.g?'text-gold':'text-cream'} font-serif mb-2">
-            <span class="counter" data-target="${s.v}" data-prefix="${s.p||''}" data-suffix="${s.s}">${s.p||''}0${s.s}</span>
-          </p>
-          <p class="text-sm text-cream/50 font-medium" data-t="${s.k}">${t(s.k)}</p>
-        </div>`).join('');
-    }
-
-    function buildTestimonials(){
-      document.getElementById('testimonials-grid').innerHTML=TESTS.map((tm,i)=>`
-        <div class="anim-up ${i>0?'anim-up-delay-'+i:''} bg-white rounded-2xl border border-border p-8 hover:shadow-xl hover:shadow-ink/[0.06] hover:-translate-y-1 transition-all duration-300">
-          <div class="flex items-center gap-1 text-gold-dim mb-5">${'<i data-lucide="star" class="w-4 h-4 fill-current"></i>'.repeat(5)}</div>
-          <p class="text-slate leading-relaxed mb-6" data-t="${tm.k}">${t(tm.k)}</p>
-          <div class="flex items-center gap-3 pt-5 border-t border-border">
-            <img src="https://picsum.photos/seed/${tm.img}/48/48.jpg" class="w-11 h-11 rounded-full object-cover" alt="" />
-            <div><p class="text-sm font-bold text-ink">${tm.name}</p><p class="text-xs text-slate-faint">${tm.loc}</p></div>
-          </div>
-        </div>`).join('');
-    }
-
-    function buildFAQ(){
-      document.getElementById('faq-list').innerHTML=FAQS.map((f,i)=>`
-        <div class="anim-up ${i>0?'anim-up-delay-'+i:''} faq-item bg-white rounded-2xl border border-border overflow-hidden transition-all duration-300 hover:border-ink/10">
-          <button onclick="toggleFaq(this)" class="w-full flex items-center justify-between px-6 py-5 text-left group">
-            <span class="text-sm font-bold text-ink pr-4 group-hover:text-ink-light transition-colors" data-t="${f.qk}">${t(f.qk)}</span>
-            <i data-lucide="chevron-down" class="w-5 h-5 text-slate-faint flex-shrink-0 transition-transform duration-300 faq-chevron"></i>
-          </button>
-          <div class="faq-answer"><p class="px-6 pb-5 text-sm text-slate-light leading-relaxed" data-t="${f.ak}">${t(f.ak)}</p></div>
-        </div>`).join('');
-    }
-
-    function toggleFaq(btn){
-      const item=btn.closest('.faq-item');
-      const ans=item.querySelector('.faq-answer');
-      const chev=item.querySelector('.faq-chevron');
-      const isOpen=ans.style.maxHeight&&ans.style.maxHeight!=='0px';
-      document.querySelectorAll('.faq-answer').forEach(a=>a.style.maxHeight='0px');
-      document.querySelectorAll('.faq-chevron').forEach(c=>c.style.transform='rotate(0deg)');
-      document.querySelectorAll('.faq-item').forEach(i=>{i.classList.remove('border-ink/20');i.classList.add('border-border');});
-      if(!isOpen){ans.style.maxHeight=ans.scrollHeight+'px';chev.style.transform='rotate(180deg)';item.classList.remove('border-border');item.classList.add('border-ink/20');}
-    }
-
-    function animateCounters(){
-      document.querySelectorAll('.counter').forEach(el=>{
-        if(el.dataset.done)return;const tgt=parseFloat(el.dataset.target);const pre=el.dataset.prefix||'';const suf=el.dataset.suffix||'';const fl=tgt%1!==0;const dur=2000;const st=performance.now();el.dataset.done='1';
-        function tk(n){const e=n-st;const p=Math.min(e/dur,1);const ea=1-Math.pow(1-p,4);const c=tgt*ea;el.textContent=pre+(fl?c.toFixed(1):Math.floor(c).toLocaleString())+suf;if(p<1)requestAnimationFrame(tk);}
-        requestAnimationFrame(tk);
+          <h3 class="text-lg font-bold text-ink mb-2">${t(f.k[0])}</h3>
+          <p class="text-sm text-slate-light leading-relaxed">${t(f.k[1])}</p>
+        `;
+        grid.appendChild(card);
       });
-    }
-
-    function splitText(){
-      const el=document.getElementById('hero-headline');
-      const txt=t('hero.headline');el.innerHTML='';let ci=0;
-      for(const ch of txt){const s=document.createElement('span');s.className='split-char';s.style.animationDelay=(ci*.018+.3)+'s';s.textContent=ch===' '?'\u00A0':ch;el.appendChild(s);ci++;}
-    }
-
-    function showToast(m){const el=document.getElementById('toast');document.getElementById('toast-msg').textContent=m;el.classList.add('show');setTimeout(()=>el.classList.remove('show'),3000);}
-    function toggleMobile(){document.getElementById('mobile-menu').classList.toggle('open');}
-
-    const cg=document.getElementById('cursor-glow');let mx=0,my=0,gx=0,gy=0;
-    document.addEventListener('mousemove',e=>{mx=e.clientX;my=e.clientY;});
-    function ug(){gx+=(mx-gx)*.08;gy+=(my-gy)*.08;cg.style.left=gx+'px';cg.style.top=gy+'px';requestAnimationFrame(ug);}ug();
-
-    document.addEventListener('mousemove',e=>{
-      document.querySelectorAll('.mag-btn').forEach(btn=>{
-        const r=btn.getBoundingClientRect();const cx=r.left+r.width/2;const cy=r.top+r.height/2;
-        const dx=(e.clientX-cx)/r.width;const dy=(e.clientY-cy)/r.height;const d=Math.sqrt(dx*dx+dy*dy);
-        if(d<1.5)btn.style.transform=`translate(${dx*4}px,${dy*4}px)`;else btn.style.transform='';
-      });
-    });
-
-    window.addEventListener('scroll',()=>{
-      const h=document.documentElement;
-      document.getElementById('scroll-progress').style.width=((h.scrollTop/(h.scrollHeight-h.clientHeight))*100)+'%';
-      const nb=document.getElementById('navbar');
-      if(window.scrollY>20){nb.style.borderBottom='1px solid #EAE3D3';nb.style.boxShadow='0 4px 20px rgba(21,32,59,0.06)';}
-      else{nb.style.borderBottom='none';nb.style.boxShadow='none';}
-    });
-
-    const obs=new IntersectionObserver(entries=>{
-      entries.forEach(e=>{if(e.isIntersecting){e.target.classList.add('visible');if(e.target.closest('#stats-section'))animateCounters();e.target.querySelectorAll('.step-line').forEach(l=>l.classList.add('visible'));}});
-    },{threshold:.15,rootMargin:'0px 0px -30px 0px'});
-
-    function init(){
-      document.getElementById('favicon').href=LOGO;
-      document.querySelectorAll('.brand-logo-img').forEach(img=>img.src=LOGO);
-      buildChart();buildFeatures();buildSteps();buildStats();buildTestimonials();buildFAQ();splitText();
-      const total=CHART.reduce((s,d)=>s+d.sales,0);
-      document.getElementById('stat-week-total').textContent='$'+total.toLocaleString();
+      
       lucide.createIcons();
-      setTimeout(()=>{
-        document.querySelectorAll('.anim-up, .anim-scale, .stat-bar').forEach(el=>obs.observe(el));
-        animateChart();
-      },50);
+      observeAnimations();
     }
 
-    document.addEventListener('DOMContentLoaded',init);
+    function renderSteps(){
+      const grid = document.getElementById('steps-grid');
+      grid.innerHTML = '';
+      
+      STEPS.forEach((s, i) => {
+        const step = document.createElement('div');
+        step.className = `anim-up anim-up-delay-${i+1} text-center`;
+        step.innerHTML = `
+          <div class="relative inline-flex items-center justify-center w-20 h-20 bg-gold-glow rounded-2xl mb-6">
+            <i data-lucide="${s.icon}" class="w-9 h-9 text-gold-dim"></i>
+            <div class="absolute -top-2 -right-2 w-8 h-8 bg-ink rounded-lg flex items-center justify-center text-sm font-bold text-cream">${s.n}</div>
+          </div>
+          <h3 class="text-lg font-bold text-ink mb-2">${t(s.k[0])}</h3>
+          <p class="text-sm text-slate-light leading-relaxed max-w-xs mx-auto">${t(s.k[1])}</p>
+          ${i < STEPS.length - 1 ? '<div class="hidden md:block absolute top-10 left-[60%] w-[80%] h-0.5 bg-border-dark"></div>' : ''}
+        `;
+        step.style.position = 'relative';
+        grid.appendChild(step);
+      });
+      
+      lucide.createIcons();
+      observeAnimations();
+    }
+
+    function renderStats(){
+      const grid = document.getElementById('stats-grid');
+      grid.innerHTML = '';
+      
+      STATS.forEach((s, i) => {
+        const stat = document.createElement('div');
+        stat.className = `stat-bar anim-up anim-up-delay-${i+1} text-center`;
+        stat.innerHTML = `
+          <p class="text-4xl md:text-5xl font-bold ${s.g ? 'text-gold' : 'text-cream'} mb-2">${s.p || ''}${s.v.toLocaleString()}${s.s}</p>
+          <p class="text-sm text-cream/50">${t(s.k)}</p>
+        `;
+        grid.appendChild(stat);
+      });
+      
+      observeAnimations();
+    }
+
+    function renderTestimonials(){
+      const grid = document.getElementById('testimonials-grid');
+      grid.innerHTML = '';
+      
+      TESTS.forEach((test, i) => {
+        const card = document.createElement('div');
+        card.className = `anim-up anim-up-delay-${i+1} bg-white rounded-2xl border border-border p-6 hover:shadow-lg transition-shadow duration-300`;
+        card.innerHTML = `
+          <div class="flex items-center gap-3 mb-4">
+            <img src="https://picsum.photos/seed/${test.img}/48/48.jpg" class="w-12 h-12 rounded-full object-cover" alt="${test.name}" />
+            <div>
+              <p class="font-bold text-ink">${test.name}</p>
+              <p class="text-xs text-slate-faint">${test.loc}</p>
+            </div>
+          </div>
+          <p class="text-sm text-slate-light leading-relaxed">${t(test.k)}</p>
+          <div class="flex items-center gap-1 mt-4 text-gold-dim">
+            <i data-lucide="star" class="w-3.5 h-3.5 fill-current"></i>
+            <i data-lucide="star" class="w-3.5 h-3.5 fill-current"></i>
+            <i data-lucide="star" class="w-3.5 h-3.5 fill-current"></i>
+            <i data-lucide="star" class="w-3.5 h-3.5 fill-current"></i>
+            <i data-lucide="star" class="w-3.5 h-3.5 fill-current"></i>
+          </div>
+        `;
+        grid.appendChild(card);
+      });
+      
+      lucide.createIcons();
+      observeAnimations();
+    }
+
+    function renderFAQ(){
+      const list = document.getElementById('faq-list');
+      list.innerHTML = '';
+      
+      FAQS.forEach((faq, i) => {
+        const item = document.createElement('div');
+        item.className = 'bg-white rounded-xl border border-border overflow-hidden';
+        item.innerHTML = `
+          <button class="w-full flex items-center justify-between p-5 text-left hover:bg-cream-dark/50 transition-colors" onclick="toggleFAQ(this)">
+            <span class="font-bold text-ink pr-4">${t(faq.qk)}</span>
+            <i data-lucide="chevron-down" class="w-5 h-5 text-slate-faint flex-shrink-0 transition-transform duration-300"></i>
+          </button>
+          <div class="faq-answer">
+            <p class="px-5 pb-5 text-sm text-slate-light leading-relaxed">${t(faq.ak)}</p>
+          </div>
+        `;
+        list.appendChild(item);
+      });
+      
+      lucide.createIcons();
+    }
+
+    function toggleFAQ(btn){
+      const answer = btn.nextElementSibling;
+      const icon = btn.querySelector('[data-lucide]');
+      const isOpen = answer.style.maxHeight && answer.style.maxHeight !== '0px';
+      
+      // Close all other FAQs
+      document.querySelectorAll('.faq-answer').forEach(a => {
+        a.style.maxHeight = '0px';
+      });
+      document.querySelectorAll('.faq-answer').forEach(a => {
+        const prevIcon = a.previousElementSibling.querySelector('[data-lucide]');
+        if(prevIcon) prevIcon.style.transform = 'rotate(0deg)';
+      });
+      
+      if(!isOpen){
+        answer.style.maxHeight = answer.scrollHeight + 'px';
+        icon.style.transform = 'rotate(180deg)';
+      }
+    }
+
+    function observeAnimations(){
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if(entry.isIntersecting){
+            entry.target.classList.add('visible');
+          }
+        });
+      }, { threshold: 0.1 });
+      
+      document.querySelectorAll('.anim-up, .anim-scale, .stat-bar, .step-line').forEach(el => {
+        observer.observe(el);
+      });
+    }
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', () => {
+      // Set logo images
+      document.querySelectorAll('.brand-logo-img').forEach(img => {
+        img.src = LOGO;
+      });
+      
+      // Render dynamic content
+      renderChart();
+      renderFeatures();
+      renderSteps();
+      renderStats();
+      renderTestimonials();
+      renderFAQ();
+      
+      // Initialize animations
+      observeAnimations();
+      
+      // Initialize Lucide icons
+      lucide.createIcons();
+      
+      // Scroll progress bar
+      window.addEventListener('scroll', () => {
+        const scrollTop = document.documentElement.scrollTop;
+        const scrollHeight = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+        const progress = (scrollTop / scrollHeight) * 100;
+        document.getElementById('scroll-progress').style.width = progress + '%';
+      });
+      
+      // Cursor glow effect
+      document.addEventListener('mousemove', (e) => {
+        const glow = document.getElementById('cursor-glow');
+        glow.style.left = e.clientX + 'px';
+        glow.style.top = e.clientY + 'px';
+      });
+    });
   </script>
 </body>
 </html>
