@@ -20,6 +20,7 @@ const t = (key) => ({
   remaining: "Remaining",
   debtHistory: "Debt History",
   payThis: "Pay item",
+  payFullThis: "Pay off item",
   payment: "Payment",
   totalBalance: "Total Balance Due",
   partialPay: "Partial Payment",
@@ -47,7 +48,12 @@ const formatDT = (v) => {
     month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit"
   });
 };
-const remainingOf = (item) => Math.max(0, Number(item.amount_owed || 0) - Number(item.total_paid || 0));
+// Round to cents everywhere money is calculated so floating point dust
+// (e.g. 49.990000000000002) never causes a payment to fall a fraction
+// of a cent short of "fully paid".
+const roundMoney = (n) => Math.round((Number(n) || 0) * 100) / 100;
+const remainingOf = (item) =>
+  Math.max(0, roundMoney(Number(item.amount_owed || 0) - Number(item.total_paid || 0)));
 
 // --- COMPONENTS ---
 function SummaryCard({ label, value, icon: Icon, colorClass }) {
@@ -95,16 +101,21 @@ function PaymentModal({ paymentTarget, onClose, onSuccess }) {
   const targetItems = creditId
     ? customer.items.filter(i => i.id === creditId)
     : customer.items;
-  const maxRemaining = targetItems.reduce((s, i) => s + remainingOf(i), 0);
+  const maxRemaining = roundMoney(targetItems.reduce((s, i) => s + remainingOf(i), 0));
 
-  const [amount, setAmount] = useState(mode === "full" ? String(maxRemaining) : "");
+  // Pre-fill the remaining balance for BOTH modes. Previously only "full"
+  // mode pre-filled the amount, so paying off the rest of an
+  // already-partially-paid item via "Pay this" opened with a blank field.
+  // Hitting Confirm with nothing typed silently failed validation, which
+  // looked like the button doing nothing.
+  const [amount, setAmount] = useState(String(maxRemaining));
   const [paymentMethod, setPaymentMethod] = useState("cash");
   const [notes, setNotes] = useState("");
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   const handleSubmit = async () => {
-    const value = Number(amount);
+    const value = roundMoney(amount);
     if (!value || value <= 0) {
       setError(t("amountRequired"));
       return;
@@ -124,18 +135,22 @@ function PaymentModal({ paymentTarget, onClose, onSuccess }) {
         if (remainingToApply <= 0) break;
         const itemRemaining = remainingOf(item);
         if (itemRemaining <= 0) continue;
-        const portion = Math.min(itemRemaining, remainingToApply);
+        const portion = roundMoney(Math.min(itemRemaining, remainingToApply));
         const clearsItem = portion >= itemRemaining - 0.01;
         const endpoint = clearsItem ? `/credits/${item.id}/paid` : `/credits/${item.id}/partial`;
+        // When we're clearing the item, send its exact remaining balance
+        // rather than the (possibly rounded/typed) portion, so the
+        // backend's own math can't leave a fractional-cent balance behind.
+        const amountToSend = clearsItem ? itemRemaining : portion;
         await apiRequest(endpoint, {
           method: "PUT",
           body: JSON.stringify({
-            amount_paid: portion,
+            amount_paid: amountToSend,
             payment_method: paymentMethod,
             notes: notes.trim(),
           }),
         });
-        remainingToApply -= portion;
+        remainingToApply = roundMoney(remainingToApply - portion);
       }
       onSuccess();
     } catch (err) {
@@ -194,7 +209,11 @@ function PaymentModal({ paymentTarget, onClose, onSuccess }) {
           />
         </div>
 
-        {error && <p className="text-orange-600 text-xs font-bold">{error}</p>}
+        {error && (
+          <p className="text-orange-700 text-xs font-black bg-orange-50 border border-orange-200 rounded-xl px-3 py-2 flex items-center gap-2">
+            <AlertTriangle size={14} /> {error}
+          </p>
+        )}
 
         <div className="flex gap-3 pt-2">
           <button
@@ -483,10 +502,10 @@ export default function Credits() {
                             <p className="font-black text-slate-900">{formatMoney(remainingOf(item))}</p>
                             {remainingOf(item) > 0 && (
                               <button
-                                onClick={() => setPaymentTarget({ customer, mode: "partial", creditId: item.id })}
+                                onClick={() => setPaymentTarget({ customer, mode: "full", creditId: item.id })}
                                 className="text-[10px] font-black text-orange-500 hover:text-orange-700 uppercase mt-1"
                               >
-                                {t("payThis")}
+                                {t("payFullThis")}
                               </button>
                             )}
                           </div>
@@ -538,6 +557,10 @@ export default function Credits() {
       {/* MODALS */}
       {paymentTarget && (
         <PaymentModal
+          // Force a clean remount whenever the target changes, so the
+          // amount field always initializes from the current remaining
+          // balance instead of any leftover state.
+          key={`${paymentTarget.mode}-${paymentTarget.creditId || ""}-${paymentTarget.customer.key}`}
           paymentTarget={paymentTarget}
           onClose={() => setPaymentTarget(null)}
           onSuccess={handlePaymentSuccess}
