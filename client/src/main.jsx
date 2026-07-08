@@ -23,6 +23,8 @@ const Landing = lazy(() => import("./pages/Landing.jsx"));
 const StaffLogin = lazy(() => import("./pages/StaffLogin.jsx"));
 const ForgotPassword = lazy(() => import("./pages/ForgotPassword.jsx"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword.jsx"));
+const Blog = lazy(() => import("./pages/Blog.jsx"));
+const BlogPost = lazy(() => import("./pages/BlogPost.jsx"));
 function lazyPage(element, variant = "route") {
   return <Suspense fallback={<LoadingState variant={variant} />}>{element}</Suspense>;
 }
@@ -36,6 +38,8 @@ if (savedSettings) {
 }
 const router = createBrowserRouter([
   { path: "/welcome", element: lazyPage(<Landing />) },
+  { path: "/blog", element: lazyPage(<Blog />) },
+  { path: "/blog/:slug", element: lazyPage(<BlogPost />) },
   { path: "/login", element: lazyPage(<AuthPage mode="login" />) },
   { path: "/signup", element: lazyPage(<AuthPage mode="signup" />) },
   { path: "/admin", element: lazyPage(<Admin />) },
