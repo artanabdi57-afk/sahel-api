@@ -1,4 +1,3 @@
-cat > src/data/blogPosts.js << 'EOF'
 export const topics = [
   {
     slug: "starting-a-business",
@@ -102,4 +101,3 @@ export const blogPosts = topics.flatMap((topic) =>
     topic: topic.label,
   }))
 );
-EOF
