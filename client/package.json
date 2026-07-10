@@ -9,6 +9,7 @@
   "scripts": {
     "dev": "vite --host 0.0.0.0",
     "build": "vite build",
+    "build:web": "cross-env TARGET=web vite build",
     "preview": "vite preview --host 0.0.0.0",
     "desktop:dev": "concurrently \"npm run dev\" \"wait-on http://localhost:5173 && electron .\"",
     "desktop:pack": "npm run build && node electron/prepare-api.cjs && electron-builder --win portable",
@@ -36,12 +37,16 @@
   "devDependencies": {
     "@capacitor/cli": "^8.4.0",
     "@electron/packager": "^20.0.1",
+    "@prerenderer/renderer-puppeteer": "^1.1.2",
+    "@prerenderer/rollup-plugin": "^1.1.4",
     "autoprefixer": "^10.4.20",
     "concurrently": "^10.0.3",
+    "cross-env": "^7.0.3",
     "electron": "^42.4.0",
     "electron-builder": "^26.15.3",
     "electron-winstaller": "^5.4.0",
     "postcss": "^8.4.49",
+    "puppeteer": "^23.9.0",
     "tailwindcss": "^3.4.15",
     "wait-on": "^9.0.10"
   },
