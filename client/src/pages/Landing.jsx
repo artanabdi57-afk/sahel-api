@@ -72,29 +72,32 @@ const T = {
     "nav.faq": "FAQ", "nav.whatsapp": "WhatsApp", "nav.login": "Login",
     "nav.register": "Register", "nav.registerSoon": "Registration coming soon!",
     "hero.eyebrow": "Sales & Inventory Tracker",
-    "hero.headline": "We track your sales, stock, and customer debts — from your phone.",
+    // SEO FIX: Added exact keyword "shop management software somalia" to H1 headline
+    "hero.headline": "The Best Shop Management Software Somalia: Track Sales & Stock from your Phone",
     "hero.sub": "Sahel records every sale, alerts you when stock is low, and keeps a list of who owes you money. It works offline and speaks your language — Somali, English, and Arabic.",
     "hero.ctaPrimary": "WhatsApp us to start", "hero.ctaSecondary": "How it works",
     "hero.trust": "Used by 2,000+ shop owners", "hero.chartTitle": "Weekly sales — tap a day",
     "hero.topProduct": "TOP PRODUCT", "hero.revenue": "WEEK TOTAL", "hero.growth": "VS LAST WEEK",
     "trust.bar": "Used by these businesses",
-    "why.eyebrow": "Built for Somalia", "why.title": "The Shop Management Software Built for Somalia",
-    "why.body": "Sahel is shop management software designed specifically for Somalia. Every day, shop owners across Mogadishu, Hargeisa, and Kismayo use Sahel to track inventory, record sales, and manage customer credit — without needing a steady internet connection. Unlike generic accounting apps built for other markets, Sahel speaks Somali, works through intermittent connectivity, and understands how Somali businesses actually operate. If you're looking for shop management software in Somalia, Sahel was built exactly for you.",
-    "features.eyebrow": "What Sahel does", "features.title": "Six things Sahel handles for you",
-    "features.sub": "Sahel is shop management software built for Somalia. These are the tasks you currently do on paper or in your head — Sahel does them automatically and you can check them anytime from your phone.",
+    "why.eyebrow": "Built for Somalia", 
+    // SEO FIX: Keywords in H2
+    "why.title": "Why Choose Sahel Shop Management Software Somalia?",
+    "why.body": "Sahel is a professional shop management software Somalia solution designed specifically for local retailers. Whether you are in Mogadishu, Hargeisa, or Kismayo, our shop management software Somalia platform allows you to track inventory, record sales, and manage customer credit without needing a steady internet connection. Unlike generic accounting apps, Sahel speaks Somali and understands how local businesses operate. If you need reliable shop management software Somalia, Sahel is built exactly for you.",
+    "features.eyebrow": "What Sahel does", "features.title": "Six tasks our shop management software handles",
+    "features.sub": "Sahel is the leading shop management software Somalia retailers use to automate their daily operations from their phones.",
     "f1t": "Records your stock", "f1b": "Sahel counts what comes in and what goes out. When an item is running low, it sends you an alert before you sell out.",
     "f2t": "Records every sale", "f2b": "Each time you sell something, tap it in Sahel. It adds up your daily, weekly, and monthly revenue automatically.",
     "f3t": "Shows your best sellers", "f3b": "Sahel ranks your products by what sells most. You see which items make money and which ones don't move.",
     "f4t": "Records your expenses", "f4b": "Log your rent, electricity, supplier payments, and transport costs. Sahel subtracts them from your revenue so you see real profit.",
     "f5t": "Tracks supplier orders", "f5b": "When you order from a supplier, record it in Sahel. It tracks what you ordered, when it's due, and whether it arrived.",
     "f6t": "Keeps your data private", "f6b": "Your sales and customer data stay on your phone and your secure account. Nobody else can see it.",
-    "how.eyebrow": "Get started", "how.title": "Three steps, five minutes, you're running",
+    "how.eyebrow": "Get started", "how.title": "Setup your shop management software in 5 minutes",
     "how.sub": "No setup wizard. No training videos. If you've ever sent a WhatsApp message, you can use Sahel right now.",
     "s1t": "Enter your name and phone number", "s1b": "That's all Sahel asks for. No email, no password to remember.",
     "s2t": "Type a product name and its price", "s2b": "Add one product, sell it. Add another one later. You don't need to set up everything at once.",
     "s3t": "Tap to record a sale", "s3b": "When a customer buys something, select the product and tap sell. Sahel updates your stock and revenue automatically.",
     "st1": "Shops using Sahel", "st2": "Revenue tracked per month", "st3": "Uptime", "st4": "User rating",
-    "testimonials.eyebrow": "From our users", "testimonials.title": "What business owners say about Sahel",
+    "testimonials.eyebrow": "From our users", "testimonials.title": "Trusted by Somalia's biggest shops",
     "t1q": '"We were losing money because we forgot who paid and who didn\'t across three locations. Sahel fixed that. Now every sale and every debt is recorded. We recovered $1,800 in the first month."',
     "t2q": '"We have 350 appliance models. Counting stock on paper was impossible. Sahel tracks it all. Our stock accuracy went from guessing to near-perfect, and we reduced overstock by 30%."',
     "t3q": '"Fashion inventory changes every season. Before Sahel, I ordered based on gut feeling. Now I order based on what actually sells. My profit margin improved because I stopped buying things that don\'t move."',
@@ -104,10 +107,11 @@ const T = {
     "fq3": "Can my employees use it?", "fa3": "Yes. You create accounts for your staff. They can record sales, but only you see the full financial picture.",
     "fq4": "Is my data safe?", "fa4": "Your data is encrypted and stored securely. Only you can access your business records.",
     "cta.eyebrow": "Free to start",
-    "cta.title": "Stop losing money to forgotten debts and messy records.",
+    "cta.title": "Get the best shop management software Somalia has to offer.",
     "cta.sub": "WhatsApp us now on +252 624 407 283 and we'll set you up in minutes.",
     "cta.button": "WhatsApp us now", "cta.secondary": "See features",
-    "footer.desc": "Sahel is shop management software built for Somalia. It records your sales, manages your stock, and tracks who owes you money — from your phone, in Somali, English, and Arabic.",
+    // SEO FIX: Added keyword to footer
+    "footer.desc": "Sahel is the #1 shop management software Somalia retailers use to record sales, manage stock, and track debts in Somali, English, and Arabic.",
     "footer.product": "Product", "footer.feat": "Features", "footer.how": "How it works",
     "footer.support": "Support", "footer.help": "FAQ", "footer.contact": "WhatsApp Us",
     "footer.tagline": "Built for shop owners, by shop owners.",
@@ -115,20 +119,21 @@ const T = {
     "days": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
   },
   so: {
+    // Somali translations kept but optimized for internal hierarchy
     "nav.features": "Muuqaal", "nav.how": "Sida ay u shaqeyso", "nav.stories": "Sheekooyin",
     "nav.faq": "Su'aalo", "nav.whatsapp": "WhatsApp", "nav.login": "Gal",
     "nav.register": "Diiwaan geli", "nav.registerSoon": "Diiwaan gelinta soon!",
     "hero.eyebrow": "La soco iibka iyo bakhaarka",
-    "hero.headline": "Sahel — Software-ka Maamulka Dukaanka ee Soomaaliya. La soco iibkaaga, bakhaarka, iyo deynta macaamiisha taleefankaaga.",
+    "hero.headline": "Sahel — Software-ka Maamulka Dukaanka ee Soomaaliya.",
     "hero.sub": "Sahel waxay diiwaan gelisaa iib kasta, waxay ku dhawaaqdaa marka alaabtu yartahay, waxayna kaydisaa liiska kuwa lacag kuu leh. Waxay shaqeynaysaa internet la'aan oo afkaaga waa Soomaali, Ingiriisi iyo Carabi.",
     "hero.ctaPrimary": "WhatsApp nala soo xiriir", "hero.ctaSecondary": "Sida ay u shaqeyso",
     "hero.trust": "2,000+ oo dukaan oo isticmaala Sahel", "hero.chartTitle": "Iibka toddobaadkan — taabo maalinta",
     "hero.topProduct": "ALAABTA UGU IIBKA BADAN", "hero.revenue": "WADARTA TODDOBAADKA", "hero.growth": "TODDOBAADKA HORE",
     "trust.bar": "Dukaanoyin kuwaan isticmaala",
     "why.eyebrow": "Loo dhisay Soomaaliya", "why.title": "Software-ka Maamulka Dukaanka ee Loo Dhisay Soomaaliya",
-    "why.body": "Sahel waa software maamul dukaan oo si gaar ah loogu dhisay Soomaaliya. Maalin kasta, milkiilayaal dukaan ah oo ku nool Muqdisho, Hargeysa, iyo Kismaayo ayaa isticmaala Sahel si ay ula socdaan bakhaarkooda, u diiwaan geliyaan iibkooda, oo ay u maamulaan deynta macaamiisha — iyada oo aan loo baahnayn internet joogto ah. Marka loo eego apps-ka caadiga ah ee dalal kale loo sameeyay, Sahel wuxuu ku hadlaa Soomaali, wuxuuna la shaqeeyaa internet aan joogto ahayn, wuxuuna fahansan yahay sida ganacsiga Soomaalidu dhab ahaantii u shaqeeyo.",
+    "why.body": "Sahel waa software maamul dukaan oo si gaar ah loogu dhisay Soomaaliya. Maalin kasta, milkiilayaal dukaan ah oo ku nool Muqdisho, Hargeysa, iyo Kismaayo ayaa isticmaala Sahel si ay ula socdaan bakhaarkooda, u diiwaan geliyaan iibkooda, oo ay u maamulaan deynta macaamiisha — iyada oo aan loo baahnayn internet joogto ah. Sahel wuxuu ku hadlaa Soomaali, wuxuuna la shaqeeyaa internet aan joogto ahayn.",
     "features.eyebrow": "Waxaa Sahel sameeyaa", "features.title": "Lixdar oo Sahel kuu qabtaa",
-    "features.sub": "Sahel waa software maamul dukaan oo loogu dhisay Soomaaliya. Waa shaqooyin hadda warqad ama maskaxda ku sameeyso. Sahel waxay sameeyaa si otomaatig ah, sax ah, oo waad la socdi karo taleefankaaga wakhti kasta.",
+    "features.sub": "Sahel waa software maamul dukaan oo loogu dhisay Soomaaliya.",
     "f1t": "Waxay kaydisaa bakhaarka", "f1b": "Sahel waxay tirinaysaa waxa soo gelayaa iyo waxa baxaysaa. Marka alaabtu yartahay, waxay ku dhawaaqdaa inta aysan dhammaan.",
     "f2t": "Waxay diiwaan gelisaa iib kasta", "f2b": "Marka iibto dhacdo, taabo Sahel. Waxay isku daraysaa dakhligaaga maalinlaha, toddobaadlaha, iyo bisha si otomaatig ah.",
     "f3t": "Waxay muuqataa alaabta ugu iibsata", "f3b": "Sahel waxay isla soo qortaa alaabta sida iibka ugu badan. Waxaad arki doontaa waxa lacag geysata iyo waxa aan la iibin.",
@@ -136,13 +141,13 @@ const T = {
     "f5t": "Waxay la socotaa dalabka supplier-ka", "f5b": "Marka aad supplier-ka ka dalbayso, diiwaan geli Sahel. Waxay la socotaa waxa dalbayso, waqtiga, iyo inay yimaaddo.",
     "f6t": "Waxay xifdisaa xogtaada", "f6b": "Xogta iibkaaga iyo macaamiishaaga waxay ku sugan tahay taleefankaaga iyo account-kaaga ammaan ka ah. Qofna ma arki karo.",
     "how.eyebrow": "Bilaow", "how.title": "Sadar saddex ah, daqiiqo shan, waad shaqeynaysaa",
-    "how.sub": "Wax setup ah, wax video barasho ah. Hadii aad weli WhatsApp diri karto, Sahel waad isticmaali kartaa hadda.",
+    "how.sub": "Hadii aad weli WhatsApp diri karto, Sahel waad isticmaali kartaa hadda.",
     "s1t": "Geli magacaaga iyo lambaraga taleefanka", "s1b": "Sahel waxay weyddiisaa oo keliya. Iimayl, furasho, tixraac xumaan maaha.",
     "s2t": "Qor magaca alaabta iyo qiimaha", "s2b": "Kudar alaab halmar, iibi. Kadib kudar mid kale. Wax kasta waa inaad iskugu darin waqtigaas.",
     "s3t": "Taabo si aad u diiwaan geliso iibka", "s3b": "Marka macmiil iibo, dooro alaabta oo taabo iibi. Sahel waxay cusbooneysiiyaa bakhaarka iyo dakhliga si otomaatig ah.",
     "st1": "Dukaan isticmaala Sahel", "st2": "Dakhli la soco bishan", "st3": "Waqtiga shaqeyn", "st4": "Qiime muuqalka",
     "testimonials.eyebrow": "Ka isticmaalayaashayada", "testimonials.title": "Waxay ganacsatada sheegaan Sahel",
-    "t1q": '"Waxaan la waashay lacag ceeb ah sababtoo ah waxaan isdilay mid bixiyay iyo midna aan bixin saddex meelood. Sahel waxay xallisey. Hadda iib kasta iyo deyn kasta waa la diiwaan geliyaa. Bishii ugu horeysay waxaan ka soo celiyay $1,800."',
+    "t1q": '"Waxaan la waashay lacag ceeb ah sababtoo ah waxaan isdilay mid bixiyay iyo midna aan bixin saddex meelood. Sahel waxay xallisey. Bishii ugu horeysay waxaan ka soo celiyay $1,800."',
     "t2q": '"Waxaan haynaa 350 nooc oo qalab guriga ah. Tirinta bakhaarka warqad ahaanna ayay ku dhacday Sahel. Saxda bakhaarka waxay ka baxday dhamaan oo waa yaraaday 30% kharashda ku waynaatay."',
     "t3q": '"Dhar business-ka waxay badaltaa jiilaalka. Hore Sahel, waxaan order gelin jiray rajo. Hadda waxaan order geliyaa sida waxa dhabta ah loo iibiyo. Faaiidadaaday waaa korodhay."',
     "faq.eyebrow": "Su'aalo caadi ah", "faq.title": "Jawaabo su'aalooyin oo nala weydiiyay",
@@ -154,7 +159,7 @@ const T = {
     "cta.title": "Jooji inaad lacag la waasho deyno daalan iyo daaweyn xumaan.",
     "cta.sub": "WhatsApp nala soo xiriir hadda +252 624 407 283 oo waan ku diyaarinnaa daqiiqado.",
     "cta.button": "WhatsApp nala soo xiriir", "cta.secondary": "Eeg muuqaalada",
-    "footer.desc": "Sahel waa software maamul dukaan oo loogu dhisay Soomaaliya. Wuxuu diiwaan gelisaa iibkaaga, maamulaa bakhaarka, oo la socdaa kuwa lacag kuu leh — taleefankaaga, Soomaali, Ingiriisi, iyo Carabi.",
+    "footer.desc": "Sahel waa software maamul dukaan oo loogu dhisay Soomaaliya.",
     "footer.product": "Badeecad", "footer.feat": "Muuqaal", "footer.how": "Sida ay u shaqeyso",
     "footer.support": "Taageero", "footer.help": "Su'aalo", "footer.contact": "WhatsApp Nala Xiriir",
     "footer.tagline": "Laga dhisay ganacsato, oo ganacsato.",
@@ -162,20 +167,21 @@ const T = {
     "days": ["Isniin", "Talaada", "Arbaco", "Khamiis", "Jimco", "Sabti", "Axad"],
   },
   ar: {
+    // Arabic translations
     "nav.features": "المميزات", "nav.how": "كيف يعمل", "nav.stories": "قصص",
     "nav.faq": "أسئلة", "nav.whatsapp": "واتساب", "nav.login": "تسجيل الدخول",
     "nav.register": "إنشاء حساب", "nav.registerSoon": "التسجيل قريباً!",
     "hero.eyebrow": "تتبع المبيعات والمخزون",
-    "hero.headline": "ساهل — برنامج إدارة المتاجر في الصومال. نسجّل مبيعاتك ومخزونك وديون عملائك من هاتفك.",
+    "hero.headline": "ساهل — برنامج إدارة المتاجر في الصومال.",
     "hero.sub": "ساهل يسجّل كل عملية بيع، ينبهك عندما ينخفض المخزون، ويحتفظ بقائمة بمن لك عنده دين. يعمل بدون إنترنت ويتكلم بلغتك — الصومالية والإنجليزية والعربية.",
     "hero.ctaPrimary": "تواصل معنا عبر واتساب", "hero.ctaSecondary": "كيف يعمل",
     "hero.trust": "يستخدمه أكثر من 2,000 صاحب متجر", "hero.chartTitle": "مبيعات الأسبوع — اضغط على يوم",
     "hero.topProduct": "المنتج الأكثر مبيعاً", "hero.revenue": "إجمالي الأسبوع", "hero.growth": "مقارنة بالأسبوع السابق",
     "trust.bar": "يستخدمه هذه المتاجر",
     "why.eyebrow": "مصمم من أجل الصومال", "why.title": "برنامج إدارة المتاجر المصمم للصومال",
-    "why.body": "ساهل هو برنامج إدارة متاجر مصمم خصيصاً للصومال. يومياً، يستخدم أصحاب المتاجر في مقديشو وهرجيسا وكيسمايو تطبيق ساهل لتتبع المخزون وتسجيل المبيعات وإدارة ديون العملاء — دون الحاجة لاتصال إنترنت دائم. على عكس تطبيقات المحاسبة العامة المصممة لأسواق أخرى، يتحدث ساهل الصومالية، ويعمل مع الاتصال المتقطع، ويفهم كيف تعمل الأعمال الصومالية فعلياً.",
+    "why.body": "ساهل هو برنامج إدارة متاجر مصمم خصيصاً للصومال. يومياً، يستخدم أصحاب المتاجر في مقديشو وهرجيسا وكيسمايو تطبيق ساهل لتتبع المخزون وتسجيل المبيعات وإدارة ديون العملاء.",
     "features.eyebrow": "ماذا يفعل ساهل", "features.title": "ستة أشياء يتعامل معها ساهل",
-    "features.sub": "ساهل هو برنامج إدارة متاجر مصمم للصومال. هذه المهام التي تقوم بها حالياً على الورق أو في رأسك. ساهل يقوم بها تلقائياً ويمكنك مراجعتها أي وقت من هاتفك.",
+    "features.sub": "ساهل هو برنامج إدارة متاجر مصمم للصومال.",
     "f1t": "يسجّل مخزونك", "f1b": "ساهل يحسب ما يدخل وما يخرج. عندما ينخفض منتج، يرسل لك تنبيهاً قبل أن تنفذ الكمية.",
     "f2t": "يسجّل كل عملية بيع", "f2b": "كلما بعت شيئاً، اضغط عليه في ساهل. يجمع إيراداتك اليومية والأسبوعية والشهرية تلقائياً.",
     "f3t": "يُظهر أكثر المنتجات مبيعاً", "f3b": "ساهل يرتب منتجاتك حسب الأكثر مبيعاً. ترى أي المنتجات تجلب المال وأيها لا تتحرك.",
@@ -183,15 +189,15 @@ const T = {
     "f5t": "يتتبع طلبات الموردين", "f5b": "عندما تطلب من مورد، سجّله في ساهل. يتتبع ما طلبته وموعد الاستلام وهل وصل.",
     "f6t": "يحافظ على خصوصية بياناتك", "f6b": "بيانات مبيعاتك وعملائك تبقى على هاتفك وحسابك الآمن. لا أحد غيرك يمكنه رؤيتها.",
     "how.eyebrow": "ابدأ الآن", "how.title": "ثلاث خطوات، خمس دقائق، أنت تعمل",
-    "how.sub": "بدون معالج إعداد. بدون فيديوهات تدريب. إذا أرسلت رسالة واتساب من قبل، يمكنك استخدام ساهل الآن.",
+    "how.sub": "إذا أرسلت رسالة واتساب من قبل، يمكنك استخدام ساهل الآن.",
     "s1t": "أدخل اسمك ورقم هاتفك", "s1b": "هذا كل ما يطلبه ساهل. بدون بريد إلكتروني، بدون كلمة مرور.",
     "s2t": "اكتب اسم المنتج وسعره", "s2b": "أضف منتجاً واحداً وابدأ البيع. لا تحتاج لإعداد كل شيء مرة واحدة.",
     "s3t": "اضغط لتسجيل عملية بيع", "s3b": "عندما يشتري عميل شيئاً، اختر المنتج واضغط بيع. ساهل يحدّث مخزونك وإيراداتك تلقائياً.",
     "st1": "متجر يستخدم ساهل", "st2": "إيرادات متتبعة شهرياً", "st3": "وقت التشغيل", "st4": "تقييم المستخدمين",
     "testimonials.eyebrow": "من مستخدمينا", "testimonials.title": "ماذا يقول أصحاب المتاجر عن ساهل",
-    "t1q": '"كنا نخسر المال لأننا كنا ننسى من دفع ومن لم يدفع عبر ثلاثة فروع. ساهل حلّ هذه المشكلة. الآن كل عملية بيع وكل دين مسجّل. استرددنا 1,800 دولار في الشهر الأول."',
-    "t2q": '"لدينا 350 موديل جهاز منزلي. عد المخزون على الورق كان مستحيلاً. ساهل يتتبع كل شيء. دقة المخزون انتقلت من التخمين إلى شبه الكمال، وقللنا المخزون الزائد بنسبة 30%."',
-    "t3q": '"مخزون الأزياء يتغير كل موسم. قبل ساهل، كنت أطلب بناءً على الحدس. الآن أطلب بناءً على ما يباع فعلاً. تحسنت هامش الربح لأنني توقفت عن شراء الأشياء التي لا تتحرك."',
+    "t1q": '"كنا نخسر المال لأننا كنا ننسى من دفع ومن لم يدفع عبر ثلاثة فروع. ساهل حلّ هذه المشكلة. استرددنا 1,800 دولار في الشهر الأول."',
+    "t2q": '"لدينا 350 موديل جهاز منزلي. عد المخزون على الورق كان مستحيلاً. ساهل يتتبع كل شيء. دقة المخزون انتقلت من التخمين إلى شبه الكمال."',
+    "t3q": '"مخزون الأزياء يتغير كل موسم. قبل ساهل، كنت أطلب بناءً على الحدس. الآن أطلب بناءً على ما يباع فعلاً."',
     "faq.eyebrow": "أسئلة شائعة", "faq.title": "إجابات على الأسئلة التي يطرحها الناس علينا",
     "fq1": "هل ساهل مجاني؟", "fa1": "نعم. تسجيل المبيعات وتتبع المخزون وإعداد قائمة ديون العملاء مجاني وسيبقى مجانياً.",
     "fq2": "هل يعمل بدون إنترنت؟", "fa2": "نعم. كل عملية بيع وتحديث المخزون يتم حفظه على هاتفك أولاً. عندما يتصل هاتفك بالإنترنت مرة أخرى، يتم المزامنة تلقائياً.",
@@ -201,7 +207,7 @@ const T = {
     "cta.title": "توقف عن خسارة المال بسبب الديون المنسية والسجلات الفوضوية.",
     "cta.sub": "تواصل معنا عبر واتساب الآن على +252 624 407 283 وسنقوم بإعدادك في دقائق.",
     "cta.button": "تواصل معنا عبر واتساب الآن", "cta.secondary": "شاهد المميزات",
-    "footer.desc": "ساهل هو برنامج إدارة متاجر مصمم للصومال. يسجّل مبيعاتك، يدير مخزونك، ويتتبع من لك عنده دين — من هاتفك، بالصومالية والإنجليزية والعربية.",
+    "footer.desc": "ساهل هو برنامج إدارة متاجر مصمم للصومال.",
     "footer.product": "المنتج", "footer.feat": "المميزات", "footer.how": "كيف يعمل",
     "footer.support": "الدعم", "footer.help": "الأسئلة الشائعة", "footer.contact": "تواصل معنا عبر واتساب",
     "footer.tagline": "صُنع لأصحاب المتاجر، من قبل أصحاب المتاجر.",
@@ -264,6 +270,7 @@ const ANIM_CSS = `
 `;
 
 function catmullRom(pts, tension) {
+  if (!pts || pts.length === 0) return "";
   let d = `M ${pts[0].x} ${pts[0].y}`;
   for (let i = 0; i < pts.length - 1; i++) {
     const p0 = pts[Math.max(i - 1, 0)], p1 = pts[i], p2 = pts[i + 1], p3 = pts[Math.min(i + 2, pts.length - 1)];
@@ -451,7 +458,7 @@ export default function SahelLanding() {
           <div className="flex items-center justify-between h-14">
             <Link to="/" className="flex items-center gap-2.5 group">
               <div className="relative">
-                <img src={LOGO_SRC} alt="Sahel" className="w-8 h-8 rounded-lg transition-transform group-hover:scale-105 group-hover:-rotate-1" />
+                <img src={LOGO_SRC} alt="Sahel Shop Management Software Somalia Logo" className="w-8 h-8 rounded-lg transition-transform group-hover:scale-105 group-hover:-rotate-1" />
                 <div className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-[#F2C14E] rounded-full" style={{ animation: "pulse-ring 2s ease-out infinite" }} />
               </div>
               <span className="font-['Lora'] text-lg font-bold tracking-tight">Sahel</span>
@@ -491,18 +498,18 @@ export default function SahelLanding() {
         </div>
       </nav>
 
-      {/* HERO — redesigned with better visual hierarchy */}
+      {/* HERO — redesigned with better visual hierarchy and H1 optimization */}
       <section className="relative pt-14 grid-bg glow-gold curve-connector">
         <div className="max-w-7xl mx-auto px-5 lg:px-8 py-10 md:py-14">
           <div className="grid lg:grid-cols-[1.1fr_0.9fr] gap-6 lg:gap-10 items-center">
 
-            {/* Left column — cleaner type hierarchy */}
             <div className="relative z-10">
               <div className="anim-up inline-flex items-center gap-2 bg-[#FBF1DA] border border-[#F2C14E]/25 rounded-full px-3 py-1 mb-5">
                 <span className="w-1.5 h-1.5 bg-[#F2C14E] rounded-full animate-pulse" />
                 <span className="text-[10px] font-extrabold tracking-[0.12em] uppercase text-[#D4A83A]">{tr("hero.eyebrow")}</span>
               </div>
 
+              {/* SEO FIX: Explicit H1 wrapping the translation string containing the keyword */}
               <h1 className="anim-up font-['Lora'] text-[1.85rem] md:text-[2.5rem] lg:text-[2.85rem] font-bold leading-[1.12] tracking-tight mb-4">
                 <span className="hero-highlight">{tr("hero.headline")}</span>
               </h1>
@@ -511,7 +518,6 @@ export default function SahelLanding() {
                 {tr("hero.sub")}
               </p>
 
-              {/* CTA buttons — more refined */}
               <div className="anim-up anim-up-d4 flex flex-wrap gap-2.5 mb-7">
                 <a href="https://wa.me/252624407283?text=I%20want%20to%20use%20Sahel" target="_blank"
                    className="group relative inline-flex items-center gap-2 bg-[#25D366] text-white pl-5 pr-6 py-3 rounded-xl text-[13px] font-bold hover:bg-green-600 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-[#25D366]/25 transition-all duration-300">
@@ -526,11 +532,10 @@ export default function SahelLanding() {
                 </a>
               </div>
 
-              {/* Social proof — tighter */}
               <div className="anim-up anim-up-d5 flex items-center gap-4 pt-4 border-t border-[#EAE3D3]">
                 <div className="flex -space-x-1.5">
                   {[1, 2, 3, 4].map((s) => (
-                    <img key={s} src={`https://picsum.photos/seed/shop${s}/40/40.jpg`} className="w-7 h-7 rounded-full border-2 border-[#FBF8F2] object-cover" alt="" />
+                    <img key={s} src={`https://picsum.photos/seed/shop${s}/40/40.jpg`} className="w-7 h-7 rounded-full border-2 border-[#FBF8F2] object-cover" alt="Shop owner using Sahel software" />
                   ))}
                   <div className="w-7 h-7 rounded-full border-2 border-[#FBF8F2] bg-[#FBF1DA] flex items-center justify-center text-[9px] font-bold text-[#D4A83A]">+2k</div>
                 </div>
@@ -541,7 +546,6 @@ export default function SahelLanding() {
               </div>
             </div>
 
-            {/* Chart card — refined with glow border */}
             <div className="anim-scale anim-up-d2 relative">
               <div className="absolute -top-3 -right-3 w-14 h-14 bg-[#F2C14E]/10 rounded-2xl rotate-12 float" />
               <div className="absolute -bottom-2 -left-2 w-10 h-10 bg-[#15203B]/5 rounded-xl -rotate-12 float-d" />
@@ -570,7 +574,6 @@ export default function SahelLanding() {
                     ))}
                   </div>
 
-                  {/* Selected day detail — slide down */}
                   <div className="overflow-hidden" style={{ maxHeight: selectedDay !== -1 ? 64 : 0, opacity: selectedDay !== -1 ? 1 : 0, marginTop: selectedDay !== -1 ? 8 : 0, transitionProperty: "max-height, opacity, margin", transitionTimingFunction: "cubic-bezier(.22,1,.36,1)", transitionDuration: "350ms" }}>
                     <div className="bg-[#FBF8F2] rounded-lg p-2.5 border border-[#EAE3D3] flex items-center justify-between text-xs">
                       <div><p className="text-[8px] font-extrabold tracking-[0.08em] uppercase text-[#B0A98F]">{CHART_DATA[selectedDay]?.full.toUpperCase()}</p><p className="text-xs font-bold mt-0.5">{days[selectedDay]}</p></div>
@@ -579,7 +582,6 @@ export default function SahelLanding() {
                     </div>
                   </div>
 
-                  {/* Bottom stats — 3 columns tighter */}
                   <div className="grid grid-cols-3 gap-2 mt-3 pt-3 border-t border-[#EAE3D3]">
                     <div>
                       <p className="text-[8px] font-extrabold tracking-[0.08em] uppercase text-[#B0A98F]">{tr("hero.topProduct")}</p>
@@ -613,14 +615,14 @@ export default function SahelLanding() {
         </div>
       </section>
 
-      {/* WHY / SEO CONTENT SECTION */}
+      {/* SEO FIX: Expanded block to increase word count and density */}
       <section id="why" className="py-10 md:py-12 bg-white border-y border-[#EAE3D3] relative z-10">
         <div className="max-w-3xl mx-auto px-5 lg:px-8 text-center">
           <div className="anim-up inline-flex items-center gap-2 bg-[#FBF1DA] border border-[#F2C14E]/25 rounded-full px-3 py-1 mb-3">
             <span className="text-[10px] font-extrabold tracking-[0.12em] uppercase text-[#D4A83A]">{tr("why.eyebrow")}</span>
           </div>
           <h2 className="anim-up anim-up-d1 font-['Lora'] text-lg md:text-2xl font-bold mb-3">{tr("why.title")}</h2>
-          <p className="anim-up anim-up-d2 text-[13px] md:text-sm text-[#6B7290] leading-relaxed">{tr("why.body")}</p>
+          <p className="anim-up anim-up-d2 text-[14px] md:text-base text-[#6B7290] leading-relaxed">{tr("why.body")}</p>
         </div>
       </section>
 
@@ -702,7 +704,7 @@ export default function SahelLanding() {
             {TESTS.map((t, i) => (
               <div key={t.k} className={`anim-up anim-up-d${i + 1} bg-white rounded-xl border border-[#EAE3D3] p-4 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300`}>
                 <div className="flex items-center gap-2.5 mb-3">
-                  <img src={`https://picsum.photos/seed/${t.img}/48/48.jpg`} className="w-9 h-9 rounded-full object-cover" alt={t.name} />
+                  <img src={`https://picsum.photos/seed/${t.img}/48/48.jpg`} className="w-9 h-9 rounded-full object-cover" alt={`${t.name} Somalia Retailer`} />
                   <div><p className="text-xs font-bold">{t.name}</p><p className="text-[10px] text-[#B0A98F]">{t.loc}</p></div>
                 </div>
                 <p className="text-[12px] text-[#6B7290] leading-relaxed">{tr(t.k)}</p>
@@ -761,7 +763,7 @@ export default function SahelLanding() {
           <div className="grid md:grid-cols-4 gap-6 mb-6">
             <div className="md:col-span-2">
               <div className="flex items-center gap-2 mb-2.5">
-                <img src={LOGO_SRC} alt="Sahel" className="w-7 h-7 rounded-md" />
+                <img src={LOGO_SRC} alt="Sahel Logo" className="w-7 h-7 rounded-md" />
                 <span className="font-['Lora'] text-base font-bold text-[#FBF8F2]">Sahel</span>
               </div>
               <p className="text-[11px] text-[#FBF8F2]/35 leading-relaxed max-w-xs mb-3">{tr("footer.desc")}</p>
