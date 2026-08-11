@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { ArrowRight, Globe2, Lock, Mail, MapPin, Phone, Store, X } from "lucide-react";
+import { ArrowRight, Globe2, Lock, Mail, MapPin, Phone, Store, Dumbbell, GraduationCap, Check, X } from "lucide-react";
 import { apiRequest } from "../lib/api";
 import { saveSession } from "../lib/auth";
 import { supabase } from "../lib/supabaseClient";
@@ -8,23 +8,81 @@ import sahelLogo from "../assets/sahel_logo_english.svg";
 import sahelIcon from "../assets/sahel_logo_icon_only.svg";
 
 const COPY = {
-  en: { login:"Log in", signup:"Create your account", subLogin:"Log in with your email and password.", subSignup:"Create your account, then set up your business.", google:"Continue with Google", or:"or continue with email", email:"Email address", password:"Password", phone:"Phone number (optional)", shop:"Shop name", location:"Location", submitLogin:"Log in", submitSignup:"Create account", wait:"Please wait…", forgot:"Forgot password?", noAccount:"Don't have an account?", haveAccount:"Already have an account?", privacy:"Your business information stays private and protected.", title:"A clear start for your business.", body:"Sahel keeps sales, stock, customer credit, expenses and reports in one organized place.", close:"Close message", invalid:"Phone must be 9 digits and start with 61, 62, or 68." },
-  so: { login:"Gal", signup:"Samee akoonkaaga", subLogin:"Ku gal email-kaaga iyo eraygaaga sirta ah.", subSignup:"Samee akoonkaaga, kadibna deji ganacsigaaga.", google:"Ku sii wad Google", or:"ama ku sii wad email", email:"Cinwaanka email-ka", password:"Erayga sirta ah", phone:"Lambarka telefoonka (ikhtiyaari)", shop:"Magaca dukaanka", location:"Goobta", submitLogin:"Gal", submitSignup:"Samee akoon", wait:"Fadlan sug…", forgot:"Ma ilowday erayga sirta ah?", noAccount:"Akoon ma lihid?", haveAccount:"Hore akoon ma u leedahay?", privacy:"Macluumaadka ganacsigaaga waa gaar oo la ilaaliyay.", title:"Bilow cad oo ganacsigaaga ah.", body:"Sahel waxay iibka, bakhaarka, deynta macaamiisha, kharashaadka iyo warbixinnada ku haysaa hal meel oo habaysan.", close:"Xir farriinta", invalid:"Telefoonku waa inuu noqdaa 9 lambar oo ku bilaabma 61, 62, ama 68." },
-  ar: { login:"تسجيل الدخول", signup:"إنشاء حسابك", subLogin:"سجّل الدخول ببريدك الإلكتروني وكلمة المرور.", subSignup:"أنشئ حسابك ثم أعدّ نشاطك التجاري.", google:"المتابعة باستخدام Google", or:"أو تابع بالبريد الإلكتروني", email:"البريد الإلكتروني", password:"كلمة المرور", phone:"رقم الهاتف (اختياري)", shop:"اسم المتجر", location:"الموقع", submitLogin:"تسجيل الدخول", submitSignup:"إنشاء حساب", wait:"يرجى الانتظار…", forgot:"هل نسيت كلمة المرور؟", noAccount:"ليس لديك حساب؟", haveAccount:"لديك حساب بالفعل؟", privacy:"معلومات نشاطك التجاري خاصة ومحمية.", title:"بداية واضحة لنشاطك التجاري.", body:"يجمع سهل المبيعات والمخزون وديون العملاء والمصروفات والتقارير في مكان منظم واحد.", close:"إغلاق الرسالة", invalid:"يجب أن يتكون الهاتف من 9 أرقام ويبدأ بـ 61 أو 62 أو 68." }
+  en: { login:"Log in", signup:"Create your account", subLogin:"Log in with your email and password.", subSignup:"Create your account, then set up your business.", google:"Continue with Google", or:"or continue with email", email:"Email address", password:"Password", phone:"Phone number (optional)", shop:"Shop name", location:"Location", submitLogin:"Log in", submitSignup:"Create account", wait:"Please wait…", forgot:"Forgot password?", noAccount:"Don't have an account?", haveAccount:"Already have an account?", privacy:"Your business information stays private and protected.", title:"A clear start for your business.", body:"Sahel keeps sales, stock, customer credit, expenses and reports in one organized place.", close:"Close message", invalid:"Phone must be 9 digits and start with 61, 62, or 68.",
+       businessType:"What are you setting up?", businessTypeHint:"You can't change this later — pick carefully.", typeShop:"Shop", typeShopDesc:"Sales, inventory & customer credit", typeGym:"Gym", typeGymDesc:"Members, check-ins & dues", typeSchool:"School", typeSchoolDesc:"Students, teachers & fees", typeRequired:"Please choose what you're setting up." },
+  so: { login:"Gal", signup:"Samee akoonkaaga", subLogin:"Ku gal email-kaaga iyo eraygaaga sirta ah.", subSignup:"Samee akoonkaaga, kadibna deji ganacsigaaga.", google:"Ku sii wad Google", or:"ama ku sii wad email", email:"Cinwaanka email-ka", password:"Erayga sirta ah", phone:"Lambarka telefoonka (ikhtiyaari)", shop:"Magaca dukaanka", location:"Goobta", submitLogin:"Gal", submitSignup:"Samee akoon", wait:"Fadlan sug…", forgot:"Ma ilowday erayga sirta ah?", noAccount:"Akoon ma lihid?", haveAccount:"Hore akoon ma u leedahay?", privacy:"Macluumaadka ganacsigaaga waa gaar oo la ilaaliyay.", title:"Bilow cad oo ganacsigaaga ah.", body:"Sahel waxay iibka, bakhaarka, deynta macaamiisha, kharashaadka iyo warbixinnada ku haysaa hal meel oo habaysan.", close:"Xir farriinta", invalid:"Telefoonku waa inuu noqdaa 9 lambar oo ku bilaabma 61, 62, ama 68.",
+       businessType:"Maxaad dejinaysaa?", businessTypeHint:"Kama beddeli kartid mar dambe — si taxadar leh u dooro.", typeShop:"Dukaan", typeShopDesc:"Iibka, bakhaarka iyo deynta macaamiisha", typeGym:"Jimicsi (Gym)", typeGymDesc:"Xubnaha, imaanshaha iyo lacagaha", typeSchool:"Dugsi", typeSchoolDesc:"Ardayda, macallimiinta iyo lacagaha", typeRequired:"Fadlan dooro waxa aad dejinayso." },
+  ar: { login:"تسجيل الدخول", signup:"إنشاء حسابك", subLogin:"سجّل الدخول ببريدك الإلكتروني وكلمة المرور.", subSignup:"أنشئ حسابك ثم أعدّ نشاطك التجاري.", google:"المتابعة باستخدام Google", or:"أو تابع بالبريد الإلكتروني", email:"البريد الإلكتروني", password:"كلمة المرور", phone:"رقم الهاتف (اختياري)", shop:"اسم المتجر", location:"الموقع", submitLogin:"تسجيل الدخول", submitSignup:"إنشاء حساب", wait:"يرجى الانتظار…", forgot:"هل نسيت كلمة المرور؟", noAccount:"ليس لديك حساب؟", haveAccount:"لديك حساب بالفعل؟", privacy:"معلومات نشاطك التجاري خاصة ومحمية.", title:"بداية واضحة لنشاطك التجاري.", body:"يجمع سهل المبيعات والمخزون وديون العملاء والمصروفات والتقارير في مكان منظم واحد.", close:"إغلاق الرسالة", invalid:"يجب أن يتكون الهاتف من 9 أرقام ويبدأ بـ 61 أو 62 أو 68.",
+       businessType:"ما الذي تقوم بإعداده؟", businessTypeHint:"لا يمكنك تغيير هذا لاحقًا — اختر بعناية.", typeShop:"متجر", typeShopDesc:"المبيعات والمخزون وديون العملاء", typeGym:"نادي رياضي", typeGymDesc:"الأعضاء والحضور والرسوم", typeSchool:"مدرسة", typeSchoolDesc:"الطلاب والمعلمون والرسوم", typeRequired:"يرجى اختيار ما تقوم بإعداده." }
 };
+
+const BUSINESS_TYPES = [
+  { value: "shop",   icon: Store,          labelKey: "typeShop",   descKey: "typeShopDesc" },
+  { value: "gym",    icon: Dumbbell,       labelKey: "typeGym",    descKey: "typeGymDesc" },
+  { value: "school", icon: GraduationCap,  labelKey: "typeSchool", descKey: "typeSchoolDesc" },
+];
+
 function GoogleIcon() { return <svg className="h-4 w-4" viewBox="0 0 24 24"><path fill="#4285F4" d="M23.52 12.27c0-.85-.08-1.67-.22-2.45H12v4.64h6.46c-.28 1.5-1.13 2.78-2.4 3.63v3.02h3.88c2.27-2.09 3.58-5.17 3.58-8.84z"/><path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.94-2.9l-3.88-3.02c-1.08.72-2.45 1.15-4.06 1.15-3.13 0-5.78-2.11-6.73-4.96H1.27v3.11C3.25 21.3 7.31 24 12 24z"/></svg>; }
 function Field({ icon: Icon, label, ...props }) { return <label className="flex h-12 items-center gap-3 rounded-xl border border-blue-100 bg-white px-4 shadow-sm transition focus-within:border-blue-500 focus-within:ring-4 focus-within:ring-blue-100"><Icon className="h-4 w-4 shrink-0 text-blue-500"/><input aria-label={label} className="w-full bg-transparent text-sm font-semibold outline-none placeholder:text-slate-400" placeholder={label} {...props}/></label>; }
+
+// One-time, locked-in choice of which kind of business this account manages.
+// Shown only on signup — this is what /api/auth/signup now requires, and it
+// determines which dashboard/modules the account sees from here on.
+function BusinessTypeSelector({ value, onChange, t }) {
+  return (
+    <div className="mb-1">
+      <p className="mb-1 text-xs font-black uppercase tracking-wide text-slate-500">{t.businessType}</p>
+      <p className="mb-2 text-[11px] font-medium text-slate-400">{t.businessTypeHint}</p>
+      <div className="grid grid-cols-3 gap-2">
+        {BUSINESS_TYPES.map(({ value: v, icon: Icon, labelKey, descKey }) => {
+          const selected = value === v;
+          return (
+            <button
+              key={v}
+              type="button"
+              onClick={() => onChange(v)}
+              aria-pressed={selected}
+              className={
+                "relative flex flex-col items-center gap-1.5 rounded-xl border p-3 text-center transition " +
+                (selected
+                  ? "border-blue-600 bg-blue-50 shadow-sm ring-2 ring-blue-100"
+                  : "border-slate-200 bg-white hover:border-blue-200 hover:bg-blue-50/40")
+              }
+            >
+              {selected && (
+                <span className="absolute end-1.5 top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-blue-600 text-white">
+                  <Check className="h-2.5 w-2.5" strokeWidth={3} />
+                </span>
+              )}
+              <Icon className={"h-5 w-5 " + (selected ? "text-blue-600" : "text-slate-400")} />
+              <span className={"text-xs font-black " + (selected ? "text-blue-700" : "text-slate-700")}>{t[labelKey]}</span>
+              <span className="text-[10px] font-medium leading-tight text-slate-400">{t[descKey]}</span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 export default function AuthPage({ mode }) {
   const isSignup = mode === "signup", navigate = useNavigate(), location = useLocation();
   const [lang, setLang] = useState(() => localStorage.getItem("sahel-auth-language") || "en");
-  const [form, setForm] = useState({ phone:"", email:"", password:"", shop_name:"", location:"" });
+  const [form, setForm] = useState({ phone:"", email:"", password:"", shop_name:"", location:"", business_type:"" });
   const [status, setStatus] = useState({ loading:false, error:"" }), [googleLoading, setGoogleLoading] = useState(false);
   const t = useMemo(() => COPY[lang], [lang]), rtl = lang === "ar";
   useEffect(() => { localStorage.setItem("sahel-auth-language", lang); document.documentElement.lang = lang; document.documentElement.dir = rtl ? "rtl" : "ltr"; }, [lang, rtl]);
   const set = (name, value) => setForm((current) => ({ ...current, [name]:value }));
   async function handleSubmit(e) { e.preventDefault(); setStatus({ loading:true, error:"" }); try {
-    if (isSignup) { if (form.phone && !/^(61|62|68)\d{7}$/.test(form.phone)) throw new Error(t.invalid); const { error } = await supabase.auth.signUp({ email:form.email, password:form.password, options:{ data:{ shop_name:form.shop_name, location:form.location, phone:form.phone } } }); if (error) throw error; try { await apiRequest("/auth/signup",{method:"POST",body:JSON.stringify(form)}); } catch (backendError) { console.warn(backendError); } navigate("/onboarding",{replace:true}); }
+    if (isSignup) {
+      if (form.phone && !/^(61|62|68)\d{7}$/.test(form.phone)) throw new Error(t.invalid);
+      if (!form.business_type) throw new Error(t.typeRequired);
+      const { error } = await supabase.auth.signUp({ email:form.email, password:form.password, options:{ data:{ shop_name:form.shop_name, location:form.location, phone:form.phone, business_type:form.business_type } } });
+      if (error) throw error;
+      const response = await apiRequest("/auth/signup",{method:"POST",body:JSON.stringify(form)});
+      saveSession(response.data);
+      navigate("/dashboard",{replace:true});
+    }
     else { const response = await apiRequest("/auth/login",{method:"POST",body:JSON.stringify({email:form.email,password:form.password})}); saveSession(response.data); navigate(location.state?.from || "/dashboard",{replace:true}); }
   } catch (error) { setStatus({ loading:false, error:error.message }); } }
   async function google() { setGoogleLoading(true); try { const { error } = await supabase.auth.signInWithOAuth({provider:"google",options:{redirectTo:window.location.origin + "/auth/callback"}}); if(error) throw error; } catch(error) { setGoogleLoading(false); setStatus({loading:false,error:error.message}); } }
@@ -33,7 +91,9 @@ export default function AuthPage({ mode }) {
     <aside className="hidden bg-gradient-to-br from-blue-700 via-blue-700 to-blue-950 p-10 text-white lg:flex lg:flex-col lg:justify-between"><div><img src={sahelLogo} alt="Sahel" className="h-10 w-auto brightness-0 invert"/><span className="mt-10 inline-flex rounded-full bg-orange-400/20 px-3 py-1.5 text-xs font-black text-orange-200">SAHEL</span><h1 className="mt-4 max-w-md text-4xl font-black leading-tight">{t.title}</h1><p className="mt-4 max-w-md leading-7 text-blue-100">{t.body}</p></div><div className="space-y-3">{["Private workspace","Simple daily work","Built for Somalia"].map((point) => <div key={point} className="rounded-2xl border border-white/10 bg-white/[.08] p-4 text-sm font-black">{point}</div>)}</div></aside>
     <section className="relative flex items-center justify-center p-6 sm:p-10 lg:p-14"><div className="absolute end-5 top-5 flex rounded-full bg-slate-100 p-1">{["en","so","ar"].map((code) => <button key={code} onClick={() => setLang(code)} aria-pressed={lang===code} className={active(code)}>{code.toUpperCase()}</button>)}</div><div className="w-full max-w-sm pt-10 sm:pt-5"><div className="mb-8 text-center"><img src={sahelIcon} alt="Sahel" className="mx-auto h-14 w-14 drop-shadow-md"/><h2 className="mt-5 text-3xl font-black text-slate-950">{isSignup ? t.signup : t.login}</h2><p className="mx-auto mt-2 max-w-xs text-sm leading-6 text-slate-500">{isSignup ? t.subSignup : t.subLogin}</p></div>
       <button type="button" onClick={google} disabled={googleLoading} className="flex h-12 w-full items-center justify-center gap-3 rounded-xl border border-blue-100 bg-white text-sm font-bold shadow-sm transition hover:bg-blue-50"><GoogleIcon/>{googleLoading ? t.wait : t.google}</button><div className="my-5 flex items-center gap-3"><div className="h-px flex-1 bg-slate-200"/><span className="text-[10px] font-black uppercase text-slate-400">{t.or}</span><div className="h-px flex-1 bg-slate-200"/></div>
-      <form onSubmit={handleSubmit} className="space-y-3"><Field icon={Mail} label={t.email} type="email" value={form.email} onChange={(e)=>set("email",e.target.value)} required/><Field icon={Lock} label={t.password} type="password" value={form.password} onChange={(e)=>set("password",e.target.value)} required minLength={8}/>{isSignup && <><Field icon={Phone} label={t.phone} value={form.phone} onChange={(e)=>set("phone",e.target.value.replace(/\D/g,"").slice(0,9))}/><Field icon={Store} label={t.shop} value={form.shop_name} onChange={(e)=>set("shop_name",e.target.value)} required/><Field icon={MapPin} label={t.location} value={form.location} onChange={(e)=>set("location",e.target.value)}/></>}<button disabled={status.loading} className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-blue-600 text-sm font-black text-white shadow-[0_12px_25px_rgba(37,99,235,.28)] transition hover:bg-blue-700 disabled:opacity-60">{status.loading?t.wait:(isSignup?t.submitSignup:t.submitLogin)}<ArrowRight className={"h-4 w-4 " + (rtl?"rotate-180":"")}/></button></form>
+      <form onSubmit={handleSubmit} className="space-y-3">
+        {isSignup && <BusinessTypeSelector value={form.business_type} onChange={(v)=>set("business_type",v)} t={t} />}
+        <Field icon={Mail} label={t.email} type="email" value={form.email} onChange={(e)=>set("email",e.target.value)} required/><Field icon={Lock} label={t.password} type="password" value={form.password} onChange={(e)=>set("password",e.target.value)} required minLength={8}/>{isSignup && <><Field icon={Phone} label={t.phone} value={form.phone} onChange={(e)=>set("phone",e.target.value.replace(/\D/g,"").slice(0,9))}/><Field icon={Store} label={t.shop} value={form.shop_name} onChange={(e)=>set("shop_name",e.target.value)} required/><Field icon={MapPin} label={t.location} value={form.location} onChange={(e)=>set("location",e.target.value)}/></>}<button disabled={status.loading} className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-blue-600 text-sm font-black text-white shadow-[0_12px_25px_rgba(37,99,235,.28)] transition hover:bg-blue-700 disabled:opacity-60">{status.loading?t.wait:(isSignup?t.submitSignup:t.submitLogin)}<ArrowRight className={"h-4 w-4 " + (rtl?"rotate-180":"")}/></button></form>
       {!isSignup&&<p className="mt-4 text-center text-sm font-bold"><Link className="text-orange-600" to="/forgot-password">{t.forgot}</Link></p>}<p className="mt-5 text-center text-xs font-semibold text-slate-400">{t.privacy}</p><p className="mt-4 text-center text-sm text-slate-600">{isSignup?t.haveAccount:t.noAccount} <Link className="font-black text-blue-600" to={isSignup?"/login":"/signup"}>{isSignup?t.login:t.signup}</Link></p>
     </div></section></div></div>
     {status.error&&<div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-4 backdrop-blur-sm" role="dialog" aria-modal="true"><div className="relative w-full max-w-sm rounded-2xl bg-white p-6 text-center shadow-2xl"><button onClick={()=>setStatus({loading:false,error:""})} aria-label={t.close} className="absolute end-4 top-4 rounded-full p-2 text-slate-400"><X size={18}/></button><div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-orange-50 text-orange-600"><Globe2 size={22}/></div><h3 className="mt-4 text-lg font-black">Sahel</h3><p className="mt-2 text-sm leading-6 text-slate-600">{status.error}</p><button onClick={()=>setStatus({loading:false,error:""})} className="mt-5 w-full rounded-xl bg-blue-600 py-3 text-sm font-black text-white">OK</button></div></div>}
