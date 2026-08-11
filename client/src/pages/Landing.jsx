@@ -1,230 +1,41 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import {
-  ArrowRight,
-  BarChart3,
-  Check,
-  ChevronDown,
-  CreditCard,
-  FileText,
-  Globe2,
-  Menu,
-  Package,
-  Receipt,
-  ShieldCheck,
-  ShoppingCart,
-  Smartphone,
-  Sparkles,
-  TrendingUp,
-  Wallet,
-  X,
-  Zap,
-} from "lucide-react";
+import { ArrowRight, BarChart3, Check, ChevronDown, CreditCard, Menu, Package, Receipt, ShieldCheck, ShoppingCart, Smartphone, Sparkles, TrendingUp, Wallet, X } from "lucide-react";
 
 const WA_URL = "https://wa.me/252624407283?text=I%20want%20to%20learn%20more%20about%20Sahel";
 
 const COPY = {
   en: {
-    nav: {
-      features: "Features",
-      how: "How it works",
-      industries: "Who it's for",
-      faq: "FAQ",
-      login: "Log in",
-      start: "Get started",
-    },
-    hero: {
-      eyebrow: "Business management, made for Somalia",
-      title: "Run your business with more clarity, control and confidence.",
-      body: "Sahel brings sales, inventory, customer credit, expenses, receipts and business reports into one simple workspace — designed for the way businesses in Somalia operate.",
-      primary: "Start with Sahel",
-      secondary: "See how it works",
-      note: "Simple to learn • Built for mobile • Somali & English",
-    },
-    dashboard: {
-      label: "Business overview",
-      title: "Know what is happening in your business.",
-      sales: "Today's sales",
-      stock: "Stock value",
-      credit: "Customer credit",
-      trend: "Sales trend",
-      healthy: "Everything is up to date",
-    },
-    trust: {
-      eyebrow: "Built around real business needs",
-      title: "Less paperwork. Better decisions.",
-      body: "Your business should not depend on notebooks, scattered receipts or trying to remember who owes you money. Sahel gives you one place to understand your day-to-day operations.",
-    },
-    features: {
-      eyebrow: "Everything in one place",
-      title: "The tools you need to run the day — and plan the next one.",
-      body: "Start with the essentials and grow into deeper reporting as your business grows.",
-      items: [
-        [ShoppingCart, "Sales & transactions", "Record sales quickly and keep a clear history of what happened."],
-        [Package, "Inventory control", "Know what is in stock, what is moving and what needs attention."],
-        [CreditCard, "Customer credit", "Keep customer balances organized so outstanding credit does not get forgotten."],
-        [Wallet, "Expenses & profit", "Record business expenses and understand where your money is going."],
-        [Receipt, "Receipts", "Create clear receipts for customers and keep your transaction records organized."],
-        [BarChart3, "Reports & insights", "Turn daily activity into useful views of sales, products and performance."],
-      ],
-    },
-    industries: {
-      eyebrow: "Designed for growing businesses",
-      title: "One platform. Different businesses.",
-      body: "Sahel is flexible enough to support the everyday workflows of local businesses while keeping the experience simple.",
-      items: [
-        [ShoppingCart, "Retail shops", "Sales, stock, expenses and customer credit in one place."],
-        [Package, "Wholesalers", "Keep product movement and customer balances organized."],
-        [Receipt, "Service businesses", "Track transactions, expenses and receipts without complicated software."],
-      ],
-    },
-    how: {
-      eyebrow: "Get started without the headache",
-      title: "Three steps to a clearer business.",
-      steps: [
-        ["01", "Create your business workspace", "Set up your business and choose the information you want to manage."],
-        ["02", "Add products and customers", "Bring your products, prices and customer records into one organized place."],
-        ["03", "Record, review and grow", "Use your daily records and reports to make faster, better-informed decisions."],
-      ],
-    },
-    security: {
-      eyebrow: "Trust matters",
-      title: "Your business information deserves a serious home.",
-      body: "Sahel is designed around clear access, organized records and responsible handling of business information. You stay in control of your account and the people who use it.",
-      points: ["Clear account access", "Organized business records", "Mobile-first experience", "Built with local businesses in mind"],
-    },
-    faq: {
-      eyebrow: "Questions, answered",
-      title: "Frequently asked questions",
-      items: [
-        ["What is Sahel?", "Sahel is a business management platform that helps businesses manage sales, inventory, customer credit, expenses, receipts and reports from one place."],
-        ["Can I use Sahel on my phone?", "Yes. Sahel is designed with a mobile-first experience so you can manage important business tasks from your phone."],
-        ["Does Sahel support Somali?", "Yes. You can switch between English and Somali from the landing page and use the product in the language options supported by your account."],
-        ["Is Sahel only for shops?", "No. Sahel is designed around common business workflows and can be adapted to different retail and service businesses."],
-        ["How do I get started?", "Use the Get started button to create or access your Sahel account, or contact the Sahel team through WhatsApp if you want help getting set up."],
-      ],
-    },
-    cta: {
-      eyebrow: "Ready when you are",
-      title: "Put your business in one clear system.",
-      body: "Spend less time chasing records and more time running your business.",
-      primary: "Get started",
-      secondary: "Talk to Sahel",
-    },
-    footer: {
-      description: "Sahel is a business management platform built with Somali businesses in mind — helping you manage sales, stock, credit, expenses and reports in one place.",
-      product: "Product",
-      company: "Company",
-      support: "Support",
-      rights: "© 2026 Sahel. All rights reserved.",
-    },
+    nav: { features: "Features", how: "How it works", industries: "Who it's for", faq: "FAQ", login: "Log in", start: "Get started" },
+    hero: { eyebrow: "Business management, made for Somalia", title: "Run your business with more clarity, control and confidence.", body: "Sahel brings sales, inventory, customer credit, expenses, receipts and business reports into one simple workspace — designed for the way businesses in Somalia operate.", primary: "Start with Sahel", secondary: "See how it works", note: "Simple to learn • Built for mobile • Somali & English" },
+    dashboard: { label: "Business overview", title: "Know what is happening in your business.", sales: "Today's sales", stock: "Stock value", credit: "Customer credit", trend: "Sales trend", healthy: "Everything is up to date" },
+    trust: { eyebrow: "Built around real business needs", title: "Less paperwork. Better decisions.", body: "Your business should not depend on notebooks, scattered receipts or trying to remember who owes you money. Sahel gives you one place to understand your day-to-day operations." },
+    features: { eyebrow: "Everything in one place", title: "The tools you need to run the day — and plan the next one.", body: "Start with the essentials and grow into deeper reporting as your business grows.", items: [[ShoppingCart, "Sales & transactions", "Record sales quickly and keep a clear history of what happened."], [Package, "Inventory control", "Know what is in stock, what is moving and what needs attention."], [CreditCard, "Customer credit", "Keep customer balances organized so outstanding credit does not get forgotten."], [Wallet, "Expenses & profit", "Record business expenses and understand where your money is going."], [Receipt, "Receipts", "Create clear receipts for customers and keep your transaction records organized."], [BarChart3, "Reports & insights", "Turn daily activity into useful views of sales, products and performance."]] },
+    industries: { eyebrow: "Designed for growing businesses", title: "One platform. Different businesses.", body: "Sahel is flexible enough to support the everyday workflows of local businesses while keeping the experience simple.", items: [[ShoppingCart, "Retail shops", "Sales, stock, expenses and customer credit in one place."], [Package, "Wholesalers", "Keep product movement and customer balances organized."], [Receipt, "Service businesses", "Track transactions, expenses and receipts without complicated software."]] },
+    how: { eyebrow: "Get started without the headache", title: "Three steps to a clearer business.", steps: [["01", "Create your business workspace", "Set up your business and choose the information you want to manage."], ["02", "Add products and customers", "Bring your products, prices and customer records into one organized place."], ["03", "Record, review and grow", "Use your daily records and reports to make faster, better-informed decisions."]] },
+    security: { eyebrow: "Trust matters", title: "Your business information deserves a serious home.", body: "Sahel is designed around clear access, organized records and responsible handling of business information. You stay in control of your account and the people who use it.", points: ["Clear account access", "Organized business records", "Mobile-first experience", "Built with local businesses in mind"] },
+    faq: { eyebrow: "Questions, answered", title: "Frequently asked questions", items: [["What is Sahel?", "Sahel is a business management platform that helps businesses manage sales, inventory, customer credit, expenses, receipts and reports from one place."], ["Can I use Sahel on my phone?", "Yes. Sahel is designed with a mobile-first experience so you can manage important business tasks from your phone."], ["Does Sahel support Somali?", "Yes. You can switch between English and Somali from the landing page and use the product in the language options supported by your account."], ["Is Sahel only for shops?", "No. Sahel is designed around common business workflows and can be adapted to different retail and service businesses."], ["How do I get started?", "Use the Get started button to create or access your Sahel account, or contact the Sahel team through WhatsApp if you want help getting set up."]] },
+    cta: { eyebrow: "Ready when you are", title: "Put your business in one clear system.", body: "Spend less time chasing records and more time running your business.", primary: "Get started", secondary: "Talk to Sahel" },
+    footer: { description: "Sahel is a business management platform built with Somali businesses in mind — helping you manage sales, stock, credit, expenses and reports in one place.", product: "Product", support: "Support", rights: "© 2026 Sahel. All rights reserved." }
   },
   so: {
-    nav: {
-      features: "Astaamaha",
-      how: "Sida uu u shaqeeyo",
-      industries: "Cidda loogu talagalay",
-      faq: "Su'aalo",
-      login: "Gal",
-      start: "Bilow",
-    },
-    hero: {
-      eyebrow: "Maamulka ganacsiga, oo loo dhisay Soomaaliya",
-      title: "Ganacsigaaga ku maamul faham, xakameyn iyo kalsooni badan.",
-      body: "Sahel waxay isku keentaa iibka, bakhaarka, deynta macaamiisha, kharashaadka, rasiidhada iyo warbixinnada ganacsiga — hal meel oo fudud oo loo sameeyay habka ganacsiyada Soomaaliya u shaqeeyaan.",
-      primary: "Ku bilow Sahel",
-      secondary: "Eeg sida uu u shaqeeyo",
-      note: "Fudud in la barto • Mobile-ka loogu talagalay • Soomaali & English",
-    },
-    dashboard: {
-      label: "Guudmarka ganacsiga",
-      title: "Ogow waxa ganacsigaaga ka socda.",
-      sales: "Iibka maanta",
-      stock: "Qiimaha bakhaarka",
-      credit: "Deynta macaamiisha",
-      trend: "Isbeddelka iibka",
-      healthy: "Wax walba waa la cusbooneysiiyay",
-    },
-    trust: {
-      eyebrow: "Loo dhisay baahiyaha ganacsiga",
-      title: "Warqad yar. Go'aan fiican.",
-      body: "Ganacsigaagu kuma xirnaado buug xisaabeed, rasiiddo kala yaacsan ama xusuusta qofka lacagta kugu leh. Sahel waxay ku siinaysaa hal meel oo aad ku fahanto hawlaha maalinlaha ah ee ganacsigaaga.",
-    },
-    features: {
-      eyebrow: "Wax walba hal meel",
-      title: "Qalabka aad u baahan tahay maanta iyo qorshaha berri.",
-      body: "Ku bilow waxyaabaha muhiimka ah, kadibna u gudub warbixinno qoto dheer marka ganacsigaagu kobco.",
-      items: [
-        [ShoppingCart, "Iibka iyo macaamilada", "Si degdeg ah u diiwaan geli iibka oo hayso taariikh cad oo waxa dhacay."],
-        [Package, "Maamulka bakhaarka", "Ogow waxa yaalla, waxa dhaqaaqaya iyo waxa u baahan in fiiro loo yeesho."],
-        [CreditCard, "Deynta macaamiisha", "Si habaysan u kaydi lacagaha macaamiishu kugu leeyihiin si aysan u lumin."],
-        [Wallet, "Kharashaadka iyo faa'iidada", "Diiwaan geli kharashaadka oo faham halka lacagtaadu u socoto."],
-        [Receipt, "Rasiidhada", "Macaamiisha sii rasiidh cad, adiguna hayso diiwaanka macaamilada."],
-        [BarChart3, "Warbixinno iyo faham", "Hawlaha maalinlaha ah u beddel warbixin kaa caawisa iibka iyo waxqabadka."],
-      ],
-    },
-    industries: {
-      eyebrow: "Loogu talagalay ganacsiyada koraya",
-      title: "Hal platform. Ganacsiyo kala duwan.",
-      body: "Sahel waxay la qabsan kartaa hawlaha maalinlaha ah ee ganacsiyada maxalliga ah iyadoo khibraddu fudud tahay.",
-      items: [
-        [ShoppingCart, "Dukaamada tafaariiqda", "Iibka, bakhaarka, kharashaadka iyo deynta macaamiisha hal meel."],
-        [Package, "Jumlada", "Si habaysan ula soco dhaqdhaqaaqa alaabta iyo lacagaha macaamiisha."],
-        [Receipt, "Ganacsiyada adeegga", "La soco macaamilada, kharashaadka iyo rasiidhada adigoon isticmaalin software adag."],
-      ],
-    },
-    how: {
-      eyebrow: "Bilow adigoon dhib badan lahayn",
-      title: "Saddex tallaabo oo ganacsigaaga caddeeya.",
-      steps: [
-        ["01", "Samee goobta ganacsigaaga", "Deji ganacsigaaga oo dooro xogta aad rabto inaad maamusho."],
-        ["02", "Ku dar alaabta iyo macaamiisha", "Ku soo geli alaabta, qiimayaasha iyo xogta macaamiisha hal meel oo habaysan."],
-        ["03", "Diiwaan geli, eeg oo kobci", "Isticmaal diiwaannada maalinlaha ah iyo warbixinnada si aad go'aanno fiican u gaarto."],
-      ],
-    },
-    security: {
-      eyebrow: "Kalsoonidu waa muhiim",
-      title: "Xogta ganacsigaaga waxay mudan tahay meel dhab ah.",
-      body: "Sahel waxaa lagu dhisay gelitaan cad, diiwaanno habaysan iyo ilaalin masuuliyad leh oo xogta ganacsiga ah. Adiga ayaa xakameynaya akoonkaaga iyo dadka isticmaala.",
-      points: ["Gelitaan akoon oo cad", "Diiwaanno ganacsi oo habaysan", "Khibrad mobile-first", "Loo dhisay ganacsiyada maxalliga ah"],
-    },
-    faq: {
-      eyebrow: "Su'aalahaaga, jawaabahooda",
-      title: "Su'aalaha inta badan la isweydiiyo",
-      items: [
-        ["Waa maxay Sahel?", "Sahel waa platform maamulka ganacsiga ah oo kaa caawiya iibka, bakhaarka, deynta macaamiisha, kharashaadka, rasiidhada iyo warbixinnada hal meel."],
-        ["Sahel ma ku isticmaali karaa telefoon?", "Haa. Sahel waxaa loo sameeyay khibrad mobile-first ah si aad hawlaha muhiimka ah uga maamusho telefoonkaaga."],
-        ["Sahel ma taageertaa Soomaaliga?", "Haa. Bogga hore waxaad uga beddeli kartaa English iyo Soomaali, iyadoo badeecaddu taageerto luqadaha ku jira akoonkaaga."],
-        ["Sahel ma dukaamada oo keliya ayay u tahay?", "Maya. Sahel waxaa lagu dhisay hawlo ganacsi oo caadi ah, waxaana loo adeegsan karaa ganacsiyo tafaariiq iyo adeegyo kala duwan."],
-        ["Sideen ku bilaabaa?", "Isticmaal badhanka Bilow si aad u samaysato ama u gasho akoonkaaga Sahel, ama WhatsApp nagala soo xiriir haddii aad rabto caawimo."],
-      ],
-    },
-    cta: {
-      eyebrow: "Markaad diyaar tahay",
-      title: "Ganacsigaaga geli hal nidaam oo cad.",
-      body: "Waqti yar ku bixi raadinta diiwaannada, waqti badanna ku bixi maamulka ganacsigaaga.",
-      primary: "Bilow",
-      secondary: "La hadal Sahel",
-    },
-    footer: {
-      description: "Sahel waa platform maamulka ganacsiga oo maskaxda lagu hayay ganacsiyada Soomaaliyeed — si aad hal meel uga maamusho iibka, bakhaarka, deynta, kharashaadka iyo warbixinnada.",
-      product: "Badeecadda",
-      company: "Shirkadda",
-      support: "Taageero",
-      rights: "© 2026 Sahel. Xuquuqda oo dhan way dhowran tahay.",
-    },
-  },
+    nav: { features: "Astaamaha", how: "Sida uu u shaqeeyo", industries: "Cidda loogu talagalay", faq: "Su'aalo", login: "Gal", start: "Bilow" },
+    hero: { eyebrow: "Maamulka ganacsiga, oo loo dhisay Soomaaliya", title: "Ganacsigaaga ku maamul faham, xakameyn iyo kalsooni badan.", body: "Sahel waxay isku keentaa iibka, bakhaarka, deynta macaamiisha, kharashaadka, rasiidhada iyo warbixinnada ganacsiga — hal meel oo fudud oo loo sameeyay habka ganacsiyada Soomaaliya u shaqeeyaan.", primary: "Ku bilow Sahel", secondary: "Eeg sida uu u shaqeeyo", note: "Fudud in la barto • Mobile-ka loogu talagalay • Soomaali & English" },
+    dashboard: { label: "Guudmarka ganacsiga", title: "Ogow waxa ganacsigaaga ka socda.", sales: "Iibka maanta", stock: "Qiimaha bakhaarka", credit: "Deynta macaamiisha", trend: "Isbeddelka iibka", healthy: "Wax walba waa la cusbooneysiiyay" },
+    trust: { eyebrow: "Loo dhisay baahiyaha ganacsiga", title: "Warqad yar. Go'aan fiican.", body: "Ganacsigaagu kuma xirnaado buug xisaabeed, rasiiddo kala yaacsan ama xusuusta qofka lacagta kugu leh. Sahel waxay ku siinaysaa hal meel oo aad ku fahanto hawlaha maalinlaha ah ee ganacsigaaga." },
+    features: { eyebrow: "Wax walba hal meel", title: "Qalabka aad u baahan tahay maanta iyo qorshaha berri.", body: "Ku bilow waxyaabaha muhiimka ah, kadibna u gudub warbixinno qoto dheer marka ganacsigaagu kobco.", items: [[ShoppingCart, "Iibka iyo macaamilada", "Si degdeg ah u diiwaan geli iibka oo hayso taariikh cad oo waxa dhacay."], [Package, "Maamulka bakhaarka", "Ogow waxa yaalla, waxa dhaqaaqaya iyo waxa u baahan in fiiro loo yeesho."], [CreditCard, "Deynta macaamiisha", "Si habaysan u kaydi lacagaha macaamiishu kugu leeyihiin si aysan u lumin."], [Wallet, "Kharashaadka iyo faa'iidada", "Diiwaan geli kharashaadka oo faham halka lacagtaadu u socoto."], [Receipt, "Rasiidhada", "Macaamiisha sii rasiidh cad, adiguna hayso diiwaanka macaamilada."], [BarChart3, "Warbixinno iyo faham", "Hawlaha maalinlaha ah u beddel warbixin kaa caawisa iibka iyo waxqabadka."]] },
+    industries: { eyebrow: "Loogu talagalay ganacsiyada koraya", title: "Hal platform. Ganacsiyo kala duwan.", body: "Sahel waxay la qabsan kartaa hawlaha maalinlaha ah ee ganacsiyada maxalliga ah iyadoo khibraddu fudud tahay.", items: [[ShoppingCart, "Dukaamada tafaariiqda", "Iibka, bakhaarka, kharashaadka iyo deynta macaamiisha hal meel."], [Package, "Jumlada", "Si habaysan ula soco dhaqdhaqaaqa alaabta iyo lacagaha macaamiisha."], [Receipt, "Ganacsiyada adeegga", "La soco macaamilada, kharashaadka iyo rasiidhada adigoon isticmaalin software adag."]] },
+    how: { eyebrow: "Bilow adigoon dhib badan lahayn", title: "Saddex tallaabo oo ganacsigaaga caddeeya.", steps: [["01", "Samee goobta ganacsigaaga", "Deji ganacsigaaga oo dooro xogta aad rabto inaad maamusho."], ["02", "Ku dar alaabta iyo macaamiisha", "Ku soo geli alaabta, qiimayaasha iyo xogta macaamiisha hal meel oo habaysan."], ["03", "Diiwaan geli, eeg oo kobci", "Isticmaal diiwaannada maalinlaha ah iyo warbixinnada si aad go'aanno fiican u gaarto."]] },
+    security: { eyebrow: "Kalsoonidu waa muhiim", title: "Xogta ganacsigaaga waxay mudan tahay meel dhab ah.", body: "Sahel waxaa lagu dhisay gelitaan cad, diiwaanno habaysan iyo ilaalin masuuliyad leh oo xogta ganacsiga ah. Adiga ayaa xakameynaya akoonkaaga iyo dadka isticmaala.", points: ["Gelitaan akoon oo cad", "Diiwaanno ganacsi oo habaysan", "Khibrad mobile-first", "Loo dhisay ganacsiyada maxalliga ah"] },
+    faq: { eyebrow: "Su'aalahaaga, jawaabahooda", title: "Su'aalaha inta badan la isweydiiyo", items: [["Waa maxay Sahel?", "Sahel waa platform maamulka ganacsiga ah oo kaa caawiya iibka, bakhaarka, deynta macaamiisha, kharashaadka, rasiidhada iyo warbixinnada hal meel."], ["Sahel ma ku isticmaali karaa telefoon?", "Haa. Sahel waxaa loo sameeyay khibrad mobile-first ah si aad hawlaha muhiimka ah uga maamusho telefoonkaaga."], ["Sahel ma taageertaa Soomaaliga?", "Haa. Bogga hore waxaad uga beddeli kartaa English iyo Soomaali, iyadoo badeecaddu taageerto luqadaha ku jira akoonkaaga."], ["Sahel ma dukaamada oo keliya ayay u tahay?", "Maya. Sahel waxaa lagu dhisay hawlo ganacsi oo caadi ah, waxaana loo adeegsan karaa ganacsiyo tafaariiq iyo adeegyo kala duwan."], ["Sideen ku bilaabaa?", "Isticmaal badhanka Bilow si aad u samaysato ama u gasho akoonkaaga Sahel, ama WhatsApp nagala soo xiriir haddii aad rabto caawimo."]] },
+    cta: { eyebrow: "Markaad diyaar tahay", title: "Ganacsigaaga geli hal nidaam oo cad.", body: "Waqti yar ku bixi raadinta diiwaannada, waqti badanna ku bixi maamulka ganacsigaaga.", primary: "Bilow", secondary: "La hadal Sahel" },
+    footer: { description: "Sahel waa platform maamulka ganacsiga oo maskaxda lagu hayay ganacsiyada Soomaaliyeed — si aad hal meel uga maamusho iibka, bakhaarka, deynta, kharashaadka iyo warbixinnada.", product: "Badeecadda", support: "Taageero", rights: "© 2026 Sahel. Xuquuqda oo dhan way dhowran tahay." }
+  }
 };
 
-const LOGO =
-  "data:image/svg+xml;utf8," +
-  encodeURIComponent(
-    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><rect width="48" height="48" rx="13" fill="#15203B"/><circle cx="35" cy="13" r="4" fill="#F2C14E"/><rect x="10" y="28" width="6" height="11" rx="2" fill="#7E88B0"/><rect x="21" y="20" width="6" height="19" rx="2" fill="#A9B1CE"/><rect x="32" y="14" width="6" height="25" rx="2" fill="#FBF8F2"/></svg>"
-  );
+const LOGO = "data:image/svg+xml;utf8," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><rect width="48" height="48" rx="13" fill="#15203B"/><circle cx="35" cy="13" r="4" fill="#F2C14E"/><rect x="10" y="28" width="6" height="11" rx="2" fill="#7E88B0"/><rect x="21" y="20" width="6" height="19" rx="2" fill="#A9B1CE"/><rect x="32" y="14" width="6" height="25" rx="2" fill="#FBF8F2"/></svg>');
 
-function useCopy(lang) {
-  return useMemo(() => COPY[lang] || COPY.en, [lang]);
-}
+function useCopy(lang) { return useMemo(() => COPY[lang] || COPY.en, [lang]); }
 
 export default function SahelLanding() {
   const [lang, setLang] = useState(() => localStorage.getItem("sahel-lang") || "en");
@@ -236,324 +47,55 @@ export default function SahelLanding() {
     localStorage.setItem("sahel-lang", lang);
     document.documentElement.lang = lang === "so" ? "so" : "en";
     document.documentElement.dir = "ltr";
-    document.title = lang === "so"
-      ? "Sahel — Maamulka Ganacsiga ee Soomaaliya"
-      : "Sahel — Business Management Software for Somalia";
-
-    const description = lang === "so"
-      ? "Sahel waa platform maamulka ganacsiga oo Soomaaliya loogu dhisay si loo maareeyo iibka, bakhaarka, deynta, kharashaadka iyo warbixinnada."
-      : "Sahel is business management software built for Somalia to manage sales, inventory, customer credit, expenses, receipts and reports.";
-
+    document.title = lang === "so" ? "Sahel — Maamulka Ganacsiga ee Soomaaliya" : "Sahel — Business Management Software for Somalia";
+    const description = lang === "so" ? "Sahel waa platform maamulka ganacsiga oo Soomaaliya loogu dhisay si loo maareeyo iibka, bakhaarka, deynta, kharashaadka iyo warbixinnada." : "Sahel is business management software built for Somalia to manage sales, inventory, customer credit, expenses, receipts and reports.";
     let meta = document.querySelector('meta[name="description"]');
-    if (!meta) {
-      meta = document.createElement("meta");
-      meta.name = "description";
-      document.head.appendChild(meta);
-    }
+    if (!meta) { meta = document.createElement("meta"); meta.name = "description"; document.head.appendChild(meta); }
     meta.content = description;
-
-    const schemaId = "sahel-landing-schema";
-    document.getElementById(schemaId)?.remove();
-    const schema = document.createElement("script");
-    schema.id = schemaId;
-    schema.type = "application/ld+json";
-    schema.textContent = JSON.stringify({
-      "@context": "https://schema.org",
-      "@type": "SoftwareApplication",
-      name: "Sahel",
-      applicationCategory: "BusinessApplication",
-      operatingSystem: "Web, Android",
-      url: "https://mysahelapp.com/",
-      description,
-      inLanguage: ["en", "so"],
-      areaServed: { "@type": "Country", name: "Somalia" },
-      offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
-    });
+    document.getElementById("sahel-landing-schema")?.remove();
+    const schema = document.createElement("script"); schema.id = "sahel-landing-schema"; schema.type = "application/ld+json";
+    schema.textContent = JSON.stringify({ "@context": "https://schema.org", "@type": "SoftwareApplication", name: "Sahel", applicationCategory: "BusinessApplication", operatingSystem: "Web, Android", url: "https://mysahelapp.com/", description, inLanguage: ["en", "so"], areaServed: { "@type": "Country", name: "Somalia" } });
     document.head.appendChild(schema);
   }, [lang]);
 
-  const changeLanguage = (next) => {
-    setLang(next);
-    setMobileOpen(false);
-    setOpenFaq(-1);
-  };
+  const changeLanguage = (next) => { setLang(next); setMobileOpen(false); setOpenFaq(-1); };
 
   return (
     <div className="min-h-screen overflow-x-hidden bg-[#FBF8F2] text-[#15203B] antialiased">
-      <style>{`
-        html { scroll-behavior: smooth; }
-        @keyframes sahel-float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
-        @keyframes sahel-pulse { 0%,100%{opacity:.35;transform:scale(1)} 50%{opacity:.7;transform:scale(1.08)} }
-        .sahel-float{animation:sahel-float 6s ease-in-out infinite}
-        .sahel-pulse{animation:sahel-pulse 4s ease-in-out infinite}
-        .sahel-grid{background-image:linear-gradient(rgba(21,32,59,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(21,32,59,.035) 1px,transparent 1px);background-size:44px 44px}
-      `}</style>
-
+      <style>{`html{scroll-behavior:smooth}@keyframes sf{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}@keyframes sp{0%,100%{opacity:.35;transform:scale(1)}50%{opacity:.7;transform:scale(1.08)}}.sahel-float{animation:sf 6s ease-in-out infinite}.sahel-pulse{animation:sp 4s ease-in-out infinite}.sahel-grid{background-image:linear-gradient(rgba(21,32,59,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(21,32,59,.035) 1px,transparent 1px);background-size:44px 44px}`}</style>
       <div className="fixed inset-x-0 top-0 z-[60] h-1 bg-gradient-to-r from-[#15203B] via-[#F2C14E] to-[#15203B]" />
-
       <header className="sticky top-0 z-50 border-b border-[#E8E1D2]/80 bg-[#FBF8F2]/90 backdrop-blur-xl">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-5 lg:px-8">
-          <Link to="/" className="flex items-center gap-3" aria-label="Sahel home">
-            <img src={LOGO} alt="Sahel logo" className="h-9 w-9 rounded-xl" />
-            <div>
-              <span className="font-['Lora'] text-xl font-bold tracking-tight">Sahel</span>
-              <span className="ml-2 hidden text-[10px] font-semibold uppercase tracking-[.18em] text-[#8B8067] sm:inline">Business Management</span>
-            </div>
-          </Link>
-
+          <Link to="/" className="flex items-center gap-3" aria-label="Sahel home"><img src={LOGO} alt="Sahel logo" className="h-9 w-9 rounded-xl" /><div><span className="font-['Lora'] text-xl font-bold tracking-tight">Sahel</span><span className="ml-2 hidden text-[10px] font-semibold uppercase tracking-[.18em] text-[#8B8067] sm:inline">Business Management</span></div></Link>
           <nav className="hidden items-center gap-1 md:flex" aria-label="Primary navigation">
-            <a href="#features" className="rounded-lg px-3 py-2 text-sm font-medium text-[#5B6077] hover:bg-white hover:text-[#15203B]">{t.nav.features}</a>
-            <a href="#how" className="rounded-lg px-3 py-2 text-sm font-medium text-[#5B6077] hover:bg-white hover:text-[#15203B]">{t.nav.how}</a>
-            <a href="#industries" className="rounded-lg px-3 py-2 text-sm font-medium text-[#5B6077] hover:bg-white hover:text-[#15203B]">{t.nav.industries}</a>
-            <a href="#faq" className="rounded-lg px-3 py-2 text-sm font-medium text-[#5B6077] hover:bg-white hover:text-[#15203B]">{t.nav.faq}</a>
+            <a href="#features" className="rounded-lg px-3 py-2 text-sm font-medium text-[#5B6077] hover:bg-white hover:text-[#15203B]">{t.nav.features}</a><a href="#how" className="rounded-lg px-3 py-2 text-sm font-medium text-[#5B6077] hover:bg-white hover:text-[#15203B]">{t.nav.how}</a><a href="#industries" className="rounded-lg px-3 py-2 text-sm font-medium text-[#5B6077] hover:bg-white hover:text-[#15203B]">{t.nav.industries}</a><a href="#faq" className="rounded-lg px-3 py-2 text-sm font-medium text-[#5B6077] hover:bg-white hover:text-[#15203B]">{t.nav.faq}</a>
             <div className="mx-2 h-6 w-px bg-[#DED6C4]" />
             <div className="flex rounded-full border border-[#DED6C4] bg-white p-1" aria-label="Language selector">
-              <button onClick={() => changeLanguage("en")} className={`rounded-full px-3 py-1 text-xs font-bold ${lang === "en" ? "bg-[#15203B] text-white" : "text-[#6B7086]"}`} aria-pressed={lang === "en">EN</button>
-              <button onClick={() => changeLanguage("so")} className={`rounded-full px-3 py-1 text-xs font-bold ${lang === "so" ? "bg-[#15203B] text-white" : "text-[#6B7086]"}`} aria-pressed={lang === "so">SO</button>
+              <button onClick={() => changeLanguage("en")} className={`rounded-full px-3 py-1 text-xs font-bold ${lang === "en" ? "bg-[#15203B] text-white" : "text-[#6B7086]"}`} aria-pressed={lang === "en"}>EN</button>
+              <button onClick={() => changeLanguage("so")} className={`rounded-full px-3 py-1 text-xs font-bold ${lang === "so" ? "bg-[#15203B] text-white" : "text-[#6B7086]"}`} aria-pressed={lang === "so"}>SO</button>
             </div>
-            <Link to="/login" className="ml-2 rounded-lg px-3 py-2 text-sm font-semibold text-[#4F556D] hover:text-[#15203B]">{t.nav.login}</Link>
-            <Link to="/signup" className="rounded-lg bg-[#15203B] px-4 py-2 text-sm font-bold text-white shadow-sm hover:-translate-y-0.5 hover:bg-[#0D1529]">{t.nav.start}</Link>
+            <Link to="/login" className="ml-2 rounded-lg px-3 py-2 text-sm font-semibold text-[#4F556D] hover:text-[#15203B]">{t.nav.login}</Link><Link to="/signup" className="rounded-lg bg-[#15203B] px-4 py-2 text-sm font-bold text-white shadow-sm hover:-translate-y-0.5 hover:bg-[#0D1529]">{t.nav.start}</Link>
           </nav>
-
-          <button className="rounded-lg p-2 md:hidden" onClick={() => setMobileOpen((v) => !v)} aria-label="Toggle menu" aria-expanded={mobileOpen}>
-            {mobileOpen ? <X size={21} /> : <Menu size={21} />}
-          </button>
+          <button className="rounded-lg p-2 md:hidden" onClick={() => setMobileOpen((v) => !v)} aria-label="Toggle menu" aria-expanded={mobileOpen}>{mobileOpen ? <X size={21} /> : <Menu size={21} />}</button>
         </div>
-
-        {mobileOpen && (
-          <div className="border-t border-[#E8E1D2] bg-[#FBF8F2] px-5 py-4 md:hidden">
-            <div className="mx-auto max-w-7xl space-y-1">
-              {[["#features", t.nav.features], ["#how", t.nav.how], ["#industries", t.nav.industries], ["#faq", t.nav.faq]].map(([href, label]) => (
-                <a key={href} href={href} onClick={() => setMobileOpen(false)} className="block rounded-xl px-3 py-3 text-sm font-semibold text-[#4F556D]">{label}</a>
-              ))}
-              <div className="flex gap-2 pt-2">
-                <button onClick={() => changeLanguage("en")} className={`flex-1 rounded-xl border py-2.5 text-sm font-bold ${lang === "en" ? "border-[#15203B] bg-[#15203B] text-white" : "border-[#DED6C4]"}`}>English</button>
-                <button onClick={() => changeLanguage("so")} className={`flex-1 rounded-xl border py-2.5 text-sm font-bold ${lang === "so" ? "border-[#15203B] bg-[#15203B] text-white" : "border-[#DED6C4]"}`}>Soomaali</button>
-              </div>
-              <div className="grid grid-cols-2 gap-2 pt-2">
-                <Link to="/login" className="rounded-xl border border-[#DED6C4] py-3 text-center text-sm font-bold">{t.nav.login}</Link>
-                <Link to="/signup" className="rounded-xl bg-[#15203B] py-3 text-center text-sm font-bold text-white">{t.nav.start}</Link>
-              </div>
-            </div>
-          </div>
-        )}
+        {mobileOpen && <div className="border-t border-[#E8E1D2] bg-[#FBF8F2] px-5 py-4 md:hidden"><div className="mx-auto max-w-7xl space-y-1">{[["#features",t.nav.features],["#how",t.nav.how],["#industries",t.nav.industries],["#faq",t.nav.faq]].map(([href,label])=><a key={href} href={href} onClick={()=>setMobileOpen(false)} className="block rounded-xl px-3 py-3 text-sm font-semibold text-[#4F556D]">{label}</a>)}<div className="flex gap-2 pt-2"><button onClick={()=>changeLanguage("en")} className={`flex-1 rounded-xl border py-2.5 text-sm font-bold ${lang==="en"?"border-[#15203B] bg-[#15203B] text-white":"border-[#DED6C4]"}`}>English</button><button onClick={()=>changeLanguage("so")} className={`flex-1 rounded-xl border py-2.5 text-sm font-bold ${lang==="so"?"border-[#15203B] bg-[#15203B] text-white":"border-[#DED6C4]"}`}>Soomaali</button></div><div className="grid grid-cols-2 gap-2 pt-2"><Link to="/login" className="rounded-xl border border-[#DED6C4] py-3 text-center text-sm font-bold">{t.nav.login}</Link><Link to="/signup" className="rounded-xl bg-[#15203B] py-3 text-center text-sm font-bold text-white">{t.nav.start}</Link></div></div></div>}
       </header>
-
       <main>
-        <section className="relative overflow-hidden border-b border-[#E8E1D2] bg-white">
-          <div className="absolute inset-0 sahel-grid opacity-70" />
-          <div className="absolute -right-40 top-0 h-[420px] w-[420px] rounded-full bg-[#F2C14E]/15 blur-3xl sahel-pulse" />
-          <div className="absolute -left-40 bottom-0 h-[360px] w-[360px] rounded-full bg-[#15203B]/5 blur-3xl" />
-
-          <div className="relative mx-auto grid max-w-7xl items-center gap-14 px-5 py-20 lg:grid-cols-[1.05fr_.95fr] lg:px-8 lg:py-28">
-            <div className="max-w-2xl">
-              <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-[#E9D79F] bg-[#FFF8E5] px-3.5 py-2 text-xs font-bold text-[#9B7620]">
-                <Sparkles size={14} /> {t.hero.eyebrow}
-              </div>
-              <h1 className="font-['Lora'] text-4xl font-bold leading-[1.08] tracking-tight text-[#15203B] sm:text-5xl lg:text-[4.25rem]">
-                {t.hero.title}
-              </h1>
-              <p className="mt-6 max-w-xl text-base leading-7 text-[#60677D] sm:text-lg">
-                {t.hero.body}
-              </p>
-              <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-                <Link to="/signup" className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#15203B] px-6 py-3.5 text-sm font-bold text-white shadow-[0_12px_28px_rgba(21,32,59,.18)] transition hover:-translate-y-0.5 hover:bg-[#0D1529]">
-                  {t.hero.primary}<ArrowRight size={16} />
-                </Link>
-                <a href="#how" className="inline-flex items-center justify-center gap-2 rounded-xl border border-[#D9D1BF] bg-white px-6 py-3.5 text-sm font-bold text-[#15203B] transition hover:border-[#15203B]/30 hover:bg-[#FBF8F2]">
-                  {t.hero.secondary}<ChevronDown size={16} />
-                </a>
-              </div>
-              <div className="mt-5 flex flex-wrap gap-x-5 gap-y-2 text-xs font-semibold text-[#7B806F]">
-                <span className="inline-flex items-center gap-1.5"><Check size={14} className="text-[#C99A27]" />{t.hero.note.split(" • ")[0]}</span>
-                <span className="inline-flex items-center gap-1.5"><Check size={14} className="text-[#C99A27]" />{t.hero.note.split(" • ")[1]}</span>
-                <span className="inline-flex items-center gap-1.5"><Check size={14} className="text-[#C99A27]" />{t.hero.note.split(" • ")[2]}</span>
-              </div>
-            </div>
-
-            <div className="relative mx-auto w-full max-w-xl lg:max-w-none">
-              <div className="absolute -left-4 top-8 h-24 w-24 rounded-3xl bg-[#F2C14E]/20 sahel-float" />
-              <div className="absolute -bottom-5 -right-4 h-28 w-28 rounded-full bg-[#15203B]/5" />
-              <div className="relative rounded-3xl border border-[#E4DDCE] bg-[#FBF8F2] p-4 shadow-[0_28px_70px_rgba(21,32,59,.12)] sm:p-5">
-                <div className="rounded-2xl border border-[#E8E1D2] bg-white p-4 sm:p-5">
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <p className="text-xs font-bold uppercase tracking-[.14em] text-[#9B927C]">{t.dashboard.label}</p>
-                      <h2 className="mt-1 font-['Lora'] text-xl font-bold">{t.dashboard.title}</h2>
-                    </div>
-                    <div className="rounded-xl bg-[#FFF7DF] p-2.5 text-[#C99A27]"><TrendingUp size={18} /></div>
-                  </div>
-
-                  <div className="mt-5 grid grid-cols-3 gap-2.5">
-                    {[[t.dashboard.sales, "$1,840", "+12.4%"], [t.dashboard.stock, "$12,480", "124 items"], [t.dashboard.credit, "$2,160", "18 customers"]].map(([label, value, sub]) => (
-                      <div key={label} className="rounded-xl border border-[#ECE6D9] bg-[#FBF8F2] p-3">
-                        <p className="text-[10px] font-semibold text-[#898E9F]">{label}</p>
-                        <p className="mt-1 text-sm font-extrabold sm:text-base">{value}</p>
-                        <p className="mt-1 text-[10px] font-bold text-[#B48A22]">{sub}</p>
-                      </div>
-                    ))}
-                  </div>
-
-                  <div className="mt-4 rounded-xl border border-[#ECE6D9] p-4">
-                    <div className="flex items-center justify-between">
-                      <p className="text-xs font-bold">{t.dashboard.trend}</p>
-                      <span className="rounded-full bg-[#EFF9F1] px-2 py-1 text-[10px] font-bold text-[#3C8A50]">+18.2%</span>
-                    </div>
-                    <div className="mt-5 flex h-28 items-end gap-2">
-                      {[34, 48, 42, 64, 56, 82, 70, 94, 78, 100, 86, 112].map((h, i) => (
-                        <div key={i} className="flex-1 rounded-t-md bg-gradient-to-t from-[#15203B] to-[#F2C14E] opacity-90" style={{ height: `${h}px` }} />
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="mt-3 flex items-center gap-2 rounded-xl bg-[#F3F8F4] px-3 py-2.5 text-xs font-semibold text-[#3D6F4A]">
-                    <ShieldCheck size={15} /> {t.dashboard.healthy}
-                  </div>
-                </div>
-              </div>
-            </div>
+        <section className="relative overflow-hidden border-b border-[#E8E1D2] bg-white"><div className="absolute inset-0 sahel-grid opacity-70"/><div className="absolute -right-40 top-0 h-[420px] w-[420px] rounded-full bg-[#F2C14E]/15 blur-3xl sahel-pulse"/><div className="absolute -left-40 bottom-0 h-[360px] w-[360px] rounded-full bg-[#15203B]/5 blur-3xl"/>
+          <div className="relative mx-auto grid max-w-7xl items-center gap-14 px-5 py-20 lg:grid-cols-[1.05fr_.95fr] lg:px-8 lg:py-28"><div className="max-w-2xl"><div className="mb-6 inline-flex items-center gap-2 rounded-full border border-[#E9D79F] bg-[#FFF8E5] px-3.5 py-2 text-xs font-bold text-[#9B7620]"><Sparkles size={14}/>{t.hero.eyebrow}</div><h1 className="font-['Lora'] text-4xl font-bold leading-[1.08] tracking-tight text-[#15203B] sm:text-5xl lg:text-[4.25rem]">{t.hero.title}</h1><p className="mt-6 max-w-xl text-base leading-7 text-[#60677D] sm:text-lg">{t.hero.body}</p><div className="mt-8 flex flex-col gap-3 sm:flex-row"><Link to="/signup" className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#15203B] px-6 py-3.5 text-sm font-bold text-white shadow-[0_12px_28px_rgba(21,32,59,.18)] transition hover:-translate-y-0.5 hover:bg-[#0D1529]">{t.hero.primary}<ArrowRight size={16}/></Link><a href="#how" className="inline-flex items-center justify-center gap-2 rounded-xl border border-[#D9D1BF] bg-white px-6 py-3.5 text-sm font-bold text-[#15203B] transition hover:bg-[#FBF8F2]">{t.hero.secondary}<ChevronDown size={16}/></a></div><div className="mt-5 flex flex-wrap gap-x-5 gap-y-2 text-xs font-semibold text-[#7B806F]">{t.hero.note.split(" • ").map((x,i)=><span key={i} className="inline-flex items-center gap-1.5"><Check size={14} className="text-[#C99A27]"/>{x}</span>)}</div></div>
+            <div className="relative mx-auto w-full max-w-xl lg:max-w-none"><div className="absolute -left-4 top-8 h-24 w-24 rounded-3xl bg-[#F2C14E]/20 sahel-float"/><div className="absolute -bottom-5 -right-4 h-28 w-28 rounded-full bg-[#15203B]/5"/><div className="relative rounded-3xl border border-[#E4DDCE] bg-[#FBF8F2] p-4 shadow-[0_28px_70px_rgba(21,32,59,.12)] sm:p-5"><div className="rounded-2xl border border-[#E8E1D2] bg-white p-4 sm:p-5"><div className="flex items-start justify-between gap-4"><div><p className="text-xs font-bold uppercase tracking-[.14em] text-[#9B927C]">{t.dashboard.label}</p><h2 className="mt-1 font-['Lora'] text-xl font-bold">{t.dashboard.title}</h2></div><div className="rounded-xl bg-[#FFF7DF] p-2.5 text-[#C99A27]"><TrendingUp size={18}/></div></div><div className="mt-5 grid grid-cols-3 gap-2.5">{[[t.dashboard.sales,"$1,840","+12.4%"],[t.dashboard.stock,"$12,480","124 items"],[t.dashboard.credit,"$2,160","18 customers"]].map(([label,value,sub])=><div key={label} className="rounded-xl border border-[#ECE6D9] bg-[#FBF8F2] p-3"><p className="text-[10px] font-semibold text-[#898E9F]">{label}</p><p className="mt-1 text-sm font-extrabold sm:text-base">{value}</p><p className="mt-1 text-[10px] font-bold text-[#B48A22]">{sub}</p></div>)}</div><div className="mt-4 rounded-xl border border-[#ECE6D9] p-4"><div className="flex items-center justify-between"><p className="text-xs font-bold">{t.dashboard.trend}</p><span className="rounded-full bg-[#EFF9F1] px-2 py-1 text-[10px] font-bold text-[#3C8A50]">+18.2%</span></div><div className="mt-5 flex h-28 items-end gap-2">{[34,48,42,64,56,82,70,94,78,100,86,112].map((h,i)=><div key={i} className="flex-1 rounded-t-md bg-gradient-to-t from-[#15203B] to-[#F2C14E] opacity-90" style={{height:`${h}px`}}/>)}</div></div><div className="mt-3 flex items-center gap-2 rounded-xl bg-[#F3F8F4] px-3 py-2.5 text-xs font-semibold text-[#3D6F4A]"><ShieldCheck size={15}/>{t.dashboard.healthy}</div></div></div></div>
           </div>
         </section>
-
-        <section className="border-b border-[#E8E1D2] bg-[#FBF8F2] py-16">
-          <div className="mx-auto max-w-4xl px-5 text-center lg:px-8">
-            <p className="text-xs font-extrabold uppercase tracking-[.18em] text-[#B18A2A]">{t.trust.eyebrow}</p>
-            <h2 className="mt-3 font-['Lora'] text-3xl font-bold tracking-tight sm:text-4xl">{t.trust.title}</h2>
-            <p className="mx-auto mt-5 max-w-2xl text-base leading-7 text-[#687084]">{t.trust.body}</p>
-          </div>
-        </section>
-
-        <section id="features" className="bg-white py-20">
-          <div className="mx-auto max-w-7xl px-5 lg:px-8">
-            <div className="max-w-2xl">
-              <p className="text-xs font-extrabold uppercase tracking-[.18em] text-[#B18A2A]">{t.features.eyebrow}</p>
-              <h2 className="mt-3 font-['Lora'] text-3xl font-bold tracking-tight sm:text-4xl">{t.features.title}</h2>
-              <p className="mt-4 text-base leading-7 text-[#687084]">{t.features.body}</p>
-            </div>
-            <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {t.features.items.map(([Icon, title, body]) => (
-                <article key={title} className="group rounded-2xl border border-[#E8E1D2] bg-[#FBF8F2] p-6 transition hover:-translate-y-1 hover:bg-white hover:shadow-[0_18px_40px_rgba(21,32,59,.08)]">
-                  <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#15203B] text-[#F2C14E] transition group-hover:scale-105"><Icon size={20} /></div>
-                  <h3 className="mt-5 text-base font-extrabold">{title}</h3>
-                  <p className="mt-2 text-sm leading-6 text-[#6B7287]">{body}</p>
-                </article>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        <section id="industries" className="border-y border-[#E8E1D2] bg-[#FBF8F2] py-20">
-          <div className="mx-auto max-w-7xl px-5 lg:px-8">
-            <div className="mx-auto max-w-2xl text-center">
-              <p className="text-xs font-extrabold uppercase tracking-[.18em] text-[#B18A2A]">{t.industries.eyebrow}</p>
-              <h2 className="mt-3 font-['Lora'] text-3xl font-bold tracking-tight sm:text-4xl">{t.industries.title}</h2>
-              <p className="mt-4 text-base leading-7 text-[#687084]">{t.industries.body}</p>
-            </div>
-            <div className="mt-10 grid gap-4 md:grid-cols-3">
-              {t.industries.items.map(([Icon, title, body]) => (
-                <div key={title} className="rounded-2xl border border-[#E5DECF] bg-white p-6">
-                  <div className="flex items-center gap-3"><div className="rounded-xl bg-[#FFF5D8] p-3 text-[#B18A2A]"><Icon size={20} /></div><h3 className="font-extrabold">{title}</h3></div>
-                  <p className="mt-4 text-sm leading-6 text-[#6B7287]">{body}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        <section id="how" className="bg-white py-20">
-          <div className="mx-auto max-w-7xl px-5 lg:px-8">
-            <div className="mx-auto max-w-2xl text-center">
-              <p className="text-xs font-extrabold uppercase tracking-[.18em] text-[#B18A2A]">{t.how.eyebrow}</p>
-              <h2 className="mt-3 font-['Lora'] text-3xl font-bold tracking-tight sm:text-4xl">{t.how.title}</h2>
-            </div>
-            <div className="mt-12 grid gap-5 md:grid-cols-3">
-              {t.how.steps.map(([number, title, body], index) => (
-                <div key={number} className="relative rounded-2xl border border-[#E8E1D2] p-7">
-                  <div className="flex items-center justify-between"><span className="font-['Lora'] text-4xl font-bold text-[#D8C79C]">{number}</span>{index < 2 && <ArrowRight className="hidden text-[#C7B47D] md:block" size={20} />}</div>
-                  <h3 className="mt-6 text-lg font-extrabold">{title}</h3>
-                  <p className="mt-2 text-sm leading-6 text-[#6B7287]">{body}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        <section className="bg-[#15203B] py-20 text-white">
-          <div className="mx-auto grid max-w-7xl gap-12 px-5 lg:grid-cols-2 lg:items-center lg:px-8">
-            <div>
-              <p className="text-xs font-extrabold uppercase tracking-[.18em] text-[#F2C14E]">{t.security.eyebrow}</p>
-              <h2 className="mt-3 font-['Lora'] text-3xl font-bold tracking-tight sm:text-4xl">{t.security.title}</h2>
-              <p className="mt-5 max-w-xl text-base leading-7 text-white/65">{t.security.body}</p>
-            </div>
-            <div className="grid gap-3 sm:grid-cols-2">
-              {t.security.points.map((point) => (
-                <div key={point} className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[.05] p-4">
-                  <div className="rounded-full bg-[#F2C14E]/15 p-2 text-[#F2C14E]"><ShieldCheck size={17} /></div>
-                  <span className="text-sm font-bold text-white/90">{point}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        <section id="faq" className="bg-[#FBF8F2] py-20">
-          <div className="mx-auto max-w-3xl px-5 lg:px-8">
-            <div className="text-center">
-              <p className="text-xs font-extrabold uppercase tracking-[.18em] text-[#B18A2A]">{t.faq.eyebrow}</p>
-              <h2 className="mt-3 font-['Lora'] text-3xl font-bold tracking-tight sm:text-4xl">{t.faq.title}</h2>
-            </div>
-            <div className="mt-10 space-y-3">
-              {t.faq.items.map(([question, answer], index) => {
-                const open = openFaq === index;
-                return (
-                  <div key={question} className="overflow-hidden rounded-2xl border border-[#E5DECF] bg-white">
-                    <button className="flex w-full items-center justify-between gap-4 p-5 text-left" onClick={() => setOpenFaq(open ? -1 : index)} aria-expanded={open}>
-                      <span className="text-sm font-extrabold sm:text-base">{question}</span>
-                      <ChevronDown size={18} className={`shrink-0 text-[#8B8067] transition ${open ? "rotate-180" : ""}`} />
-                    </button>
-                    {open && <p className="border-t border-[#EEE8DB] px-5 pb-5 pt-4 text-sm leading-6 text-[#687084]">{answer}</p>}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </section>
-
-        <section className="relative overflow-hidden bg-white py-20">
-          <div className="absolute inset-0 sahel-grid opacity-60" />
-          <div className="relative mx-auto max-w-4xl px-5 text-center lg:px-8">
-            <p className="text-xs font-extrabold uppercase tracking-[.18em] text-[#B18A2A]">{t.cta.eyebrow}</p>
-            <h2 className="mt-3 font-['Lora'] text-3xl font-bold tracking-tight sm:text-5xl">{t.cta.title}</h2>
-            <p className="mx-auto mt-5 max-w-xl text-base leading-7 text-[#687084]">{t.cta.body}</p>
-            <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
-              <Link to="/signup" className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#15203B] px-7 py-3.5 text-sm font-bold text-white hover:bg-[#0D1529]">{t.cta.primary}<ArrowRight size={16} /></Link>
-              <a href={WA_URL} target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center gap-2 rounded-xl border border-[#D9D1BF] bg-white px-7 py-3.5 text-sm font-bold text-[#15203B] hover:bg-[#FBF8F2]"><Smartphone size={16} />{t.cta.secondary}</a>
-            </div>
-          </div>
-        </section>
+        <section className="border-b border-[#E8E1D2] bg-[#FBF8F2] py-16"><div className="mx-auto max-w-4xl px-5 text-center lg:px-8"><p className="text-xs font-extrabold uppercase tracking-[.18em] text-[#B18A2A]">{t.trust.eyebrow}</p><h2 className="mt-3 font-['Lora'] text-3xl font-bold tracking-tight sm:text-4xl">{t.trust.title}</h2><p className="mx-auto mt-5 max-w-2xl text-base leading-7 text-[#687084]">{t.trust.body}</p></div></section>
+        <section id="features" className="bg-white py-20"><div className="mx-auto max-w-7xl px-5 lg:px-8"><div className="max-w-2xl"><p className="text-xs font-extrabold uppercase tracking-[.18em] text-[#B18A2A]">{t.features.eyebrow}</p><h2 className="mt-3 font-['Lora'] text-3xl font-bold tracking-tight sm:text-4xl">{t.features.title}</h2><p className="mt-4 text-base leading-7 text-[#687084]">{t.features.body}</p></div><div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{t.features.items.map(([Icon,title,body])=><article key={title} className="group rounded-2xl border border-[#E8E1D2] bg-[#FBF8F2] p-6 transition hover:-translate-y-1 hover:bg-white hover:shadow-[0_18px_40px_rgba(21,32,59,.08)]"><div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#15203B] text-[#F2C14E]"><Icon size={20}/></div><h3 className="mt-5 text-base font-extrabold">{title}</h3><p className="mt-2 text-sm leading-6 text-[#6B7287]">{body}</p></article>)}</div></div></section>
+        <section id="industries" className="border-y border-[#E8E1D2] bg-[#FBF8F2] py-20"><div className="mx-auto max-w-7xl px-5 lg:px-8"><div className="mx-auto max-w-2xl text-center"><p className="text-xs font-extrabold uppercase tracking-[.18em] text-[#B18A2A]">{t.industries.eyebrow}</p><h2 className="mt-3 font-['Lora'] text-3xl font-bold tracking-tight sm:text-4xl">{t.industries.title}</h2><p className="mt-4 text-base leading-7 text-[#687084]">{t.industries.body}</p></div><div className="mt-10 grid gap-4 md:grid-cols-3">{t.industries.items.map(([Icon,title,body])=><div key={title} className="rounded-2xl border border-[#E5DECF] bg-white p-6"><div className="flex items-center gap-3"><div className="rounded-xl bg-[#FFF5D8] p-3 text-[#B18A2A]"><Icon size={20}/></div><h3 className="font-extrabold">{title}</h3></div><p className="mt-4 text-sm leading-6 text-[#6B7287]">{body}</p></div>)}</div></div></section>
+        <section id="how" className="bg-white py-20"><div className="mx-auto max-w-7xl px-5 lg:px-8"><div className="mx-auto max-w-2xl text-center"><p className="text-xs font-extrabold uppercase tracking-[.18em] text-[#B18A2A]">{t.how.eyebrow}</p><h2 className="mt-3 font-['Lora'] text-3xl font-bold tracking-tight sm:text-4xl">{t.how.title}</h2></div><div className="mt-12 grid gap-5 md:grid-cols-3">{t.how.steps.map(([number,title,body],index)=><div key={number} className="relative rounded-2xl border border-[#E8E1D2] p-7"><div className="flex items-center justify-between"><span className="font-['Lora'] text-4xl font-bold text-[#D8C79C]">{number}</span>{index<2&&<ArrowRight className="hidden text-[#C7B47D] md:block" size={20}/>}</div><h3 className="mt-6 text-lg font-extrabold">{title}</h3><p className="mt-2 text-sm leading-6 text-[#6B7287]">{body}</p></div>)}</div></div></section>
+        <section className="bg-[#15203B] py-20 text-white"><div className="mx-auto grid max-w-7xl gap-12 px-5 lg:grid-cols-2 lg:items-center lg:px-8"><div><p className="text-xs font-extrabold uppercase tracking-[.18em] text-[#F2C14E]">{t.security.eyebrow}</p><h2 className="mt-3 font-['Lora'] text-3xl font-bold tracking-tight sm:text-4xl">{t.security.title}</h2><p className="mt-5 max-w-xl text-base leading-7 text-white/65">{t.security.body}</p></div><div className="grid gap-3 sm:grid-cols-2">{t.security.points.map(point=><div key={point} className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[.05] p-4"><div className="rounded-full bg-[#F2C14E]/15 p-2 text-[#F2C14E]"><ShieldCheck size={17}/></div><span className="text-sm font-bold text-white/90">{point}</span></div>)}</div></div></section>
+        <section id="faq" className="bg-[#FBF8F2] py-20"><div className="mx-auto max-w-3xl px-5 lg:px-8"><div className="text-center"><p className="text-xs font-extrabold uppercase tracking-[.18em] text-[#B18A2A]">{t.faq.eyebrow}</p><h2 className="mt-3 font-['Lora'] text-3xl font-bold tracking-tight sm:text-4xl">{t.faq.title}</h2></div><div className="mt-10 space-y-3">{t.faq.items.map(([question,answer],index)=>{const open=openFaq===index;return <div key={question} className="overflow-hidden rounded-2xl border border-[#E5DECF] bg-white"><button className="flex w-full items-center justify-between gap-4 p-5 text-left" onClick={()=>setOpenFaq(open?-1:index)} aria-expanded={open}><span className="text-sm font-extrabold sm:text-base">{question}</span><ChevronDown size={18} className={`shrink-0 text-[#8B8067] transition ${open?"rotate-180":""}`}/></button>{open&&<p className="border-t border-[#EEE8DB] px-5 pb-5 pt-4 text-sm leading-6 text-[#687084]">{answer}</p>}</div>})}</div></div></section>
+        <section className="relative overflow-hidden bg-white py-20"><div className="absolute inset-0 sahel-grid opacity-60"/><div className="relative mx-auto max-w-4xl px-5 text-center lg:px-8"><p className="text-xs font-extrabold uppercase tracking-[.18em] text-[#B18A2A]">{t.cta.eyebrow}</p><h2 className="mt-3 font-['Lora'] text-3xl font-bold tracking-tight sm:text-5xl">{t.cta.title}</h2><p className="mx-auto mt-5 max-w-xl text-base leading-7 text-[#687084]">{t.cta.body}</p><div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row"><Link to="/signup" className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#15203B] px-7 py-3.5 text-sm font-bold text-white hover:bg-[#0D1529]">{t.cta.primary}<ArrowRight size={16}/></Link><a href={WA_URL} target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center gap-2 rounded-xl border border-[#D9D1BF] bg-white px-7 py-3.5 text-sm font-bold text-[#15203B] hover:bg-[#FBF8F2]"><Smartphone size={16}/>{t.cta.secondary}</a></div></div></section>
       </main>
-
-      <footer className="bg-[#0D1529] py-12 text-white">
-        <div className="mx-auto grid max-w-7xl gap-10 px-5 md:grid-cols-[1.7fr_1fr_1fr] lg:px-8">
-          <div>
-            <div className="flex items-center gap-3"><img src={LOGO} alt="Sahel logo" className="h-9 w-9 rounded-xl" /><span className="font-['Lora'] text-xl font-bold">Sahel</span></div>
-            <p className="mt-4 max-w-md text-sm leading-6 text-white/45">{t.footer.description}</p>
-          </div>
-          <div>
-            <h3 className="text-xs font-extrabold uppercase tracking-[.16em] text-white/35">{t.footer.product}</h3>
-            <div className="mt-4 space-y-2.5"><a href="#features" className="block text-sm text-white/60 hover:text-white">{t.nav.features}</a><a href="#how" className="block text-sm text-white/60 hover:text-white">{t.nav.how}</a><a href="#faq" className="block text-sm text-white/60 hover:text-white">{t.nav.faq}</a></div>
-          </div>
-          <div>
-            <h3 className="text-xs font-extrabold uppercase tracking-[.16em] text-white/35">{t.footer.support}</h3>
-            <div className="mt-4 space-y-2.5"><a href={WA_URL} target="_blank" rel="noopener noreferrer" className="block text-sm text-white/60 hover:text-white">WhatsApp</a><Link to="/login" className="block text-sm text-white/60 hover:text-white">{t.nav.login}</Link><Link to="/signup" className="block text-sm text-white/60 hover:text-white">{t.nav.start}</Link></div>
-          </div>
-        </div>
-        <div className="mx-auto mt-10 flex max-w-7xl flex-col gap-2 border-t border-white/10 px-5 pt-6 text-xs text-white/30 sm:flex-row sm:items-center sm:justify-between lg:px-8"><span>{t.footer.rights}</span><span>Built for businesses in Somalia.</span></div>
-      </footer>
-
-      <a href={WA_URL} target="_blank" rel="noopener noreferrer" className="fixed bottom-5 right-5 z-40 inline-flex h-12 w-12 items-center justify-center rounded-full bg-[#25D366] text-white shadow-[0_10px_25px_rgba(37,211,102,.3)] transition hover:scale-105" aria-label="Contact Sahel on WhatsApp">
-        <Smartphone size={21} />
-      </a>
+      <footer className="bg-[#0D1529] py-12 text-white"><div className="mx-auto grid max-w-7xl gap-10 px-5 md:grid-cols-[1.7fr_1fr_1fr] lg:px-8"><div><div className="flex items-center gap-3"><img src={LOGO} alt="Sahel logo" className="h-9 w-9 rounded-xl"/><span className="font-['Lora'] text-xl font-bold">Sahel</span></div><p className="mt-4 max-w-md text-sm leading-6 text-white/45">{t.footer.description}</p></div><div><h3 className="text-xs font-extrabold uppercase tracking-[.16em] text-white/35">{t.footer.product}</h3><div className="mt-4 space-y-2.5"><a href="#features" className="block text-sm text-white/60 hover:text-white">{t.nav.features}</a><a href="#how" className="block text-sm text-white/60 hover:text-white">{t.nav.how}</a><a href="#faq" className="block text-sm text-white/60 hover:text-white">{t.nav.faq}</a></div></div><div><h3 className="text-xs font-extrabold uppercase tracking-[.16em] text-white/35">{t.footer.support}</h3><div className="mt-4 space-y-2.5"><a href={WA_URL} target="_blank" rel="noopener noreferrer" className="block text-sm text-white/60 hover:text-white">WhatsApp</a><Link to="/login" className="block text-sm text-white/60 hover:text-white">{t.nav.login}</Link><Link to="/signup" className="block text-sm text-white/60 hover:text-white">{t.nav.start}</Link></div></div></div><div className="mx-auto mt-10 flex max-w-7xl flex-col gap-2 border-t border-white/10 px-5 pt-6 text-xs text-white/30 sm:flex-row sm:items-center sm:justify-between lg:px-8"><span>{t.footer.rights}</span><span>Built for businesses in Somalia.</span></div></footer>
+      <a href={WA_URL} target="_blank" rel="noopener noreferrer" className="fixed bottom-5 right-5 z-40 inline-flex h-12 w-12 items-center justify-center rounded-full bg-[#25D366] text-white shadow-[0_10px_25px_rgba(37,211,102,.3)] transition hover:scale-105" aria-label="Contact Sahel on WhatsApp"><Smartphone size={21}/></a>
     </div>
   );
 }
