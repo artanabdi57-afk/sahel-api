@@ -1,202 +1,41 @@
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { ArrowRight, Lock, Mail, MapPin, Phone, Store } from "lucide-react";
+import { ArrowRight, Globe2, Lock, Mail, MapPin, Phone, Store, X } from "lucide-react";
 import { apiRequest } from "../lib/api";
 import { saveSession } from "../lib/auth";
 import { supabase } from "../lib/supabaseClient";
 import sahelLogo from "../assets/sahel_logo_english.svg";
 import sahelIcon from "../assets/sahel_logo_icon_only.svg";
 
-function GoogleIcon() {
-  return (
-    <svg className="h-4 w-4" viewBox="0 0 24 24">
-      <path fill="#4285F4" d="M23.52 12.27c0-.85-.08-1.67-.22-2.45H12v4.64h6.46c-.28 1.5-1.13 2.78-2.4 3.63v3.02h3.88c2.27-2.09 3.58-5.17 3.58-8.84z" />
-      <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.94-2.9l-3.88-3.02c-1.08.72-2.45 1.15-4.06 1.15-3.13 0-5.78-2.11-6.73-4.96H1.27v3.11C3.25 21.3 7.31 24 12 24z" />
-      <path fill="#FBBC05" d="M5.27 14.27c-.24-.72-.38-1.49-.38-2.27s.14-1.55.38-2.27V6.62H1.27A11.98 11.98 0 0 0 0 12c0 1.94.46 3.77 1.27 5.38l4-3.11z" />
-      <path fill="#EA4335" d="M12 4.77c1.76 0 3.34.6 4.58 1.79l3.44-3.44C17.94 1.19 15.24 0 12 0 7.31 0 3.25 2.7 1.27 6.62l4 3.11C6.22 6.88 8.87 4.77 12 4.77z" />
-    </svg>
-  );
-}
+const COPY = {
+  en: { login:"Log in", signup:"Create your account", subLogin:"Log in with your email and password.", subSignup:"Create your account, then set up your business.", google:"Continue with Google", or:"or continue with email", email:"Email address", password:"Password", phone:"Phone number (optional)", shop:"Shop name", location:"Location", submitLogin:"Log in", submitSignup:"Create account", wait:"Please wait…", forgot:"Forgot password?", noAccount:"Don't have an account?", haveAccount:"Already have an account?", privacy:"Your business information stays private and protected.", title:"A clear start for your business.", body:"Sahel keeps sales, stock, customer credit, expenses and reports in one organized place.", close:"Close message", invalid:"Phone must be 9 digits and start with 61, 62, or 68." },
+  so: { login:"Gal", signup:"Samee akoonkaaga", subLogin:"Ku gal email-kaaga iyo eraygaaga sirta ah.", subSignup:"Samee akoonkaaga, kadibna deji ganacsigaaga.", google:"Ku sii wad Google", or:"ama ku sii wad email", email:"Cinwaanka email-ka", password:"Erayga sirta ah", phone:"Lambarka telefoonka (ikhtiyaari)", shop:"Magaca dukaanka", location:"Goobta", submitLogin:"Gal", submitSignup:"Samee akoon", wait:"Fadlan sug…", forgot:"Ma ilowday erayga sirta ah?", noAccount:"Akoon ma lihid?", haveAccount:"Hore akoon ma u leedahay?", privacy:"Macluumaadka ganacsigaaga waa gaar oo la ilaaliyay.", title:"Bilow cad oo ganacsigaaga ah.", body:"Sahel waxay iibka, bakhaarka, deynta macaamiisha, kharashaadka iyo warbixinnada ku haysaa hal meel oo habaysan.", close:"Xir farriinta", invalid:"Telefoonku waa inuu noqdaa 9 lambar oo ku bilaabma 61, 62, ama 68." },
+  ar: { login:"تسجيل الدخول", signup:"إنشاء حسابك", subLogin:"سجّل الدخول ببريدك الإلكتروني وكلمة المرور.", subSignup:"أنشئ حسابك ثم أعدّ نشاطك التجاري.", google:"المتابعة باستخدام Google", or:"أو تابع بالبريد الإلكتروني", email:"البريد الإلكتروني", password:"كلمة المرور", phone:"رقم الهاتف (اختياري)", shop:"اسم المتجر", location:"الموقع", submitLogin:"تسجيل الدخول", submitSignup:"إنشاء حساب", wait:"يرجى الانتظار…", forgot:"هل نسيت كلمة المرور؟", noAccount:"ليس لديك حساب؟", haveAccount:"لديك حساب بالفعل؟", privacy:"معلومات نشاطك التجاري خاصة ومحمية.", title:"بداية واضحة لنشاطك التجاري.", body:"يجمع سهل المبيعات والمخزون وديون العملاء والمصروفات والتقارير في مكان منظم واحد.", close:"إغلاق الرسالة", invalid:"يجب أن يتكون الهاتف من 9 أرقام ويبدأ بـ 61 أو 62 أو 68." }
+};
+function GoogleIcon() { return <svg className="h-4 w-4" viewBox="0 0 24 24"><path fill="#4285F4" d="M23.52 12.27c0-.85-.08-1.67-.22-2.45H12v4.64h6.46c-.28 1.5-1.13 2.78-2.4 3.63v3.02h3.88c2.27-2.09 3.58-5.17 3.58-8.84z"/><path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.94-2.9l-3.88-3.02c-1.08.72-2.45 1.15-4.06 1.15-3.13 0-5.78-2.11-6.73-4.96H1.27v3.11C3.25 21.3 7.31 24 12 24z"/></svg>; }
+function Field({ icon: Icon, label, ...props }) { return <label className="flex h-12 items-center gap-3 rounded-xl border border-blue-100 bg-white px-4 shadow-sm transition focus-within:border-blue-500 focus-within:ring-4 focus-within:ring-blue-100"><Icon className="h-4 w-4 shrink-0 text-blue-500"/><input aria-label={label} className="w-full bg-transparent text-sm font-semibold outline-none placeholder:text-slate-400" placeholder={label} {...props}/></label>; }
 
 export default function AuthPage({ mode }) {
-  const isSignup = mode === "signup";
-  const navigate = useNavigate();
-  const location = useLocation();
-  const [form, setForm] = useState({ phone: "", email: "", password: "", shop_name: "", location: "" });
-  const [status, setStatus] = useState({ loading: false, error: "" });
-  const [googleLoading, setGoogleLoading] = useState(false);
-
-  async function handleSubmit(e) {
-    e.preventDefault();
-    setStatus({ loading: true, error: "" });
-    try {
-      if (isSignup) {
-        if (form.phone && !/^(61|62|68)\d{7}$/.test(form.phone)) {
-          throw new Error("Phone must be 9 digits and start with 61, 62, or 68.");
-        }
-        // Sign up with Supabase — no OTP required (confirm email is OFF)
-        const { data, error } = await supabase.auth.signUp({
-          email: form.email,
-          password: form.password,
-          options: { data: { shop_name: form.shop_name, location: form.location, phone: form.phone } }
-        });
-        if (error) throw error;
-
-        // Also register in our backend users table
-        try {
-          await apiRequest("/auth/signup", {
-            method: "POST",
-            body: JSON.stringify({
-              email: form.email,
-              password: form.password,
-              shop_name: form.shop_name,
-              location: form.location,
-              phone: form.phone,
-            }),
-          });
-        } catch (backendErr) {
-          // Backend signup may fail if user already exists — that's ok
-          console.warn("Backend signup note:", backendErr.message);
-        }
-
-        // Go straight to onboarding — no OTP step
-        navigate("/onboarding", { replace: true });
-        setStatus({ loading: false, error: "" });
-      } else {
-        const payload = { email: form.email, password: form.password };
-        const response = await apiRequest("/auth/login", { method: "POST", body: JSON.stringify(payload) });
-        saveSession(response.data);
-        navigate(location.state?.from || "/dashboard", { replace: true });
-      }
-    } catch (error) {
-      setStatus({ loading: false, error: error.message });
-    }
-  }
-
-  async function handleGoogleSignIn() {
-    setGoogleLoading(true);
-    setStatus({ loading: false, error: "" });
-    try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: "google",
-        options: { redirectTo: `${window.location.origin}/auth/callback` }
-      });
-      if (error) throw error;
-    } catch (error) {
-      setGoogleLoading(false);
-      setStatus({ loading: false, error: error.message || "Could not start Google sign in." });
-    }
-  }
-
-  return (
-    <main className="min-h-screen bg-gradient-to-br from-[#FBF8F2] via-[#FAF6EE] to-[#F4EDDD] p-4">
-      <div className="mx-auto flex min-h-[calc(100vh-2rem)] max-w-6xl items-center justify-center">
-        <div className="grid w-full overflow-hidden rounded-[1.75rem] border border-[#EAE3D3] bg-white shadow-[0_24px_70px_rgba(21,32,59,0.12)] lg:grid-cols-[0.9fr_1.1fr]">
-          <section className="hidden border-r border-[#EAE3D3] bg-[#FBF8F2] p-10 lg:flex lg:flex-col lg:justify-between">
-            <div>
-              <img className="h-11 w-auto" src={sahelLogo} alt="Sahel" />
-              <h1 className="mt-10 max-w-md text-4xl font-black tracking-tight text-[#15203B]">Fresh tools for trusted shop management.</h1>
-              <p className="mt-4 max-w-md text-sm font-medium leading-6 text-[#4B5170]">Keep each shop workspace private, organized, and easy to run from day one.</p>
-            </div>
-            <div className="grid gap-3">
-              {[
-                ["Private workspace", "Every shop sees only its own data."],
-                ["Secure sign in", "Password hashes and session tokens protect access."],
-                ["Simple daily flow", "Sales, stock, credits, expenses, and reports stay together."],
-              ].map(([title, text]) => (
-                <div key={title} className="rounded-2xl border border-[#EAE3D3] bg-white p-4 shadow-sm">
-                  <p className="text-sm font-black text-[#15203B]">{title}</p>
-                  <p className="mt-1 text-xs font-medium leading-5 text-[#6B7290]">{text}</p>
-                </div>
-              ))}
-            </div>
-          </section>
-
-          <section className="flex items-center justify-center p-6 sm:p-10 lg:p-14">
-            <div className="w-full max-w-sm">
-              <div className="mb-8 text-center">
-                <img className="mx-auto h-14 w-14" src={sahelIcon} alt="Sahel" />
-                <h2 className="mt-5 text-3xl font-black tracking-tight text-[#15203B]">
-                  {isSignup ? "Create your shop" : "Welcome back"}
-                </h2>
-                <p className="mx-auto mt-2 max-w-xs text-sm font-medium leading-6 text-[#6B7290]">
-                  {isSignup ? "Set up your shop in under two minutes." : "Log in with your email and password."}
-                </p>
-              </div>
-
-              <button
-                type="button"
-                onClick={handleGoogleSignIn}
-                disabled={googleLoading}
-                className="flex h-12 w-full items-center justify-center gap-3 rounded-xl border border-[#EAE3D3] bg-white text-sm font-bold text-[#15203B] shadow-sm transition hover:bg-[#FBF8F2] disabled:opacity-60"
-              >
-                <GoogleIcon />
-                {googleLoading ? "Redirecting..." : isSignup ? "Sign up with Google" : "Continue with Google"}
-              </button>
-
-              <div className="my-5 flex items-center gap-3">
-                <div className="h-px flex-1 bg-[#EAE3D3]" />
-                <span className="text-xs font-bold uppercase text-[#B0A98F]">or</span>
-                <div className="h-px flex-1 bg-[#EAE3D3]" />
-              </div>
-
-              <form onSubmit={handleSubmit} className="space-y-3">
-                <label className="flex h-12 items-center gap-3 rounded-xl border border-[#EAE3D3] bg-white px-4 shadow-sm transition focus-within:border-[#E8622C] focus-within:ring-4 focus-within:ring-[#E8622C]/15">
-                  <Mail className="h-4 w-4 text-[#9B9686]" />
-                  <input className="w-full bg-transparent text-sm font-medium text-[#15203B] outline-none placeholder:text-[#9B9686]" type="email" placeholder="Email address" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required />
-                </label>
-
-                <label className="flex h-12 items-center gap-3 rounded-xl border border-[#EAE3D3] bg-white px-4 shadow-sm transition focus-within:border-[#E8622C] focus-within:ring-4 focus-within:ring-[#E8622C]/15">
-                  <Lock className="h-4 w-4 text-[#9B9686]" />
-                  <input className="w-full bg-transparent text-sm font-medium text-[#15203B] outline-none placeholder:text-[#9B9686]" type="password" placeholder="Password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} required minLength={8} />
-                </label>
-
-                {isSignup && (
-                  <>
-                    <label className="flex h-12 items-center gap-3 rounded-xl border border-[#EAE3D3] bg-white px-4 shadow-sm transition focus-within:border-[#E8622C] focus-within:ring-4 focus-within:ring-[#E8622C]/15">
-                      <Phone className="h-4 w-4 text-[#9B9686]" />
-                      <input className="w-full bg-transparent text-sm font-medium text-[#15203B] outline-none placeholder:text-[#9B9686]" inputMode="numeric" maxLength={9} placeholder="Phone number (optional)" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value.replace(/\D/g, "").slice(0, 9) })} />
-                    </label>
-                    <p className="px-1 text-xs font-semibold text-[#9B9686]">Optional phone: 9 digits starting with 61, 62, or 68.</p>
-                    <label className="flex h-12 items-center gap-3 rounded-xl border border-[#EAE3D3] bg-white px-4 shadow-sm transition focus-within:border-[#E8622C] focus-within:ring-4 focus-within:ring-[#E8622C]/15">
-                      <Store className="h-4 w-4 text-[#9B9686]" />
-                      <input className="w-full bg-transparent text-sm font-medium text-[#15203B] outline-none placeholder:text-[#9B9686]" placeholder="Shop name" value={form.shop_name} onChange={(e) => setForm({ ...form, shop_name: e.target.value })} required />
-                    </label>
-                    <label className="flex h-12 items-center gap-3 rounded-xl border border-[#EAE3D3] bg-white px-4 shadow-sm transition focus-within:border-[#E8622C] focus-within:ring-4 focus-within:ring-[#E8622C]/15">
-                      <MapPin className="h-4 w-4 text-[#9B9686]" />
-                      <input className="w-full bg-transparent text-sm font-medium text-[#15203B] outline-none placeholder:text-[#9B9686]" placeholder="Location" value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} />
-                    </label>
-                  </>
-                )}
-
-                {status.error && (
-                  <div className="rounded-xl bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">{status.error}</div>
-                )}
-
-                <button className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#15203B] text-sm font-bold text-white shadow-[0_12px_25px_rgba(21,32,59,0.25)] transition hover:bg-[#0D1529] disabled:opacity-60" disabled={status.loading}>
-                  {status.loading ? "Please wait..." : isSignup ? "Create account" : "Log in"}
-                  <ArrowRight className="h-4 w-4" />
-                </button>
-              </form>
-
-              {!isSignup && (
-                <p className="mt-4 text-center text-sm font-medium">
-                  <Link className="font-black text-[#E8622C] hover:text-[#C94F1E]" to="/forgot-password">Forgot password?</Link>
-                </p>
-              )}
-
-              <p className="mt-4 text-center text-xs font-medium leading-5 text-[#9B9686]">Your shop data stays separated and protected.</p>
-              <p className="mt-4 text-center text-sm font-medium text-[#6B7290]">
-                {isSignup ? (
-                  <>Already have an account?{" "}<Link className="font-black text-[#E8622C] hover:text-[#C94F1E]" to="/login">Log in</Link></>
-                ) : (
-                  <>Don't have an account?{" "}<Link className="font-black text-[#E8622C] hover:text-[#C94F1E]" to="/signup">Sign up</Link></>
-                )}
-              </p>
-            </div>
-          </section>
-        </div>
-      </div>
-    </main>
-  );
+  const isSignup = mode === "signup", navigate = useNavigate(), location = useLocation();
+  const [lang, setLang] = useState(() => localStorage.getItem("sahel-auth-language") || "en");
+  const [form, setForm] = useState({ phone:"", email:"", password:"", shop_name:"", location:"" });
+  const [status, setStatus] = useState({ loading:false, error:"" }), [googleLoading, setGoogleLoading] = useState(false);
+  const t = useMemo(() => COPY[lang], [lang]), rtl = lang === "ar";
+  useEffect(() => { localStorage.setItem("sahel-auth-language", lang); document.documentElement.lang = lang; document.documentElement.dir = rtl ? "rtl" : "ltr"; }, [lang, rtl]);
+  const set = (name, value) => setForm((current) => ({ ...current, [name]:value }));
+  async function handleSubmit(e) { e.preventDefault(); setStatus({ loading:true, error:"" }); try {
+    if (isSignup) { if (form.phone && !/^(61|62|68)\d{7}$/.test(form.phone)) throw new Error(t.invalid); const { error } = await supabase.auth.signUp({ email:form.email, password:form.password, options:{ data:form } }); if (error) throw error; try { await apiRequest("/auth/signup",{method:"POST",body:JSON.stringify(form)}); } catch (backendError) { console.warn(backendError); } navigate("/onboarding",{replace:true}); }
+    else { const response = await apiRequest("/auth/login",{method:"POST",body:JSON.stringify({email:form.email,password:form.password})}); saveSession(response.data); navigate(location.state?.from || "/dashboard",{replace:true}); }
+  } catch (error) { setStatus({ loading:false, error:error.message }); } }
+  async function google() { setGoogleLoading(true); try { const { error } = await supabase.auth.signInWithOAuth({provider:"google",options:{redirectTo:window.location.origin + "/auth/callback"}}); if(error) throw error; } catch(error) { setGoogleLoading(false); setStatus({loading:false,error:error.message}); } }
+  const active = (code) => "rounded-full px-2.5 py-1.5 text-xs font-black transition " + (lang === code ? "bg-blue-600 text-white shadow-sm" : "text-slate-500 hover:text-blue-700");
+  return <main className="relative min-h-screen overflow-hidden bg-slate-50 p-4 sm:p-6"><div className="absolute inset-0 bg-[radial-gradient(circle_at_12%_12%,rgba(37,99,235,.16),transparent_25%),radial-gradient(circle_at_88%_85%,rgba(249,115,22,.14),transparent_24%)]"/><div className="relative mx-auto flex min-h-[calc(100vh-2rem)] max-w-6xl items-center justify-center"><div className="grid w-full overflow-hidden rounded-[2rem] border border-blue-100 bg-white shadow-[0_28px_85px_rgba(30,64,175,.16)] lg:grid-cols-[.92fr_1.08fr]">
+    <aside className="hidden bg-gradient-to-br from-blue-700 via-blue-700 to-blue-950 p-10 text-white lg:flex lg:flex-col lg:justify-between"><div><img src={sahelLogo} alt="Sahel" className="h-10 w-auto brightness-0 invert"/><span className="mt-10 inline-flex rounded-full bg-orange-400/20 px-3 py-1.5 text-xs font-black text-orange-200">SAHEL</span><h1 className="mt-4 max-w-md text-4xl font-black leading-tight">{t.title}</h1><p className="mt-4 max-w-md leading-7 text-blue-100">{t.body}</p></div><div className="space-y-3">{["Private workspace","Simple daily work","Built for Somalia"].map((point) => <div key={point} className="rounded-2xl border border-white/10 bg-white/[.08] p-4 text-sm font-black">{point}</div>)}</div></aside>
+    <section className="relative flex items-center justify-center p-6 sm:p-10 lg:p-14"><div className="absolute end-5 top-5 flex rounded-full bg-slate-100 p-1">{["en","so","ar"].map((code) => <button key={code} onClick={() => setLang(code)} aria-pressed={lang===code} className={active(code)}>{code.toUpperCase()}</button>)}</div><div className="w-full max-w-sm pt-10 sm:pt-5"><div className="mb-8 text-center"><img src={sahelIcon} alt="Sahel" className="mx-auto h-14 w-14 drop-shadow-md"/><h2 className="mt-5 text-3xl font-black text-slate-950">{isSignup ? t.signup : t.login}</h2><p className="mx-auto mt-2 max-w-xs text-sm leading-6 text-slate-500">{isSignup ? t.subSignup : t.subLogin}</p></div>
+      <button type="button" onClick={google} disabled={googleLoading} className="flex h-12 w-full items-center justify-center gap-3 rounded-xl border border-blue-100 bg-white text-sm font-bold shadow-sm transition hover:bg-blue-50"><GoogleIcon/>{googleLoading ? t.wait : t.google}</button><div className="my-5 flex items-center gap-3"><div className="h-px flex-1 bg-slate-200"/><span className="text-[10px] font-black uppercase text-slate-400">{t.or}</span><div className="h-px flex-1 bg-slate-200"/></div>
+      <form onSubmit={handleSubmit} className="space-y-3"><Field icon={Mail} label={t.email} type="email" value={form.email} onChange={(e)=>set("email",e.target.value)} required/><Field icon={Lock} label={t.password} type="password" value={form.password} onChange={(e)=>set("password",e.target.value)} required minLength={8}/>{isSignup && <><Field icon={Phone} label={t.phone} value={form.phone} onChange={(e)=>set("phone",e.target.value.replace(/\D/g,"").slice(0,9))}/><Field icon={Store} label={t.shop} value={form.shop_name} onChange={(e)=>set("shop_name",e.target.value)} required/><Field icon={MapPin} label={t.location} value={form.location} onChange={(e)=>set("location",e.target.value)}/></>}<button disabled={status.loading} className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-blue-600 text-sm font-black text-white shadow-[0_12px_25px_rgba(37,99,235,.28)] transition hover:bg-blue-700 disabled:opacity-60">{status.loading?t.wait:(isSignup?t.submitSignup:t.submitLogin)}<ArrowRight className={"h-4 w-4 " + (rtl?"rotate-180":"")}/></button></form>
+      {!isSignup&&<p className="mt-4 text-center text-sm font-bold"><Link className="text-orange-600" to="/forgot-password">{t.forgot}</Link></p>}<p className="mt-5 text-center text-xs font-semibold text-slate-400">{t.privacy}</p><p className="mt-4 text-center text-sm text-slate-600">{isSignup?t.haveAccount:t.noAccount} <Link className="font-black text-blue-600" to={isSignup?"/login":"/signup"}>{isSignup?t.login:t.signup}</Link></p>
+    </div></section></div></div>
+    {status.error&&<div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-4 backdrop-blur-sm" role="dialog" aria-modal="true"><div className="relative w-full max-w-sm rounded-2xl bg-white p-6 text-center shadow-2xl"><button onClick={()=>setStatus({loading:false,error:""})} aria-label={t.close} className="absolute end-4 top-4 rounded-full p-2 text-slate-400"><X size={18}/></button><div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-orange-50 text-orange-600"><Globe2 size={22}/></div><h3 className="mt-4 text-lg font-black">Sahel</h3><p className="mt-2 text-sm leading-6 text-slate-600">{status.error}</p><button onClick={()=>setStatus({loading:false,error:""})} className="mt-5 w-full rounded-xl bg-blue-600 py-3 text-sm font-black text-white">OK</button></div></div>}
+  </main>;
 }
