@@ -189,6 +189,17 @@ const oauthSession = async (req, res, next) => {
       supabase.auth.getUser(access_token)
     );
     if (authError || !authData?.user?.email) {
+      // Log WHY it failed and WHICH Supabase project this backend is
+      // pointed at (host only, never the key) — this is what's needed to
+      // tell "wrong/rotated SUPABASE_ANON_KEY or SUPABASE_URL on the
+      // backend" apart from "token genuinely invalid or expired".
+      console.error("[oauth-session] getUser rejected token", {
+        message: authError?.message,
+        status: authError?.status,
+        backendSupabaseHost: (() => {
+          try { return new URL(process.env.SUPABASE_URL).host; } catch { return "INVALID_OR_MISSING_SUPABASE_URL"; }
+        })(),
+      });
       return res.status(401).json({ message: "Invalid Google session." });
     }
 
