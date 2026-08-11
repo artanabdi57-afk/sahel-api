@@ -18,6 +18,7 @@ const signToken = (authId, email, phone, shop) => {
       phone:               phone || null,
       shop_id:             shop?.id || null,
       shop_name:           shop?.shop_name || null,
+      business_type:       shop?.business_type || null,
       onboarding_required: !shop
     },
     process.env.JWT_SECRET,
@@ -29,7 +30,7 @@ const signToken = (authId, email, phone, shop) => {
 const getShopForAuthUser = async (authId) => {
   const { data, error } = await supabaseAdmin
     .from("shops")
-    .select("id, owner_id, shop_name, location, phone, status, plan, created_at")
+    .select("id, owner_id, shop_name, location, phone, business_type, status, plan, created_at")
     .eq("owner_id", authId)
     .order("created_at", { ascending: true })
     .limit(1)
@@ -144,7 +145,7 @@ const login = async (req, res, next) => {
     const staff = staffData;
     const { data: shop, error: shopError } = await supabaseAdmin
       .from("shops")
-      .select("id, shop_name, location, status, plan")
+      .select("id, shop_name, location, business_type, status, plan")
       .eq("id", staff.shop_id)
       .single();
 
@@ -288,7 +289,7 @@ const switchShop = async (req, res, next) => {
 
     const { data: shop, error: shopError } = await supabaseAdmin
       .from("shops")
-      .select("id, owner_id, shop_name, location, phone, status, plan")
+      .select("id, owner_id, shop_name, location, phone, business_type, status, plan")
       .eq("id", shop_id)
       .eq("owner_id", authId)         // ← matches Supabase Auth ID
       .single();
