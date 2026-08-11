@@ -4,6 +4,7 @@ const { supabase, supabaseAdmin } = require("../config/supabase");
 const { withRetry } = require("../utils/withRetry");
 
 const PHONE_PATTERN = /^(61|62|68)\d{7}$/;
+const VALID_BUSINESS_TYPES = ["shop", "gym", "school"];
 const normalizePhone = (value = "") => String(value).replace(/\D/g, "");
 const normalizeEmail = (value = "") => String(value).trim().toLowerCase();
 
@@ -40,12 +41,15 @@ const getShopForAuthUser = async (authId) => {
 // ── SIGNUP ────────────────────────────────────────────────────────────────────
 const signup = async (req, res, next) => {
   try {
-    const { email, phone, password, shop_name, location } = req.body;
+    const { email, phone, password, shop_name, location, business_type } = req.body;
     const normalizedPhone = normalizePhone(phone);
     const normalizedEmail = normalizeEmail(email);
 
     if (!normalizedEmail || !password || !shop_name) {
       return res.status(400).json({ message: "email, password, and shop_name are required." });
+    }
+    if (!business_type || !VALID_BUSINESS_TYPES.includes(business_type)) {
+      return res.status(400).json({ message: `business_type must be one of: ${VALID_BUSINESS_TYPES.join(", ")}.` });
     }
     if (normalizedPhone && !PHONE_PATTERN.test(normalizedPhone)) {
       return res.status(400).json({ message: "Phone must be 9 digits and start with 61, 62, or 68." });
@@ -59,7 +63,7 @@ const signup = async (req, res, next) => {
       email: normalizedEmail,
       password,
       email_confirm: true,
-      user_metadata: { shop_name, location, phone: normalizedPhone || null }
+      user_metadata: { shop_name, location, phone: normalizedPhone || null, business_type }
     });
     if (authError) {
       if (authError.message?.includes("already")) {
@@ -73,8 +77,8 @@ const signup = async (req, res, next) => {
     // Create shop using Supabase Auth ID as owner_id
     const { data: shop, error: shopError } = await supabaseAdmin
       .from("shops")
-      .insert([{ owner_id: authId, shop_name, location, phone: normalizedPhone || null, status: "active", plan: "free" }])
-      .select("id, owner_id, shop_name, location, phone, status, plan, created_at")
+      .insert([{ owner_id: authId, shop_name, location, phone: normalizedPhone || null, business_type, status: "active", plan: "free" }])
+      .select("id, owner_id, shop_name, location, phone, business_type, status, plan, created_at")
       .single();
     if (shopError) throw shopError;
 
@@ -220,22 +224,27 @@ const oauthSession = async (req, res, next) => {
 // ── SETUP SHOP ────────────────────────────────────────────────────────────────
 const setupShop = async (req, res, next) => {
   try {
-    const { shop_name, location, phone } = req.body;
+    const { shop_name, location, phone, business_type } = req.body;
     if (!shop_name) return res.status(400).json({ message: "shop_name is required." });
+    if (!business_type || !VALID_BUSINESS_TYPES.includes(business_type)) {
+      return res.status(400).json({ message: `business_type must be one of: ${VALID_BUSINESS_TYPES.join(", ")}.` });
+    }
 
     const authId = req.user.user_id;  // ← Supabase Auth ID from JWT
     const email  = req.user.email;
 
     const existingShop = await getShopForAuthUser(authId);
     if (existingShop) {
+      // business_type is locked once a shop exists — never overwritten here,
+      // even if a stale onboarding form somehow re-submits.
       const token = signToken(authId, email, null, existingShop);
       return res.json({ data: { token, user: { id: authId, email }, shop: existingShop, onboarding_required: false } });
     }
 
     const { data: shop, error: shopError } = await supabaseAdmin
       .from("shops")
-      .insert({ owner_id: authId, shop_name, location, phone: phone || null, status: "active", plan: "free" })
-      .select("id, owner_id, shop_name, location, phone, status, plan, created_at")
+      .insert({ owner_id: authId, shop_name, location, phone: phone || null, business_type, status: "active", plan: "free" })
+      .select("id, owner_id, shop_name, location, phone, business_type, status, plan, created_at")
       .single();
     if (shopError) throw shopError;
 
