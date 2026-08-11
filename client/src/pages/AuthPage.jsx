@@ -3,7 +3,6 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { ArrowRight, Globe2, Lock, Mail, MapPin, Phone, Store, Dumbbell, GraduationCap, Check, X } from "lucide-react";
 import { apiRequest } from "../lib/api";
 import { saveSession } from "../lib/auth";
-import { supabase } from "../lib/supabaseClient";
 import sahelLogo from "../assets/sahel_logo_english.svg";
 import sahelIcon from "../assets/sahel_logo_icon_only.svg";
 
@@ -77,8 +76,6 @@ export default function AuthPage({ mode }) {
     if (isSignup) {
       if (form.phone && !/^(61|62|68)\d{7}$/.test(form.phone)) throw new Error(t.invalid);
       if (!form.business_type) throw new Error(t.typeRequired);
-      const { error } = await supabase.auth.signUp({ email:form.email, password:form.password, options:{ data:{ shop_name:form.shop_name, location:form.location, phone:form.phone, business_type:form.business_type } } });
-      if (error) throw error;
       const response = await apiRequest("/auth/signup",{method:"POST",body:JSON.stringify(form)});
       saveSession(response.data);
       navigate("/dashboard",{replace:true});
