@@ -1,6 +1,7 @@
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const { supabase, supabaseAdmin } = require("../config/supabase");
+const { withRetry } = require("../utils/withRetry");
 
 const PHONE_PATTERN = /^(61|62|68)\d{7}$/;
 const normalizePhone = (value = "") => String(value).replace(/\D/g, "");
@@ -99,10 +100,12 @@ const login = async (req, res, next) => {
     const normalizedEmail = normalizeEmail(loginId);
 
     // Try Supabase Auth sign in first (owners)
-    const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-      email: normalizedEmail,
-      password,
-    });
+    const { data: authData, error: authError } = await withRetry(() =>
+      supabase.auth.signInWithPassword({
+        email: normalizedEmail,
+        password,
+      })
+    );
 
     if (!authError && authData?.user) {
       // Owner login via Supabase Auth
@@ -123,10 +126,12 @@ const login = async (req, res, next) => {
     }
 
     // Fall back to staff_members table
-    const { data: staffData, error: staffError } = await supabaseAdmin.rpc("staff_login", {
-      p_email: normalizedEmail,
-      p_password: password,
-    });
+    const { data: staffData, error: staffError } = await withRetry(() =>
+      supabaseAdmin.rpc("staff_login", {
+        p_email: normalizedEmail,
+        p_password: password,
+      })
+    );
 
     if (staffError || !staffData) {
       return res.status(401).json({ message: "Invalid email or password." });
@@ -180,7 +185,9 @@ const oauthSession = async (req, res, next) => {
     const { access_token } = req.body;
     if (!access_token) return res.status(400).json({ message: "access_token is required." });
 
-    const { data: authData, error: authError } = await supabase.auth.getUser(access_token);
+    const { data: authData, error: authError } = await withRetry(() =>
+      supabase.auth.getUser(access_token)
+    );
     if (authError || !authData?.user?.email) {
       return res.status(401).json({ message: "Invalid Google session." });
     }
