@@ -1,7 +1,8 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { MapPin, Phone, Store, ChevronRight, CheckCircle2 } from "lucide-react";
-import { supabase } from "../lib/supabaseClient";
+import { apiRequest } from "../lib/api";
+import { saveSession } from "../lib/auth";
 
 export default function Onboarding() {
   const navigate = useNavigate();
@@ -32,53 +33,27 @@ export default function Onboarding() {
 
     setSaving(true);
     try {
-      // Get current auth session
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-      if (sessionError || !session) throw new Error("Session expired. Please sign in again.");
+      // Use OUR backend's authenticated endpoint — it already validates the
+      // Sahel login token (the same one ProtectedRoute just checked to let
+      // you onto this page) and creates the shop with the service role key.
+      //
+      // The old version of this page called supabase.auth.getSession() and
+      // wrote to the shops table directly from the browser. That depends on
+      // a *separate* raw Supabase browser session (different from your
+      // Sahel login token) which isn't reliably present here — that's what
+      // was throwing "Session expired. Please sign in again."
+      const response = await apiRequest("/auth/setup-shop", {
+        method: "POST",
+        body: JSON.stringify({
+          shop_name: form.shop_name.trim(),
+          phone:     form.phone.trim(),
+          location:  form.location.trim(),
+        }),
+      });
 
-      const userId = session.user.id;
-
-      // Update public.users phone + shop_name
-      await supabase
-        .from("users")
-        .update({ phone: form.phone.trim(), shop_name: form.shop_name.trim() })
-        .eq("id", userId);
-
-      // Create the primary shop
-      const { data: shopData, error: shopError } = await supabase
-        .from("shops")
-        .insert({
-          owner_id:      userId,
-          shop_name:     form.shop_name.trim(),
-          phone:         form.phone.trim(),
-          location:      form.location.trim(),
-          business_type: form.business_type.trim() || null,
-          hear_about:    form.hear_about.trim()    || null,
-          status:        "active",
-          plan:          "free",
-          is_primary:    true,
-        })
-        .select()
-        .single();
-
-      if (shopError) throw shopError;
-
-      // Save shop to localStorage
-      localStorage.setItem("sahel_shop", JSON.stringify({
-        id:        shopData.id,
-        shop_name: shopData.shop_name,
-        location:  shopData.location,
-        phone:     shopData.phone,
-        plan:      shopData.plan,
-        status:    shopData.status,
-      }));
-
-      // Update user in localStorage too
-      const savedUser = JSON.parse(localStorage.getItem("sahel_user") || "{}");
-      localStorage.setItem("sahel_user", JSON.stringify({
-        ...savedUser,
-        phone: form.phone.trim(),
-      }));
+      // Save the fresh token + shop so the rest of the app (and
+      // ProtectedRoute) sees onboarding as complete.
+      saveSession(response.data);
 
       setStep(2);
       setTimeout(() => navigate("/dashboard", { replace: true }), 1800);
