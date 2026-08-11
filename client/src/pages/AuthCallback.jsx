@@ -1,28 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabaseClient";
-
-// Saves session to localStorage so the rest of the app works
-function saveSessionLocal(data) {
-  if (!data) return;
-  localStorage.setItem("sahel_user", JSON.stringify({
-    id:    data.user_id,
-    email: data.email,
-    phone: data.phone || null,
-  }));
-  if (data.shop_id) {
-    localStorage.setItem("sahel_shop", JSON.stringify({
-      id:        data.shop_id,
-      shop_name: data.shop_name,
-      location:  data.location  || null,
-      phone:     data.phone     || null,
-      plan:      data.plan      || "free",
-      status:    data.status    || "active",
-    }));
-  } else {
-    localStorage.removeItem("sahel_shop");
-  }
-}
+import { apiRequest } from "../lib/api";
+import { saveSession } from "../lib/auth";
 
 export default function AuthCallback() {
   const navigate = useNavigate();
@@ -39,23 +19,24 @@ export default function AuthCallback() {
         const session = sessionData?.session;
         if (!session) throw new Error("Google login did not return a session. Please try again.");
 
-        const authUser = session.user;
         setStatus("Setting up your account…");
 
-        // 2. Call our new DB function — finds/creates public.users row,
-        //    fixes the UUID mismatch, checks if shop exists
-        const { data: upsertData, error: upsertError } = await supabase.rpc("upsert_oauth_user", {
-          p_auth_id:   authUser.id,
-          p_email:     authUser.email,
-          p_full_name: authUser.user_metadata?.full_name || null,
+        // 2. Hand the Supabase access_token to OUR backend so it can issue a
+        //    proper Sahel session token (this is what ProtectedRoute checks for).
+        //    Calling supabase.rpc(...) directly here was the bug — it created/found
+        //    the user in the database but never gave the browser a login token,
+        //    so ProtectedRoute treated every new Google sign-in as logged out and
+        //    bounced straight back to /welcome.
+        const response = await apiRequest("/auth/oauth-session", {
+          method: "POST",
+          body: JSON.stringify({ access_token: session.access_token }),
         });
-        if (upsertError) throw upsertError;
 
-        // 3. Save to localStorage so getCurrentUser() / getCurrentShop() work
-        saveSessionLocal(upsertData);
+        // 3. Save token + user + shop so getToken()/isAuthenticated() work
+        saveSession(response.data);
 
         // 4. Route: if no shop yet → onboarding, otherwise → dashboard
-        if (upsertData.onboarding_required) {
+        if (response.data.onboarding_required) {
           setStatus("One more step — setting up your shop…");
           navigate("/onboarding", { replace: true });
         } else {
@@ -83,7 +64,7 @@ export default function AuthCallback() {
             <h1 className="text-xl font-black text-slate-950">Login failed</h1>
             <p className="mt-2 text-sm font-medium text-rose-600">{error}</p>
             <a
-              href="/auth"
+              href="/login"
               className="mt-6 inline-block rounded-xl bg-blue-600 px-6 py-3 text-sm font-bold text-white hover:bg-blue-700"
             >
               Try again
