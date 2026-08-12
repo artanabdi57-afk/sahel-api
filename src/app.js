@@ -12,6 +12,9 @@ const creditRoutes   = require("./routes/creditRoutes");
 const expenseRoutes  = require("./routes/expenseRoutes");
 const adminRoutes    = require("./routes/adminRoutes");
 const shopRoutes     = require("./routes/shopRoutes");   // ← new
+const gymRoutes       = require("./routes/gymRoutes");     // ← new
+const schoolRoutes    = require("./routes/schoolRoutes");  // ← new
+const staffRoutes     = require("./routes/staffRoutes");   // ← new
 const notFound       = require("./middleware/notFound");
 const errorHandler   = require("./middleware/errorHandler");
 const authenticate   = require("./middleware/authMiddleware");
@@ -96,6 +99,12 @@ app.use("/orders",       authenticate, orderRoutes);
 app.use("/api/orders",   authenticate, orderRoutes);
 app.use("/reports",      authenticate, reportRoutes);
 app.use("/api/reports",  authenticate, reportRoutes);
+app.use("/gym",          authenticate, gymRoutes);
+app.use("/api/gym",      authenticate, gymRoutes);
+app.use("/school",       authenticate, schoolRoutes);
+app.use("/api/school",   authenticate, schoolRoutes);
+app.use("/staff",        authenticate, staffRoutes);
+app.use("/api/staff",    authenticate, staffRoutes);
 
 app.use(notFound);
 app.use(errorHandler);
