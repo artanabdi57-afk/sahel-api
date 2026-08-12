@@ -3,10 +3,10 @@ import ReactDOM from "react-dom/client";
 import { Navigate, RouterProvider, createBrowserRouter } from "react-router-dom";
 import App from "./App.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
+import DashboardRouter from "./components/DashboardRouter.jsx";
 import { LoadingState } from "./components/AsyncState.jsx";
 import { applyLanguage } from "./lib/i18n.js";
 import "./styles.css";
-const Dashboard = lazy(() => import("./pages/Dashboard.jsx"));
 const Inventory = lazy(() => import("./pages/Inventory.jsx"));
 const NewSale = lazy(() => import("./pages/NewSale.jsx"));
 const Credits = lazy(() => import("./pages/Credits.jsx"));
@@ -25,6 +25,17 @@ const ForgotPassword = lazy(() => import("./pages/ForgotPassword.jsx"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword.jsx"));
 const Blog = lazy(() => import("./pages/Blog.jsx"));
 const BlogPost = lazy(() => import("./pages/BlogPost.jsx"));
+// Gym vertical
+const GymMembers  = lazy(() => import("./pages/gym/GymMembers.jsx"));
+const GymCheckins = lazy(() => import("./pages/gym/GymCheckins.jsx"));
+const GymPayments = lazy(() => import("./pages/gym/GymPayments.jsx"));
+const GymStaff    = lazy(() => import("./pages/gym/GymStaff.jsx"));
+// School vertical
+const SchoolClasses  = lazy(() => import("./pages/school/SchoolClasses.jsx"));
+const SchoolStudents = lazy(() => import("./pages/school/SchoolStudents.jsx"));
+const SchoolTeachers = lazy(() => import("./pages/school/SchoolTeachers.jsx"));
+const SchoolFees     = lazy(() => import("./pages/school/SchoolFees.jsx"));
+const SchoolExams    = lazy(() => import("./pages/school/SchoolExams.jsx"));
 function lazyPage(element, variant = "route") {
   return <Suspense fallback={<LoadingState variant={variant} />}>{element}</Suspense>;
 }
@@ -55,7 +66,7 @@ const router = createBrowserRouter([
         element: <App />,
         children: [
           { index: true, element: <Navigate to="/dashboard" replace /> },
-          { path: "dashboard", element: lazyPage(<Dashboard />, "dashboard") },
+          { path: "dashboard", element: lazyPage(<DashboardRouter />, "dashboard") },
           { path: "inventory", element: lazyPage(<Inventory />) },
           { path: "sale", element: lazyPage(<NewSale />) },
           { path: "credits", element: lazyPage(<Credits />) },
@@ -64,7 +75,18 @@ const router = createBrowserRouter([
           { path: "reports", element: lazyPage(<Reports />) },
           { path: "settings", element: lazyPage(<Settings />) },
           { path: "profile", element: lazyPage(<Profile />) },
-          { path: "onboarding", element: lazyPage(<Onboarding />) }
+          { path: "onboarding", element: lazyPage(<Onboarding />) },
+          // Gym vertical
+          { path: "gym/members", element: lazyPage(<GymMembers />) },
+          { path: "gym/checkins", element: lazyPage(<GymCheckins />) },
+          { path: "gym/payments", element: lazyPage(<GymPayments />) },
+          { path: "gym/staff", element: lazyPage(<GymStaff />) },
+          // School vertical
+          { path: "school/classes", element: lazyPage(<SchoolClasses />) },
+          { path: "school/students", element: lazyPage(<SchoolStudents />) },
+          { path: "school/teachers", element: lazyPage(<SchoolTeachers />) },
+          { path: "school/fees", element: lazyPage(<SchoolFees />) },
+          { path: "school/exams", element: lazyPage(<SchoolExams />) }
         ]
       }
     ]
