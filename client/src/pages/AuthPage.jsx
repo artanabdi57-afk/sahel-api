@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { ArrowRight, Globe2, Lock, Mail, MapPin, Phone, Store, Dumbbell, GraduationCap, Check, X } from "lucide-react";
 import { apiRequest } from "../lib/api";
 import { saveSession } from "../lib/auth";
+import { supabase, hasSupabaseAuthConfig } from "../lib/supabaseClient";
 import sahelLogo from "../assets/sahel_logo_english.svg";
 import sahelIcon from "../assets/sahel_logo_icon_only.svg";
 
@@ -82,7 +83,7 @@ export default function AuthPage({ mode }) {
     }
     else { const response = await apiRequest("/auth/login",{method:"POST",body:JSON.stringify({email:form.email,password:form.password})}); saveSession(response.data); navigate(location.state?.from || "/dashboard",{replace:true}); }
   } catch (error) { setStatus({ loading:false, error:error.message }); } }
-  async function google() { setGoogleLoading(true); try { const { error } = await supabase.auth.signInWithOAuth({provider:"google",options:{redirectTo:window.location.origin + "/auth/callback"}}); if(error) throw error; } catch(error) { setGoogleLoading(false); setStatus({loading:false,error:error.message}); } }
+  async function google() { if (!hasSupabaseAuthConfig) { setStatus({loading:false,error:"Google sign-in isn't configured on this deployment."}); return; } setGoogleLoading(true); try { const { error } = await supabase.auth.signInWithOAuth({provider:"google",options:{redirectTo:window.location.origin + "/auth/callback"}}); if(error) throw error; } catch(error) { setGoogleLoading(false); setStatus({loading:false,error:error.message}); } }
   const active = (code) => "rounded-full px-2.5 py-1.5 text-xs font-black transition " + (lang === code ? "bg-blue-600 text-white shadow-sm" : "text-slate-500 hover:text-blue-700");
   return <main className="relative min-h-screen overflow-hidden bg-slate-50 p-4 sm:p-6"><div className="absolute inset-0 bg-[radial-gradient(circle_at_12%_12%,rgba(37,99,235,.16),transparent_25%),radial-gradient(circle_at_88%_85%,rgba(249,115,22,.14),transparent_24%)]"/><div className="relative mx-auto flex min-h-[calc(100vh-2rem)] max-w-6xl items-center justify-center"><div className="grid w-full overflow-hidden rounded-[2rem] border border-blue-100 bg-white shadow-[0_28px_85px_rgba(30,64,175,.16)] lg:grid-cols-[.92fr_1.08fr]">
     <aside className="hidden bg-gradient-to-br from-blue-700 via-blue-700 to-blue-950 p-10 text-white lg:flex lg:flex-col lg:justify-between"><div><img src={sahelLogo} alt="Sahel" className="h-10 w-auto brightness-0 invert"/><span className="mt-10 inline-flex rounded-full bg-orange-400/20 px-3 py-1.5 text-xs font-black text-orange-200">SAHEL</span><h1 className="mt-4 max-w-md text-4xl font-black leading-tight">{t.title}</h1><p className="mt-4 max-w-md leading-7 text-blue-100">{t.body}</p></div><div className="space-y-3">{["Private workspace","Simple daily work","Built for Somalia"].map((point) => <div key={point} className="rounded-2xl border border-white/10 bg-white/[.08] p-4 text-sm font-black">{point}</div>)}</div></aside>
