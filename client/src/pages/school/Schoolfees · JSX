@@ -1,0 +1,117 @@
+import React, { useEffect, useState } from "react";
+import { Wallet, AlertTriangle } from "lucide-react";
+import { apiRequest, formatMoney } from "../../lib/api";
+import { EmptyState, ErrorState, LoadingState } from "../../components/AsyncState";
+
+export default function SchoolFees() {
+  const [students, setStudents] = useState([]);
+  const [payments, setPayments] = useState([]);
+  const [unpaid, setUnpaid] = useState([]);
+  const [form, setForm] = useState({ student_id: "", amount: "", payment_method: "cash" });
+  const [status, setStatus] = useState({ loading: true, saving: false, error: "" });
+
+  async function load() {
+    setStatus((s) => ({ ...s, loading: true, error: "" }));
+    try {
+      const [studentsRes, paymentsRes, unpaidRes] = await Promise.all([
+        apiRequest("/school/students"),
+        apiRequest("/school/fee-payments"),
+        apiRequest("/school/fee-payments/unpaid"),
+      ]);
+      setStudents(studentsRes.data || []);
+      setPayments(paymentsRes.data || []);
+      setUnpaid(unpaidRes.data || []);
+      setStatus((s) => ({ ...s, loading: false }));
+    } catch (error) {
+      setStatus((s) => ({ ...s, loading: false, error: error.message }));
+    }
+  }
+  useEffect(() => { load(); }, []);
+  const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    setStatus((s) => ({ ...s, saving: true, error: "" }));
+    try {
+      await apiRequest("/school/fee-payments", { method: "POST", body: JSON.stringify({ ...form, amount: Number(form.amount) }) });
+      setForm({ student_id: "", amount: "", payment_method: "cash" });
+      setStatus((s) => ({ ...s, saving: false }));
+      await load();
+    } catch (error) {
+      setStatus((s) => ({ ...s, saving: false, error: error.message }));
+    }
+  }
+
+  if (status.loading) return <LoadingState />;
+
+  return (
+    <div className="space-y-5">
+      {unpaid.length > 0 && (
+        <div className="panel p-4">
+          <h2 className="mb-3 flex items-center gap-2 text-base font-bold text-slate-950">
+            <AlertTriangle className="h-5 w-5 text-red-500" /> Students who haven't paid this month
+          </h2>
+          <div className="flex flex-wrap gap-2">
+            {unpaid.map((s) => (
+              <button
+                key={s.id}
+                onClick={() => set("student_id", s.id)}
+                className="rounded-full bg-red-50 px-3 py-1.5 text-sm font-semibold text-red-700 transition hover:bg-red-100"
+                title="Click to pre-fill the payment form"
+              >
+                {s.name} — {formatMoney(s.monthly_fee)}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="grid gap-5 xl:grid-cols-[380px_1fr]">
+        <form onSubmit={handleSubmit} className="panel h-fit p-4">
+          <h2 className="mb-4 flex items-center gap-2 text-base font-bold text-slate-950">
+            <Wallet className="h-5 w-5 text-blue-600" /> Record a fee payment
+          </h2>
+          {status.error ? <ErrorState message={status.error} /> : null}
+          <div className="space-y-3">
+            <select className="field" value={form.student_id} onChange={(e) => set("student_id", e.target.value)} required>
+              <option value="">Choose student…</option>
+              {students.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+            </select>
+            <input className="field" type="number" min="0" step="0.01" placeholder="Amount" value={form.amount} onChange={(e) => set("amount", e.target.value)} required />
+            <select className="field" value={form.payment_method} onChange={(e) => set("payment_method", e.target.value)}>
+              <option value="cash">Cash</option>
+              <option value="bank">Bank</option>
+              <option value="mobile_money">Mobile money</option>
+            </select>
+          </div>
+          <button className="btn-primary mt-4 w-full" disabled={status.saving}>{status.saving ? "Saving…" : "Record payment"}</button>
+        </form>
+
+        <div className="panel overflow-hidden">
+          <div className="border-b border-slate-100 p-4"><h2 className="text-base font-bold text-slate-950">Payment history</h2></div>
+          {payments.length === 0 ? (
+            <div className="p-4"><EmptyState title="No payments yet" description="Record a fee payment to see it here." /></div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="min-w-full text-left text-sm">
+                <thead className="bg-slate-50 text-xs uppercase text-slate-500">
+                  <tr><th className="px-4 py-3 font-semibold">Student</th><th className="px-4 py-3 font-semibold">Method</th><th className="px-4 py-3 font-semibold">Paid</th><th className="px-4 py-3 text-right font-semibold">Amount</th></tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {payments.map((p) => (
+                    <tr key={p.id} className="hover:bg-slate-50">
+                      <td className="px-4 py-3 font-semibold text-slate-950">{p.school_students?.name || "-"}</td>
+                      <td className="px-4 py-3 text-slate-600 capitalize">{p.payment_method}</td>
+                      <td className="px-4 py-3 text-slate-500">{new Date(p.paid_at).toLocaleDateString()}</td>
+                      <td className="px-4 py-3 text-right font-bold text-slate-950">{formatMoney(p.amount)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
