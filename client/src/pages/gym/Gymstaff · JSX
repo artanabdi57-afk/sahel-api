@@ -1,0 +1,133 @@
+import React, { useEffect, useState } from "react";
+import { Wallet } from "lucide-react";
+import { apiRequest, formatMoney } from "../../lib/api";
+import { EmptyState, ErrorState, LoadingState } from "../../components/AsyncState";
+import EntityCrud from "../../components/EntityCrud";
+
+function SalaryPayments() {
+  const [staff, setStaff] = useState([]);
+  const [payments, setPayments] = useState([]);
+  const [form, setForm] = useState({ staff_id: "", amount: "", notes: "" });
+  const [status, setStatus] = useState({ loading: true, saving: false, error: "" });
+
+  async function load() {
+    setStatus((s) => ({ ...s, loading: true, error: "" }));
+    try {
+      const [staffRes, paymentsRes] = await Promise.all([
+        apiRequest("/staff"),
+        apiRequest("/gym/staff-payments"),
+      ]);
+      setStaff(staffRes.data || []);
+      setPayments(paymentsRes.data || []);
+      setStatus((s) => ({ ...s, loading: false }));
+    } catch (error) {
+      setStatus((s) => ({ ...s, loading: false, error: error.message }));
+    }
+  }
+  useEffect(() => { load(); }, []);
+  const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    setStatus((s) => ({ ...s, saving: true, error: "" }));
+    try {
+      await apiRequest("/gym/staff-payments", { method: "POST", body: JSON.stringify({ ...form, amount: Number(form.amount) }) });
+      setForm({ staff_id: "", amount: "", notes: "" });
+      setStatus((s) => ({ ...s, saving: false }));
+      await load();
+    } catch (error) {
+      setStatus((s) => ({ ...s, saving: false, error: error.message }));
+    }
+  }
+
+  if (status.loading) return <LoadingState />;
+
+  return (
+    <div className="grid gap-5 xl:grid-cols-[380px_1fr]">
+      <form onSubmit={handleSubmit} className="panel h-fit p-4">
+        <h2 className="mb-4 flex items-center gap-2 text-base font-bold text-slate-950">
+          <Wallet className="h-5 w-5 text-blue-600" /> Pay a staff member
+        </h2>
+        {status.error ? <ErrorState message={status.error} /> : null}
+        <div className="space-y-3">
+          <select className="field" value={form.staff_id} onChange={(e) => set("staff_id", e.target.value)} required>
+            <option value="">Choose staff…</option>
+            {staff.map((s) => <option key={s.id} value={s.id}>{s.name} ({s.role})</option>)}
+          </select>
+          <input className="field" type="number" min="0" step="0.01" placeholder="Amount" value={form.amount} onChange={(e) => set("amount", e.target.value)} required />
+          <input className="field" placeholder="Notes (optional)" value={form.notes} onChange={(e) => set("notes", e.target.value)} />
+        </div>
+        <button className="btn-primary mt-4 w-full" disabled={status.saving}>{status.saving ? "Saving…" : "Record payment"}</button>
+      </form>
+
+      <div className="panel overflow-hidden">
+        <div className="border-b border-slate-100 p-4"><h2 className="text-base font-bold text-slate-950">Salary payment history</h2></div>
+        {payments.length === 0 ? (
+          <div className="p-4"><EmptyState title="No payments yet" description="Pay a staff member to see it here." /></div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-left text-sm">
+              <thead className="bg-slate-50 text-xs uppercase text-slate-500">
+                <tr><th className="px-4 py-3 font-semibold">Staff</th><th className="px-4 py-3 font-semibold">Paid</th><th className="px-4 py-3 text-right font-semibold">Amount</th></tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {payments.map((p) => (
+                  <tr key={p.id} className="hover:bg-slate-50">
+                    <td className="px-4 py-3 font-semibold text-slate-950">{p.staff?.name || "-"}</td>
+                    <td className="px-4 py-3 text-slate-500">{new Date(p.paid_at).toLocaleDateString()}</td>
+                    <td className="px-4 py-3 text-right font-bold text-slate-950">{formatMoney(p.amount)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export default function GymStaff() {
+  const [tab, setTab] = useState("people"); // people | payments
+
+  return (
+    <div className="space-y-4">
+      <div className="flex w-fit rounded-full bg-slate-100 p-1">
+        {[["people", "Staff"], ["payments", "Salary Payments"]].map(([key, label]) => (
+          <button
+            key={key}
+            onClick={() => setTab(key)}
+            className={`rounded-full px-4 py-2 text-sm font-bold transition ${tab === key ? "bg-blue-600 text-white shadow-sm" : "text-slate-500 hover:text-slate-950"}`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {tab === "people" ? (
+        <EntityCrud
+          apiPath="/staff"
+          title="Add Staff Member"
+          emptyTitle="No staff yet"
+          emptyDescription="Add whoever works here — trainers, front desk, cleaners."
+          fields={[
+            { key: "name", label: "Full name", required: true },
+            { key: "email", label: "Email (optional)" },
+            { key: "role", label: "Role", type: "select", default: "staff", options: [
+              { value: "staff", label: "Staff" },
+              { value: "manager", label: "Manager" },
+            ] },
+          ]}
+          columns={[
+            { key: "name", label: "Name" },
+            { key: "email", label: "Email" },
+            { key: "role", label: "Role", render: (r) => <span className="capitalize">{r.role}</span> },
+            { key: "status", label: "Status", render: (r) => <span className={`rounded-full px-2 py-0.5 text-xs font-bold ${r.status === "active" ? "bg-green-50 text-green-700" : "bg-slate-100 text-slate-500"}`}>{r.status}</span> },
+          ]}
+        />
+      ) : (
+        <SalaryPayments />
+      )}
+    </div>
+  );
+}
