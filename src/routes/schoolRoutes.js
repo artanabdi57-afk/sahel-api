@@ -5,9 +5,8 @@ const {
   getTeachers, createTeacher, updateTeacher, deleteTeacher,
   getFeePayments, getUnpaidFees, createFeePayment,
   getSalaryPayments, getUnpaidSalaries, createSalaryPayment,
-  getExams, createExam, deleteExam, getExamResults, saveExamResults,
-  getSubjects,
 } = require("../controllers/schoolController");
+const { getExams, createExam, deleteExam, getExamResults, saveExamResults, getSubjects } = require("../controllers/schoolExamController");
 const { getStudentExamHistory } = require("../controllers/studentExamHistoryController");
 
 const router = express.Router();
