@@ -1,32 +1,11 @@
 import React from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
-import {
-  BarChart3,
-  Boxes,
-  ClipboardList,
-  CreditCard,
-  Home,
-  LogOut,
-  PlusCircle,
-  ReceiptText,
-  Settings,
-  ShoppingCart
-} from "lucide-react";
+import { LogOut } from "lucide-react";
 import { clearSession, getCurrentShop } from "../lib/auth";
 import { useLanguage } from "../lib/i18n";
 import { useCurrency } from "../lib/api";
+import { getNavForBusinessType } from "../config/navConfig";
 import WhatsAppSupportButton from "./WhatsAppSupportButton.jsx";
-
-const navItems = [
-  { key: "dashboard", path: "/dashboard", icon: Home },
-  { key: "inventory", path: "/inventory", icon: Boxes },
-  { key: "newSale", path: "/sale", icon: PlusCircle },
-  { key: "credits", path: "/credits", icon: CreditCard },
-  { key: "orders", path: "/orders", icon: ClipboardList },
-  { key: "expenses", path: "/expenses", icon: ReceiptText },
-  { key: "reports", path: "/reports", icon: BarChart3 },
-  { key: "settings", path: "/settings", icon: Settings }
-];
 
 const hiddenPages = [
   { key: "profile", path: "/profile" }
@@ -34,6 +13,10 @@ const hiddenPages = [
 
 function NavItem({ item, compact = false, t }) {
   const Icon = item.icon;
+  // Shared items (dashboard/settings) reuse existing translation keys.
+  // Vertical-specific items (Members, Classes, etc.) don't have translations
+  // yet, so they fall back to their plain English label for now.
+  const label = item.label || t(item.key);
 
   return (
     <NavLink
@@ -47,7 +30,7 @@ function NavItem({ item, compact = false, t }) {
       }
     >
       <Icon className={compact ? "h-5 w-5" : "h-5 w-5"} />
-      <span className={compact ? "leading-none" : ""}>{t(item.key)}</span>
+      <span className={compact ? "leading-none" : ""}>{label}</span>
     </NavLink>
   );
 }
@@ -57,10 +40,15 @@ export default function Layout() {
   useCurrency(); // Re-renders the whole app tree when currency changes in Settings
   const location = useLocation();
   const navigate = useNavigate();
-  const current = [...navItems, ...hiddenPages].find((item) => item.path === location.pathname) || navItems[0];
+  const shop = getCurrentShop();
+
+  // The one line that makes the whole sidebar vertical-aware. Everything
+  // else in this file is unchanged from before.
+  const items = getNavForBusinessType(shop?.business_type);
+
+  const current = [...items, ...hiddenPages].find((item) => item.path === location.pathname) || items[0];
   const isDashboard = location.pathname === "/dashboard";
   const isReports = location.pathname === "/reports";
-  const shop = getCurrentShop();
 
   function handleLogout() {
     clearSession();
@@ -85,7 +73,7 @@ export default function Layout() {
         </div>
 
         <nav className="space-y-1">
-          {navItems.map((item) => (
+          {items.map((item) => (
             <NavItem key={item.path} item={item} t={t} />
           ))}
         </nav>
@@ -105,7 +93,7 @@ export default function Layout() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wide text-blue-600">Sahel</p>
-                <h1 className="text-xl font-bold text-slate-950">{t(current.key)}</h1>
+                <h1 className="text-xl font-bold text-slate-950">{current.label || t(current.key)}</h1>
                 <p className="text-sm font-medium text-slate-500">{shop?.shop_name}</p>
               </div>
               <button className="btn-secondary hidden sm:inline-flex" onClick={handleLogout}>
@@ -129,13 +117,13 @@ export default function Layout() {
         </div>
       </main>
 
-  <nav className="fixed bottom-0 left-0 right-0 z-20 border-t border-slate-200 bg-white px-2 pb-2 pt-1 lg:hidden">
-  <div className="flex gap-1 overflow-x-auto">
-    {navItems.map((item) => (
-      <NavItem key={item.path} item={item} compact t={t} />
-    ))}
-  </div>
-</nav>
+      <nav className="fixed bottom-0 left-0 right-0 z-20 border-t border-slate-200 bg-white px-2 pb-2 pt-1 lg:hidden">
+        <div className="flex gap-1 overflow-x-auto">
+          {items.map((item) => (
+            <NavItem key={item.path} item={item} compact t={t} />
+          ))}
+        </div>
+      </nav>
 
       <WhatsAppSupportButton />
     </div>
