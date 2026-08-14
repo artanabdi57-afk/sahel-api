@@ -4,21 +4,44 @@ alter table public.school_students add column if not exists father_name text;
 alter table public.school_students add column if not exists mother_name text;
 alter table public.school_students add column if not exists phone_number text;
 alter table public.school_students add column if not exists age integer;
+
+-- School-wide numeric student ID. It never restarts per class.
 create unique index if not exists school_students_shop_registration_no_uidx on public.school_students(shop_id, registration_no) where registration_no is not null;
+
+create or replace function public.school_student_registration_no() returns trigger language plpgsql as $$
+declare next_no integer;
+begin
+  if new.registration_no is null or btrim(new.registration_no) = '' then
+    select coalesce(max(registration_no::integer), 0) + 1 into next_no
+    from public.school_students
+    where shop_id = new.shop_id and registration_no ~ '^[0-9]+$';
+    new.registration_no := next_no::text;
+  end if;
+  return new;
+end;
+$$;
 
 create or replace function public.set_school_student_registration_no() returns trigger language plpgsql as $$
 declare next_no integer;
 begin
   if new.registration_no is null or btrim(new.registration_no) = '' then
-    select coalesce(max(regexp_replace(registration_no, '\\D', '', 'g')::integer), 0) + 1 into next_no
-    from public.school_students where shop_id = new.shop_id and registration_no ~ '^STU-[0-9]+$';
-    new.registration_no := 'STU-' || lpad(next_no::text, 5, '0');
+    select coalesce(max(registration_no::integer), 0) + 1 into next_no
+    from public.school_students
+    where shop_id = new.shop_id and registration_no ~ '^[0-9]+$';
+    new.registration_no := next_no::text;
   end if;
   return new;
 end;
 $$;
+
+drop trigger if exists school_students_registration_no on public.school_students;
 drop trigger if exists school_students_registration_no_trigger on public.school_students;
-create trigger school_students_registration_no_trigger before insert on public.school_students for each row execute function public.set_school_student_registration_no();
+create trigger school_students_registration_no before insert on public.school_students for each row execute function public.school_student_registration_no();
+
+-- Normalize any IDs created by an older version of Sahel.
+update public.school_students
+set registration_no = regexp_replace(registration_no, '^STU-', '', 'i')
+where registration_no ~* '^STU-[0-9]+$';
 
 alter table public.school_classes add column if not exists level text not null default 'primary';
 alter table public.school_classes drop constraint if exists school_classes_level_check;
