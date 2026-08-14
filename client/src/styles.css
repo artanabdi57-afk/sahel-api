@@ -29,6 +29,8 @@ html.dark .border-slate-200, html.dark .border-slate-100 { border-color: #334155
 @keyframes sahel-pop { from { opacity: 0; transform: translateY(14px) scale(.97); } to { opacity: 1; transform: translateY(0) scale(1); } }
 @keyframes sahel-bar-grow { from { height: 0; opacity: .35; } to { height: var(--bar-height); opacity: 1; } }
 @keyframes sahel-spin-in { from { opacity: 0; transform: rotate(-14deg) scale(.9); } to { opacity: 1; transform: rotate(0deg) scale(1); } }
+@keyframes sahel-fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes sahel-slide-in { from { opacity: 0; transform: translateX(-18px); } to { opacity: 1; transform: translateX(0); } }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
