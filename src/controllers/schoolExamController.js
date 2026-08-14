@@ -1,6 +1,11 @@
 const { supabaseAdmin: supabase } = require("../config/supabase");
 const clean = (value) => typeof value === "string" ? value.trim() : value;
 const scoreValue = (value) => value === "" || value === undefined || value === null ? null : Number(value);
+const assessmentValue = (value) => {
+  const n = scoreValue(value);
+  if (n === null) return null;
+  return n;
+};
 
 const getExams = async (req, res, next) => {
   try {
@@ -24,7 +29,7 @@ const createExam = async (req, res, next) => {
     const year = clean(academic_year);
     const { data: existing, error: findError } = await supabase.from("school_exams").select("id").eq("shop_id", req.user.shop_id).eq("class_id", class_id).eq("academic_year", year).eq("term", term).maybeSingle();
     if (findError) throw findError;
-    const payload = { shop_id: req.user.shop_id, class_id, term, academic_year: year, exam_date: exam_date || null, max_score: 200, name: clean(name) || `${schoolClass.name} - ${term.replace("_", " ")}` };
+    const payload = { shop_id: req.user.shop_id, class_id, term, academic_year: year, exam_date: exam_date || null, max_score: 100, name: clean(name) || `${schoolClass.name} - ${term.replace("_", " ")}` };
     const result = existing
       ? await supabase.from("school_exams").update(payload).eq("id", existing.id).eq("shop_id", req.user.shop_id).select("*, school_classes(id,name,grade,level)").single()
       : await supabase.from("school_exams").insert(payload).select("*, school_classes(id,name,grade,level)").single();
@@ -42,7 +47,7 @@ const getExamResults = async (req, res, next) => {
     const { data: exam, error: examError } = await supabase.from("school_exams").select("id,class_id,term,academic_year,max_score,school_classes(name,level,grade)").eq("id", req.params.id).eq("shop_id", req.user.shop_id).maybeSingle();
     if (examError) throw examError;
     if (!exam) return res.status(404).json({ message: "Term record not found." });
-    const { data, error } = await supabase.from("school_exam_results").select("id,student_id,subject,score,attempt_one,attempt_two,school_students(name,registration_no)").eq("exam_id", exam.id).eq("shop_id", req.user.shop_id).order("subject");
+    const { data, error } = await supabase.from("school_exam_results").select("id,student_id,subject,score,attempt_one,attempt_two,attempt_three,attempt_four,school_students(name,registration_no)").eq("exam_id", exam.id).eq("shop_id", req.user.shop_id).order("subject");
     if (error) throw error;
     res.json({ exam, data: data || [] });
   } catch (error) { next(error); }
@@ -61,25 +66,25 @@ const saveExamResults = async (req, res, next) => {
       if (error) throw error;
       const valid = new Map((students || []).map((s) => [s.id, s]));
       for (const result of results) {
-        const student = valid.get(result.student_id);
-        const one = scoreValue(result.attempt_one);
-        const two = scoreValue(result.attempt_two);
-        if (!student) return res.status(400).json({ message: "A student does not belong to this school." });
-        if (exam.class_id && student.class_id !== exam.class_id) return res.status(400).json({ message: "All results must belong to the selected class." });
+        const attempts = [result.attempt_one, result.attempt_two, result.attempt_three, result.attempt_four].map(assessmentValue);
+        const labels = ["First", "Second", "Third", "Fourth"];
+        if (!valid.get(result.student_id)) return res.status(400).json({ message: "A student does not belong to this school." });
+        if (exam.class_id && valid.get(result.student_id).class_id !== exam.class_id) return res.status(400).json({ message: "All results must belong to the selected class." });
         if (!result.subject || !String(result.subject).trim()) return res.status(400).json({ message: "Every score needs a subject." });
-        if (one !== null && (!Number.isFinite(one) || one < 0 || one > 100)) return res.status(400).json({ message: "First assessment scores must be between 0 and 100." });
-        if (two !== null && (!Number.isFinite(two) || two < 0 || two > 100)) return res.status(400).json({ message: "Second assessment scores must be between 0 and 100." });
+        for (let i = 0; i < attempts.length; i++) {
+          const value = attempts[i];
+          if (value !== null && (!Number.isFinite(value) || value < 0 || value > 20)) return res.status(400).json({ message: `${labels[i]} assessment scores must be between 0 and 20.` });
+        }
       }
     }
     if (!results.length) return res.json({ message: "No results to save.", data: [] });
     const rows = results.map((r) => {
-      const one = scoreValue(r.attempt_one) ?? 0;
-      const two = scoreValue(r.attempt_two) ?? 0;
-      return { shop_id: req.user.shop_id, exam_id: exam.id, student_id: r.student_id, subject: clean(r.subject), attempt_one: scoreValue(r.attempt_one), attempt_two: scoreValue(r.attempt_two), score: one + two };
+      const attempts = [r.attempt_one, r.attempt_two, r.attempt_three, r.attempt_four].map((v) => assessmentValue(v) ?? 0);
+      return { shop_id: req.user.shop_id, exam_id: exam.id, student_id: r.student_id, subject: clean(r.subject), attempt_one: attempts[0], attempt_two: attempts[1], attempt_three: attempts[2], attempt_four: attempts[3], score: attempts.reduce((sum, value) => sum + value, 0) };
     });
     const { data, error } = await supabase.from("school_exam_results").upsert(rows, { onConflict: "exam_id,student_id,subject" }).select("*");
     if (error) throw error;
-    res.json({ message: "Results saved.", data });
+    res.json({ message: "Results saved. Four assessments of 20 marks each are totaled out of 100.", data });
   } catch (error) { next(error); }
 };
 
