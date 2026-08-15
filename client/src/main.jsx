@@ -48,6 +48,19 @@ if(savedSettings){
   applyLanguage(settings.language);
 }else applyLanguage("English");
 
+// Capture the browser's install event globally so it cannot be missed while
+// the landing page is lazy-loading or while the user moves between routes.
+window.__sahelInstallPrompt = window.__sahelInstallPrompt || null;
+window.addEventListener("beforeinstallprompt",(event)=>{
+  event.preventDefault();
+  window.__sahelInstallPrompt = event;
+  window.dispatchEvent(new Event("sahel-install-available"));
+});
+window.addEventListener("appinstalled",()=>{
+  window.__sahelInstallPrompt = null;
+  window.dispatchEvent(new Event("sahel-app-installed"));
+});
+
 const router=createBrowserRouter([
   {path:"/welcome",element:lazyPage(<Landing/>)},
   {path:"/blog",element:lazyPage(<Blog/>)},
