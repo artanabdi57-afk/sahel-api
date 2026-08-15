@@ -18,13 +18,17 @@ export default function AuthCallback() {
         if (!session) throw new Error("Google login did not return a session. Please try again.");
 
         const businessType = localStorage.getItem("sahel_google_business_type");
-        const flow = localStorage.getItem("sahel_google_flow");
-        if (!businessType) throw new Error("Please return to login and choose Shop, School, or Gym before using Google.");
+        const flow = localStorage.getItem("sahel_google_flow") || "login";
 
-        setStatus("Checking your workspace…");
+        setStatus("Finding your workspace…");
+        // Existing Google logins do not need to choose a type. The backend
+        // identifies the account and returns the workspace linked to it.
+        // business_type is sent only for signup, where it is needed to create
+        // the new workspace.
+        const body = businessType ? { access_token: session.access_token, business_type: businessType } : { access_token: session.access_token };
         const response = await apiRequest("/auth/oauth-session", {
           method: "POST",
-          body: JSON.stringify({ access_token: session.access_token, business_type: businessType }),
+          body: JSON.stringify(body),
         });
 
         saveSession(response.data);
@@ -32,7 +36,9 @@ export default function AuthCallback() {
         localStorage.removeItem("sahel_google_flow");
 
         if (response.data.onboarding_required) {
-          localStorage.setItem("sahel_pending_business_type", businessType);
+          // A brand-new Google account still needs its workspace type during
+          // onboarding. Existing accounts never reach this branch.
+          if (businessType) localStorage.setItem("sahel_pending_business_type", businessType);
           setStatus("One more step — setting up your workspace…");
           navigate("/onboarding", { replace: true });
         } else {
