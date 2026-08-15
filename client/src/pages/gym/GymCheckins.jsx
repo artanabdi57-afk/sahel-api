@@ -1,24 +1,56 @@
 import React, { useEffect, useState } from "react";
-import { UserCheck, UserPlus, Clock3 } from "lucide-react";
+import { UserPlus, UserRound, Phone, Users } from "lucide-react";
 import { apiRequest } from "../../lib/api";
 import { EmptyState, ErrorState, LoadingState } from "../../components/AsyncState";
 
 export default function GymCheckins() {
-  const [members, setMembers] = useState([]), [checkins, setCheckins] = useState([]), [memberId, setMemberId] = useState("");
-  const [newMember, setNewMember] = useState({ name: "", gender: "", phone: "" });
-  const [status, setStatus] = useState({ loading: true, saving: false, registering: false, error: "", success: "" });
-  async function load() { setStatus((s) => ({ ...s, loading: true, error: "" })); try { const [membersRes, checkinsRes] = await Promise.all([apiRequest("/gym/members"), apiRequest("/gym/checkins?limit=100")]); setMembers(membersRes.data || []); setCheckins(checkinsRes.data || []); } catch (error) { setStatus((s) => ({ ...s, error: error.message })); } finally { setStatus((s) => ({ ...s, loading: false })); } }
+  const [members, setMembers] = useState([]);
+  const [form, setForm] = useState({ name: "", gender: "", phone: "" });
+  const [status, setStatus] = useState({ loading: true, saving: false, error: "", success: "" });
+
+  async function load() {
+    setStatus((s) => ({ ...s, loading: true, error: "" }));
+    try { const r = await apiRequest("/gym/members"); setMembers(r.data || []); }
+    catch (e) { setStatus((s) => ({ ...s, error: e.message })); }
+    finally { setStatus((s) => ({ ...s, loading: false })); }
+  }
   useEffect(() => { load(); }, []);
-  async function handleCheckin(e) { e.preventDefault(); if (!memberId) return; setStatus((s) => ({ ...s, saving: true, error: "", success: "" })); try { await apiRequest("/gym/checkins", { method: "POST", body: JSON.stringify({ member_id: memberId }) }); setMemberId(""); setStatus((s) => ({ ...s, success: "Member checked in successfully." })); await load(); } catch (error) { setStatus((s) => ({ ...s, error: error.message })); } finally { setStatus((s) => ({ ...s, saving: false })); } }
-  async function handleRegister(e) { e.preventDefault(); if (!newMember.name.trim() || !newMember.gender || !newMember.phone.trim()) return; setStatus((s) => ({ ...s, registering: true, error: "", success: "" })); try { const r = await apiRequest("/gym/members", { method: "POST", body: JSON.stringify({ name: newMember.name.trim(), gender: newMember.gender, phone: newMember.phone.trim() }) }); setNewMember({ name: "", gender: "", phone: "" }); setMemberId(r.data?.id || ""); setStatus((s) => ({ ...s, success: `${r.data?.name || "New member"} registered. They are ready to check in.` })); await load(); if (r.data?.id) setMemberId(r.data.id); } catch (error) { setStatus((s) => ({ ...s, error: error.message })); } finally { setStatus((s) => ({ ...s, registering: false })); } }
+
+  async function addMember(e) {
+    e.preventDefault();
+    if (!form.name.trim() || !form.gender || !form.phone.trim()) return;
+    setStatus((s) => ({ ...s, saving: true, error: "", success: "" }));
+    try {
+      const r = await apiRequest("/gym/members", { method: "POST", body: JSON.stringify({ name: form.name.trim(), gender: form.gender, phone: form.phone.trim() }) });
+      setForm({ name: "", gender: "", phone: "" });
+      setStatus((s) => ({ ...s, success: `${r.data?.name || "New member"} has been added successfully.` }));
+      await load();
+    } catch (e) { setStatus((s) => ({ ...s, error: e.message })); }
+    finally { setStatus((s) => ({ ...s, saving: false })); }
+  }
+
   if (status.loading) return <LoadingState />;
-  return <div className="space-y-5 motion-card">
-    <div className="rounded-2xl border border-emerald-100 bg-gradient-to-r from-white via-emerald-50/50 to-blue-50 p-5"><p className="text-xs font-bold uppercase tracking-[0.18em] text-emerald-600">Registration & daily attendance</p><div className="mt-1 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between"><div><h2 className="text-2xl font-black">Check-ins</h2><p className="text-sm text-slate-500">Register new people here, then check them in immediately.</p></div><div className="rounded-xl bg-white px-4 py-3 text-center shadow-sm ring-1 ring-emerald-100"><p className="text-xs font-semibold text-slate-500">Recent check-ins</p><p className="text-xl font-black text-emerald-600">{checkins.length}</p></div></div></div>
-    {status.error && <ErrorState message={status.error} />}{status.success && <div className="rounded-xl border border-emerald-100 bg-emerald-50 p-3 text-sm font-semibold text-emerald-700">{status.success}</div>}
-    <div className="grid gap-5 xl:grid-cols-[380px_380px_1fr]">
-      <form onSubmit={handleRegister} className="panel h-fit p-5 transition hover:shadow-md"><h2 className="mb-1 flex items-center gap-2 text-lg font-black"><UserPlus className="h-5 w-5 text-emerald-600" /> Register new member</h2><p className="mb-4 text-xs text-slate-500">Someone new arrives? Register them here.</p><label className="mb-2 block text-xs font-bold text-slate-500">Full name</label><input className="field" placeholder="Full name" value={newMember.name} onChange={(e) => setNewMember({ ...newMember, name: e.target.value })} required /><label className="mb-2 mt-3 block text-xs font-bold text-slate-500">Gender</label><select className="field" value={newMember.gender} onChange={(e) => setNewMember({ ...newMember, gender: e.target.value })} required><option value="">Select gender…</option><option value="male">Male</option><option value="female">Female</option></select><label className="mb-2 mt-3 block text-xs font-bold text-slate-500">Phone number</label><input className="field" type="tel" placeholder="Phone number" value={newMember.phone} onChange={(e) => setNewMember({ ...newMember, phone: e.target.value })} required /><button className="btn-primary mt-4 w-full" disabled={status.registering}>{status.registering ? "Registering…" : "Register member"}</button></form>
-      <form onSubmit={handleCheckin} className="panel h-fit p-5 transition hover:shadow-md"><h2 className="mb-1 flex items-center gap-2 text-lg font-black"><UserCheck className="h-5 w-5 text-blue-600" /> Check member in</h2><p className="mb-4 text-xs text-slate-500">Select an existing active member.</p><select className="field" value={memberId} onChange={(e) => setMemberId(e.target.value)} required><option value="">Choose member…</option>{members.filter((m) => !m.status || m.status === "active").map((m) => <option key={m.id} value={m.id}>{m.name}{m.gender ? ` (${m.gender === "female" ? "Female" : "Male"})` : ""}</option>)}</select><button className="btn-primary mt-4 w-full" disabled={status.saving || !memberId}>{status.saving ? "Checking in…" : "Check in"}</button></form>
-      <div className="panel overflow-hidden"><div className="flex items-center justify-between border-b border-slate-100 p-4"><div><p className="text-xs font-bold uppercase tracking-wider text-blue-600">Live history</p><h2 className="text-base font-black">Who came, and when</h2></div><Clock3 className="h-5 w-5 text-slate-400" /></div>{checkins.length === 0 ? <div className="flex min-h-[300px] items-center justify-center p-8"><EmptyState title="No check-ins yet" description="Check a member in above to see the attendance timeline appear here." /></div> : <div className="overflow-x-auto"><table className="min-w-full text-left text-sm"><thead className="bg-slate-50 text-xs uppercase text-slate-500"><tr><th className="px-4 py-3">Member</th><th className="px-4 py-3">Checked in</th></tr></thead><tbody className="divide-y divide-slate-100">{checkins.map((c) => <tr key={c.id} className="transition hover:bg-emerald-50/40"><td className="px-4 py-3 font-bold">{c.gym_members?.name || "-"}</td><td className="px-4 py-3 text-slate-500">{c.checked_in_at ? new Date(c.checked_in_at).toLocaleString() : "-"}</td></tr>)}</tbody></table></div>}</div>
+  return <div className="space-y-6 motion-card">
+    <div className="rounded-3xl border border-emerald-100 bg-gradient-to-r from-white via-emerald-50 to-blue-50 p-6">
+      <p className="text-xs font-bold uppercase tracking-[0.18em] text-emerald-600">Member registration</p>
+      <h1 className="mt-1 text-3xl font-black">Add New Member</h1>
+      <p className="mt-2 max-w-2xl text-sm text-slate-500">When someone joins the gym, register them here. Attendance and check-ins are intentionally not part of this page.</p>
     </div>
+    {status.error && <ErrorState message={status.error} />}
+    {status.success && <div className="rounded-2xl border border-emerald-100 bg-emerald-50 p-4 text-sm font-bold text-emerald-700">{status.success}</div>}
+    <div className="grid gap-6 lg:grid-cols-[560px_1fr]">
+      <form onSubmit={addMember} className="panel p-6 shadow-sm">
+        <div className="mb-6 flex items-center gap-3"><span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600"><UserPlus className="h-6 w-6" /></span><div><h2 className="text-xl font-black">Register a new member</h2><p className="text-sm text-slate-500">Create the member profile in a few seconds.</p></div></div>
+        <label className="mb-2 block text-sm font-bold text-slate-700">Full name</label>
+        <input className="field" placeholder="Enter full name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
+        <label className="mb-2 mt-5 block text-sm font-bold text-slate-700">Gender</label>
+        <div className="grid grid-cols-2 gap-3"><button type="button" onClick={() => setForm({ ...form, gender: "male" })} className={`rounded-2xl border p-4 text-left transition ${form.gender === "male" ? "border-blue-400 bg-blue-50 ring-2 ring-blue-100" : "border-slate-200 bg-white hover:border-blue-200"}`}><UserRound className="mb-2 h-5 w-5 text-blue-600" /><span className="font-black">Male</span></button><button type="button" onClick={() => setForm({ ...form, gender: "female" })} className={`rounded-2xl border p-4 text-left transition ${form.gender === "female" ? "border-pink-400 bg-pink-50 ring-2 ring-pink-100" : "border-slate-200 bg-white hover:border-pink-200"}`}><UserRound className="mb-2 h-5 w-5 text-pink-600" /><span className="font-black">Female</span></button></div>
+        <label className="mb-2 mt-5 block text-sm font-bold text-slate-700">Phone number</label>
+        <div className="relative"><Phone className="absolute left-3 top-3 h-5 w-5 text-slate-400" /><input className="field pl-10" type="tel" placeholder="Enter phone number" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} required /></div>
+        <button className="btn-primary mt-6 w-full justify-center py-3" disabled={status.saving}>{status.saving ? "Adding member…" : "Add New Member"}</button>
+      </form>
+      <div className="panel p-6"><div className="flex items-center justify-between"><div><p className="text-xs font-bold uppercase tracking-wider text-slate-400">Member directory</p><h2 className="text-xl font-black">Recently registered</h2></div><div className="rounded-xl bg-slate-50 px-3 py-2 text-sm font-black">{members.length} total</div></div>{members.length === 0 ? <div className="flex min-h-[280px] items-center justify-center"><EmptyState title="No members yet" description="Use Add New Member to register the first person." /></div> : <div className="mt-5 overflow-x-auto"><table className="min-w-full text-left text-sm"><thead className="border-b border-slate-100 text-xs uppercase text-slate-400"><tr><th className="px-3 py-3">Name</th><th className="px-3 py-3">Gender</th><th className="px-3 py-3">Phone</th></tr></thead><tbody className="divide-y divide-slate-100">{members.slice(0, 12).map((m) => <tr key={m.id}><td className="px-3 py-3 font-bold">{m.name}</td><td className="px-3 py-3">{m.gender === "female" ? "Female" : m.gender === "male" ? "Male" : "—"}</td><td className="px-3 py-3 text-slate-500">{m.phone || "—"}</td></tr>)}</tbody></table></div>}</div>
+    </div>
+    <div className="rounded-2xl border border-blue-100 bg-blue-50 p-4 text-sm text-blue-800"><span className="font-bold">Registration only:</span> attendance/check-in has been removed from this page. You can add attendance later as a separate feature without changing member registration.</div>
   </div>;
 }
