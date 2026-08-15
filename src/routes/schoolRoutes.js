@@ -8,6 +8,7 @@ const {
 } = require("../controllers/schoolController");
 const { getExams, createExam, deleteExam, getExamResults, saveExamResults, getSubjects } = require("../controllers/schoolExamController");
 const { getStudentExamHistory } = require("../controllers/studentExamHistoryController");
+const { getAttendance, saveAttendance, getAttendanceHistory } = require("../controllers/schoolAttendanceController");
 
 const router = express.Router();
 router.get("/classes", getClasses);
@@ -34,4 +35,7 @@ router.post("/exams", createExam);
 router.delete("/exams/:id", deleteExam);
 router.get("/exams/:id/results", getExamResults);
 router.post("/exams/:id/results", saveExamResults);
+router.get("/attendance", getAttendance);
+router.post("/attendance", saveAttendance);
+router.get("/attendance/history", getAttendanceHistory);
 module.exports = router;
