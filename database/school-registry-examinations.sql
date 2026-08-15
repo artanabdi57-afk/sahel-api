@@ -5,16 +5,13 @@ alter table public.school_students add column if not exists mother_name text;
 alter table public.school_students add column if not exists phone_number text;
 alter table public.school_students add column if not exists age integer;
 
--- School-wide numeric student ID. It never restarts per class.
 create unique index if not exists school_students_shop_registration_no_uidx on public.school_students(shop_id, registration_no) where registration_no is not null;
 
 create or replace function public.school_student_registration_no() returns trigger language plpgsql as $$
 declare next_no integer;
 begin
   if new.registration_no is null or btrim(new.registration_no) = '' then
-    select coalesce(max(registration_no::integer), 0) + 1 into next_no
-    from public.school_students
-    where shop_id = new.shop_id and registration_no ~ '^[0-9]+$';
+    select coalesce(max(registration_no::integer), 0) + 1 into next_no from public.school_students where shop_id = new.shop_id and registration_no ~ '^[0-9]+$';
     new.registration_no := next_no::text;
   end if;
   return new;
@@ -25,9 +22,7 @@ create or replace function public.set_school_student_registration_no() returns t
 declare next_no integer;
 begin
   if new.registration_no is null or btrim(new.registration_no) = '' then
-    select coalesce(max(registration_no::integer), 0) + 1 into next_no
-    from public.school_students
-    where shop_id = new.shop_id and registration_no ~ '^[0-9]+$';
+    select coalesce(max(registration_no::integer), 0) + 1 into next_no from public.school_students where shop_id = new.shop_id and registration_no ~ '^[0-9]+$';
     new.registration_no := next_no::text;
   end if;
   return new;
@@ -38,10 +33,7 @@ drop trigger if exists school_students_registration_no on public.school_students
 drop trigger if exists school_students_registration_no_trigger on public.school_students;
 create trigger school_students_registration_no before insert on public.school_students for each row execute function public.school_student_registration_no();
 
--- Normalize any IDs created by an older version of Sahel.
-update public.school_students
-set registration_no = regexp_replace(registration_no, '^STU-', '', 'i')
-where registration_no ~* '^STU-[0-9]+$';
+update public.school_students set registration_no = regexp_replace(registration_no, '^STU-', '', 'i') where registration_no ~* '^STU-[0-9]+$';
 
 alter table public.school_classes add column if not exists level text not null default 'primary';
 alter table public.school_classes drop constraint if exists school_classes_level_check;
@@ -49,6 +41,19 @@ alter table public.school_classes add constraint school_classes_level_check chec
 
 alter table public.school_exams add column if not exists term text;
 alter table public.school_exams add column if not exists academic_year text;
+-- Four separate exam maximums. Defaults preserve the existing 20+20+20+20 setup.
+alter table public.school_exams add column if not exists assessment_one_max numeric not null default 20;
+alter table public.school_exams add column if not exists assessment_two_max numeric not null default 20;
+alter table public.school_exams add column if not exists assessment_three_max numeric not null default 20;
+alter table public.school_exams add column if not exists assessment_four_max numeric not null default 20;
+alter table public.school_exams drop constraint if exists school_exams_assessment_max_check;
+alter table public.school_exams add constraint school_exams_assessment_max_check check (
+  assessment_one_max >= 1 and assessment_one_max <= 100 and
+  assessment_two_max >= 1 and assessment_two_max <= 100 and
+  assessment_three_max >= 1 and assessment_three_max <= 100 and
+  assessment_four_max >= 1 and assessment_four_max <= 100
+);
+
 alter table public.school_exam_results add column if not exists subject text;
 update public.school_exam_results set subject='General' where subject is null;
 alter table public.school_exam_results alter column subject set default 'General';
