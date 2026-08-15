@@ -1,26 +1,27 @@
-// This service worker exists only to unregister any previously-installed
-// service worker and clear stale caches that were causing a blank page.
-// Once all clients have picked this up, this file (and the <link>/registration
-// referencing it, if any) can be safely deleted.
+const CACHE = "sahel-shell-v2";
+const APP_SHELL = ["/", "/welcome", "/site.webmanifest"];
 
-self.addEventListener('install', () => {
-  self.skipWaiting();
+self.addEventListener("install", (event) => {
+  event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(APP_SHELL)).then(() => self.skipWaiting()));
 });
 
-self.addEventListener('activate', (event) => {
-  event.waitUntil(
-    (async () => {
-      // Delete all caches this service worker (or its predecessor) created
-      const cacheNames = await caches.keys();
-      await Promise.all(cacheNames.map((name) => caches.delete(name)));
+self.addEventListener("activate", (event) => {
+  event.waitUntil((async () => {
+    const keys = await caches.keys();
+    await Promise.all(keys.filter((key) => key !== CACHE).map((key) => caches.delete(key)));
+    await self.clients.claim();
+  })());
+});
 
-      // Unregister self so the browser stops using any service worker here
-      await self.registration.unregister();
-
-      // Force all open tabs controlled by this worker to reload with a
-      // fresh, network-only version of the page
-      const clientsList = await self.clients.matchAll({ type: 'window' });
-      clientsList.forEach((client) => client.navigate(client.url));
-    })()
+self.addEventListener("fetch", (event) => {
+  if (event.request.method !== "GET") return;
+  const url = new URL(event.request.url);
+  if (url.origin !== self.location.origin) return;
+  event.respondWith(
+    caches.match(event.request).then((cached) => cached || fetch(event.request).then((response) => {
+      const copy = response.clone();
+      caches.open(CACHE).then((cache) => cache.put(event.request, copy));
+      return response;
+    }).catch(() => caches.match("/welcome")))
   );
 });
