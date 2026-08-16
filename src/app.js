@@ -11,10 +11,11 @@ const reportRoutes   = require("./routes/reportRoutes");
 const creditRoutes   = require("./routes/creditRoutes");
 const expenseRoutes  = require("./routes/expenseRoutes");
 const adminRoutes    = require("./routes/adminRoutes");
-const shopRoutes     = require("./routes/shopRoutes");   // ← new
-const gymRoutes       = require("./routes/gymRoutes");     // ← new
-const schoolRoutes    = require("./routes/schoolRoutes");  // ← new
-const staffRoutes     = require("./routes/staffRoutes");   // ← new
+const shopRoutes     = require("./routes/shopRoutes");
+const gymRoutes      = require("./routes/gymRoutes");
+const schoolRoutes   = require("./routes/schoolRoutes");
+const hospitalRoutes = require("./routes/hospitalRoutes");
+const staffRoutes    = require("./routes/staffRoutes");
 const notFound       = require("./middleware/notFound");
 const errorHandler   = require("./middleware/errorHandler");
 const authenticate   = require("./middleware/authMiddleware");
@@ -86,7 +87,7 @@ app.use("/api/health",   healthRoutes);
 app.use("/api/admin",    adminRoutes);
 app.use("/auth",         authRoutes);
 app.use("/api/auth",     authRoutes);
-app.use("/api/shops",    shopRoutes);                        // ← new
+app.use("/api/shops",    shopRoutes);
 app.use("/products",     authenticate, productRoutes);
 app.use("/api/products", authenticate, productRoutes);
 app.use("/sales",        authenticate, salesRoutes);
@@ -103,6 +104,8 @@ app.use("/gym",          authenticate, gymRoutes);
 app.use("/api/gym",      authenticate, gymRoutes);
 app.use("/school",       authenticate, schoolRoutes);
 app.use("/api/school",   authenticate, schoolRoutes);
+app.use("/hospital",    authenticate, hospitalRoutes);
+app.use("/api/hospital", authenticate, hospitalRoutes);
 app.use("/staff",        authenticate, staffRoutes);
 app.use("/api/staff",    authenticate, staffRoutes);
 
