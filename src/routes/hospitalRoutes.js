@@ -10,10 +10,11 @@ const {
   getBills, createBill, updateBill,
   getDevices, createDevice, updateDevice,
 } = require("../controllers/hospitalController");
+const { getManagementDashboard } = require("../controllers/hospitalManagementController");
 
 const router = express.Router();
 
-router.get("/dashboard", getDashboard);
+router.get("/dashboard", getManagementDashboard);
 router.get("/patients", getPatients);
 router.post("/patients", createPatient);
 router.put("/patients/:id", updatePatient);
