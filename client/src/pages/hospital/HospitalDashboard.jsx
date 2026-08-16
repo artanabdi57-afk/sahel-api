@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Activity, AlertTriangle, CalendarDays, DollarSign, FlaskConical, Pill, Stethoscope, Users, Wallet } from "lucide-react";
 import { apiRequest, formatMoney } from "../../lib/api";
 import { getCurrentUser } from "../../lib/auth";
@@ -10,14 +10,10 @@ const isManagement = (role) => ["manager", "hospital manager", "owner", "admin",
 function Card({ label, value, icon: Icon }) { return <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><div className="flex items-start justify-between"><div><p className="text-sm font-semibold text-slate-500">{label}</p><p className="mt-2 text-2xl font-black text-slate-950">{value}</p></div><div className="rounded-xl bg-blue-50 p-3 text-blue-700"><Icon className="h-5 w-5" /></div></div></div>; }
 
 export default function HospitalDashboard() {
-  const user = getCurrentUser();
-  const role = normalizeRole(user);
-  const management = isManagement(role);
-  const [data, setData] = useState(null);
-  const [error, setError] = useState("");
+  const user = getCurrentUser(); const role = normalizeRole(user); const management = isManagement(role);
+  const [data, setData] = useState(null); const [error, setError] = useState("");
   useEffect(() => { let active = true; apiRequest("/hospital/dashboard").then((response) => active && setData(response.data || {})).catch((e) => active && setError(e.message)); return () => { active = false; }; }, []);
-  if (error) return <ErrorState message={error} />;
-  if (!data) return <LoadingState variant="dashboard" />;
+  if (error) return <ErrorState message={error} />; if (!data) return <LoadingState variant="dashboard" />;
   const doctors = data.doctors || [], appointments = data.today_appointments || [], lowStock = data.low_stock || [], labs = data.lab_requests || [];
   const myDoctor = doctors.find((doctor) => doctor.id === user?.hospital_staff_id || doctor.user_id === user?.id);
   const personalAppointments = myDoctor ? appointments.filter((item) => item.doctor_id === myDoctor.id) : appointments;
@@ -29,6 +25,6 @@ export default function HospitalDashboard() {
     return <div className="space-y-6"><header><p className="text-sm font-bold uppercase tracking-[.18em] text-blue-600">Artan Hospital</p><h1 className="text-3xl font-black text-slate-950">{title}</h1><p className="mt-1 text-slate-500">Your role-specific workspace.</p></header><div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">{cards.map(([label,value,Icon]) => <Card key={label} label={label} value={value} icon={Icon} />)}</div></div>;
   }
 
-  const inventoryValue = useMemo(() => (data.medicines || []).reduce((sum, item) => sum + Number(item.quantity || 0) * Number(item.unit_cost || 0), 0), [data.medicines]);
+  const inventoryValue = (data.medicines || []).reduce((sum, item) => sum + Number(item.quantity || 0) * Number(item.unit_cost || 0), 0);
   return <div className="space-y-6"><header><p className="text-sm font-bold uppercase tracking-[.18em] text-blue-600">Artan Hospital</p><h1 className="text-3xl font-black text-slate-950">Management Dashboard</h1><p className="mt-1 text-slate-500">Live operations, doctors, pharmacy, revenue, expenses and salaries.</p></header><div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4"><Card label="Revenue today" value={formatMoney(data.revenue_today || 0)} icon={DollarSign} /><Card label="Expenses today" value={formatMoney(data.expenses_today || 0)} icon={Wallet} /><Card label="Salaries today" value={formatMoney(data.salaries_today || 0)} icon={Wallet} /><Card label="Outstanding" value={formatMoney(data.outstanding || 0)} icon={DollarSign} /><Card label="Doctors" value={data.doctor_count || 0} icon={Stethoscope} /><Card label="Staff" value={data.active_staff_count || 0} icon={Users} /><Card label="Appointments today" value={data.appointment_count_today || 0} icon={CalendarDays} /><Card label="Pending laboratory" value={data.pending_labs || 0} icon={FlaskConical} /></div><div className="grid gap-6 lg:grid-cols-2"><section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><div className="mb-4 flex items-center justify-between"><div><h2 className="font-black">Doctors</h2><p className="text-sm text-slate-500">Today's workload by doctor.</p></div><span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-blue-700">{doctors.length} active</span></div><div className="space-y-2">{doctors.slice(0, 10).map((doctor) => { const count = appointments.filter((a) => a.doctor_id === doctor.id).length; return <div key={doctor.id} className="flex items-center justify-between rounded-xl bg-slate-50 p-3"><div><p className="font-bold text-slate-800">{doctor.full_name}</p><p className="text-xs text-slate-500">{doctor.hospital_departments?.name || "Hospital"}</p></div><p className="text-sm font-black text-slate-800">{count} appointments</p></div>; })}</div></section><section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><div className="mb-4 flex items-center justify-between"><div><h2 className="font-black">Pharmacy</h2><p className="text-sm text-slate-500">Inventory and stock health.</p></div><Pill className="h-5 w-5 text-blue-600" /></div><div className="grid grid-cols-2 gap-3"><div className="rounded-xl bg-slate-50 p-4"><p className="text-xs font-semibold text-slate-500">Inventory value</p><p className="mt-1 text-xl font-black">{formatMoney(inventoryValue)}</p></div><div className="rounded-xl bg-rose-50 p-4"><p className="text-xs font-semibold text-rose-600">Low stock</p><p className="mt-1 text-xl font-black text-rose-700">{lowStock.length}</p></div></div><div className="mt-4 space-y-2">{lowStock.slice(0, 5).map((item) => <div key={item.id} className="flex justify-between rounded-lg border border-rose-100 p-3 text-sm"><span className="font-bold">{item.name}</span><span className="font-bold text-rose-600">{item.quantity} left</span></div>)}</div></section></div></div>;
 }
