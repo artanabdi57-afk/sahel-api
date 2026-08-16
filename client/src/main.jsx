@@ -36,75 +36,32 @@ const SchoolTeachers=lazy(()=>import("./pages/school/SchoolTeachers.jsx"));
 const SchoolAttendance=lazy(()=>import("./pages/school/SchoolAttendance.jsx"));
 const SchoolFees=lazy(()=>import("./pages/school/SchoolFees.jsx"));
 const SchoolExams=lazy(()=>import("./pages/school/SchoolExams.jsx"));
+const HospitalPatients=lazy(()=>import("./pages/hospital/HospitalPatients.jsx"));
+const HospitalAppointments=lazy(()=>import("./pages/hospital/HospitalAppointments.jsx"));
+const HospitalStaff=lazy(()=>import("./pages/hospital/HospitalStaff.jsx"));
+const HospitalPharmacy=lazy(()=>import("./pages/hospital/HospitalPharmacy.jsx"));
+const HospitalLaboratory=lazy(()=>import("./pages/hospital/HospitalLaboratory.jsx"));
+const HospitalBilling=lazy(()=>import("./pages/hospital/HospitalBilling.jsx"));
+const HospitalDevices=lazy(()=>import("./pages/hospital/HospitalDevices.jsx"));
 
 function lazyPage(element,variant="route"){
   return <Suspense fallback={<LoadingState variant={variant}/>}>{element}</Suspense>;
 }
 
 const savedSettings=localStorage.getItem("sahel_settings");
-if(savedSettings){
-  const settings=JSON.parse(savedSettings);
-  document.documentElement.classList.toggle("dark",settings.theme==="dark");
-  applyLanguage(settings.language);
-}else applyLanguage("English");
-
-// Capture the browser's install event globally so it cannot be missed while
-// the landing page is lazy-loading or while the user moves between routes.
+if(savedSettings){const settings=JSON.parse(savedSettings);document.documentElement.classList.toggle("dark",settings.theme==="dark");applyLanguage(settings.language);}else applyLanguage("English");
 window.__sahelInstallPrompt = window.__sahelInstallPrompt || null;
-window.addEventListener("beforeinstallprompt",(event)=>{
-  event.preventDefault();
-  window.__sahelInstallPrompt = event;
-  window.dispatchEvent(new Event("sahel-install-available"));
-});
-window.addEventListener("appinstalled",()=>{
-  window.__sahelInstallPrompt = null;
-  window.dispatchEvent(new Event("sahel-app-installed"));
-});
+window.addEventListener("beforeinstallprompt",(event)=>{event.preventDefault();window.__sahelInstallPrompt=event;window.dispatchEvent(new Event("sahel-install-available"));});
+window.addEventListener("appinstalled",()=>{window.__sahelInstallPrompt=null;window.dispatchEvent(new Event("sahel-app-installed"));});
 
 const router=createBrowserRouter([
-  {path:"/welcome",element:lazyPage(<Landing/>)},
-  {path:"/blog",element:lazyPage(<Blog/>)},
-  {path:"/blog/:slug",element:lazyPage(<BlogPost/>)},
-  {path:"/login",element:lazyPage(<AuthPage mode="login"/>)},
-  {path:"/signup",element:lazyPage(<AuthPage mode="signup"/>)},
-  {path:"/admin",element:lazyPage(<Admin/>)},
-  {path:"/auth/callback",element:lazyPage(<AuthCallback/>)},
-  {path:"/forgot-password",element:lazyPage(<ForgotPassword/>)},
-  {path:"/staff-login",element:lazyPage(<StaffLogin/>)},
-  {path:"/reset-password",element:lazyPage(<ResetPassword/>)},
-  {path:"/",element:<ProtectedRoute/>,children:[
-    {element:<App/>,children:[
-      {index:true,element:<Navigate to="/dashboard" replace/>},
-      {path:"dashboard",element:lazyPage(<DashboardRouter/>,"dashboard")},
-      {path:"inventory",element:lazyPage(<Inventory/>)},
-      {path:"sale",element:lazyPage(<NewSale/>)},
-      {path:"credits",element:lazyPage(<Credits/>)},
-      {path:"orders",element:lazyPage(<PurchaseOrders/>)},
-      {path:"expenses",element:lazyPage(<Expenses/>)},
-      {path:"reports",element:lazyPage(<Reports/>)},
-      {path:"settings",element:lazyPage(<Settings/>)},
-      {path:"profile",element:lazyPage(<Profile/>)},
-      {path:"onboarding",element:lazyPage(<Onboarding/>)},
-      {path:"gym/members",element:lazyPage(<GymMembers/>)},
-      {path:"gym/checkins",element:lazyPage(<GymCheckins/>)},
-      {path:"gym/payments",element:lazyPage(<GymPayments/>)},
-      {path:"gym/staff",element:lazyPage(<GymStaff/>)},
-      {path:"school/classes",element:lazyPage(<SchoolClasses/>)},
-      {path:"school/students",element:lazyPage(<SchoolStudents/>)},
-      {path:"school/teachers",element:lazyPage(<SchoolTeachers/>)},
-      {path:"school/attendance",element:lazyPage(<SchoolAttendance/>)},
-      {path:"school/fees",element:lazyPage(<SchoolFees/>)},
-      {path:"school/exams",element:lazyPage(<SchoolExams/>)}
-    ]}
-  ]}
-]);
+  {path:"/welcome",element:lazyPage(<Landing/>)},{path:"/blog",element:lazyPage(<Blog/>)},{path:"/blog/:slug",element:lazyPage(<BlogPost/>)},{path:"/login",element:lazyPage(<AuthPage mode="login"/>)},{path:"/signup",element:lazyPage(<AuthPage mode="signup"/>)},{path:"/admin",element:lazyPage(<Admin/>)},{path:"/auth/callback",element:lazyPage(<AuthCallback/>)},{path:"/forgot-password",element:lazyPage(<ForgotPassword/>)},{path:"/staff-login",element:lazyPage(<StaffLogin/>)},{path:"/reset-password",element:lazyPage(<ResetPassword/>)},
+  {path:"/",element:<ProtectedRoute/>,children:[{element:<App/>,children:[
+    {index:true,element:<Navigate to="/dashboard" replace/>},{path:"dashboard",element:lazyPage(<DashboardRouter/>,"dashboard")},{path:"inventory",element:lazyPage(<Inventory/>)},{path:"sale",element:lazyPage(<NewSale/>)},{path:"credits",element:lazyPage(<Credits/>)},{path:"orders",element:lazyPage(<PurchaseOrders/>)},{path:"expenses",element:lazyPage(<Expenses/>)},{path:"reports",element:lazyPage(<Reports/>)},{path:"settings",element:lazyPage(<Settings/>)},{path:"profile",element:lazyPage(<Profile/>)},{path:"onboarding",element:lazyPage(<Onboarding/>)},
+    {path:"gym/members",element:lazyPage(<GymMembers/>)},{path:"gym/checkins",element:lazyPage(<GymCheckins/>)},{path:"gym/payments",element:lazyPage(<GymPayments/>)},{path:"gym/staff",element:lazyPage(<GymStaff/>)},
+    {path:"school/classes",element:lazyPage(<SchoolClasses/>)},{path:"school/students",element:lazyPage(<SchoolStudents/>)},{path:"school/teachers",element:lazyPage(<SchoolTeachers/>)},{path:"school/attendance",element:lazyPage(<SchoolAttendance/>)},{path:"school/fees",element:lazyPage(<SchoolFees/>)},{path:"school/exams",element:lazyPage(<SchoolExams/>)},
+    {path:"hospital/patients",element:lazyPage(<HospitalPatients/>)},{path:"hospital/appointments",element:lazyPage(<HospitalAppointments/>)},{path:"hospital/staff",element:lazyPage(<HospitalStaff/>)},{path:"hospital/pharmacy",element:lazyPage(<HospitalPharmacy/>)},{path:"hospital/laboratory",element:lazyPage(<HospitalLaboratory/>)},{path:"hospital/billing",element:lazyPage(<HospitalBilling/>)},{path:"hospital/devices",element:lazyPage(<HospitalDevices/>)}
+  ]}]}]);
 
 ReactDOM.createRoot(document.getElementById("root")).render(<React.StrictMode><RouterProvider router={router}/></React.StrictMode>);
-
-if("serviceWorker" in navigator && import.meta.env.PROD){
-  window.addEventListener("load",()=>{
-    navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js`,{scope:"/"}).catch((error)=>{
-      console.warn("Sahel service worker registration failed",error);
-    });
-  });
-}
+if("serviceWorker" in navigator && import.meta.env.PROD){window.addEventListener("load",()=>{navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js`,{scope:"/"}).catch((error)=>console.warn("Sahel service worker registration failed",error));});}
