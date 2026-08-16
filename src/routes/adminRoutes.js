@@ -1,18 +1,21 @@
 const express = require("express");
 const {
-  deleteClientShop,
+  adminLogin,
   getAdminOverview,
   resetClientPassword,
-  setShopStatus
+  setShopStatus,
+  updateClient
 } = require("../controllers/adminController");
-const verifyOwner = require("../middleware/ownerMiddleware");
+const adminAuth = require("../middleware/adminAuthMiddleware");
 
 const router = express.Router();
 
-router.use(verifyOwner);
+// Platform-admin authentication is intentionally separate from customer accounts.
+router.post("/session", adminLogin);
+router.use(adminAuth);
 router.get("/overview", getAdminOverview);
 router.put("/shops/:id/status", setShopStatus);
 router.put("/shops/:id/password", resetClientPassword);
-router.delete("/shops/:id", deleteClientShop);
+router.put("/shops/:id", updateClient);
 
 module.exports = router;
