@@ -36,6 +36,7 @@ async function createHospitalStaff(req, res, next) {
       if (staffError) throw staffError; if (userError) throw userError;
       if (loginStaff) { const { error } = await supabase.from("staff").update({ role: String(role).trim() }).eq("id", loginStaff.id).eq("shop_id", req.user.shop_id); if (error) throw error; }
       resolvedUserId = userRow?.id || resolvedUserId;
+      if (resolvedUserId) { const { error } = await supabase.from("users").update({ user_role: String(role).trim() }).eq("id", resolvedUserId).eq("staff_of_shop_id", req.user.shop_id); if (error) throw error; }
     }
     if (!resolvedUserId) return res.status(400).json({ message: "The login account was created, but its user identity could not be linked to the hospital profile." });
     const { data, error } = await supabase.from("hospital_staff").insert({ shop_id: req.user.shop_id, user_id: resolvedUserId, employee_id: employee_id || null, full_name: String(full_name).trim(), role: String(role).trim(), department_id: department_id || null, phone: phone || null, license_number: license_number || null, active: Boolean(active) }).select("*, hospital_departments(id,name)").single();
