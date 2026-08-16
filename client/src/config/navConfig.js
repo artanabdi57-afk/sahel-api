@@ -2,6 +2,7 @@ import {
   LayoutDashboard, Boxes, PlusCircle, CreditCard, ClipboardList,
   Receipt, BarChart3, Settings, Users, UserCheck, Wallet, Dumbbell,
   BookOpen, GraduationCap, ClipboardCheck, CalendarCheck2,
+  Stethoscope, CalendarDays, Pill, FlaskConical, UserRoundCog, Fingerprint,
 } from "lucide-react";
 
 export const NAV_BY_TYPE = {
@@ -31,6 +32,17 @@ export const NAV_BY_TYPE = {
     { label: "Attendance", path: "/school/attendance", icon: CalendarCheck2 },
     { label: "Fees", path: "/school/fees", icon: Wallet },
     { label: "Exams", path: "/school/exams", icon: ClipboardCheck },
+    { label: "Settings", path: "/settings", icon: Settings },
+  ],
+  hospital: [
+    { label: "Dashboard", path: "/dashboard", icon: LayoutDashboard },
+    { label: "Patients", path: "/hospital/patients", icon: Users },
+    { label: "Appointments", path: "/hospital/appointments", icon: CalendarDays },
+    { label: "Doctors & Staff", path: "/hospital/staff", icon: UserRoundCog },
+    { label: "Pharmacy", path: "/hospital/pharmacy", icon: Pill },
+    { label: "Laboratory", path: "/hospital/laboratory", icon: FlaskConical },
+    { label: "Billing", path: "/hospital/billing", icon: CreditCard },
+    { label: "Attendance Devices", path: "/hospital/devices", icon: Fingerprint },
     { label: "Settings", path: "/settings", icon: Settings },
   ],
 };
