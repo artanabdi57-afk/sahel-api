@@ -1,25 +1,32 @@
-import React, { Suspense, lazy } from "react";
-import { getCurrentShop } from "../lib/auth";
+import React, { Suspense, lazy, useEffect, useState } from "react";
+import { Navigate } from "react-router-dom";
+import { getCurrentShop, getCurrentUser, getHomePath } from "../lib/auth";
 import { LoadingState } from "./AsyncState";
 
-const ShopDashboard   = lazy(() => import("../pages/Dashboard.jsx"));
-const GymDashboard    = lazy(() => import("../pages/gym/GymDashboard.jsx"));
+const ShopDashboard = lazy(() => import("../pages/Dashboard.jsx"));
+const GymDashboard = lazy(() => import("../pages/gym/GymDashboard.jsx"));
 const SchoolDashboard = lazy(() => import("../pages/school/SchoolDashboard.jsx"));
+const HospitalDashboard = lazy(() => import("../pages/hospital/HospitalDashboard.jsx"));
 
-// /dashboard is one route for every account, but what renders there depends
-// on the shop's locked business_type — this is the single place that
-// decision is made, so no other page needs to know about it.
 export default function DashboardRouter() {
-  const shop = getCurrentShop();
+  const [session, setSession] = useState(() => ({ shop: getCurrentShop(), user: getCurrentUser() }));
 
-  const Dashboard =
-    shop?.business_type === "gym"    ? GymDashboard :
-    shop?.business_type === "school" ? SchoolDashboard :
-    ShopDashboard;
+  useEffect(() => {
+    const refresh = () => setSession({ shop: getCurrentShop(), user: getCurrentUser() });
+    window.addEventListener("sahel-session-changed", refresh);
+    return () => window.removeEventListener("sahel-session-changed", refresh);
+  }, []);
 
-  return (
-    <Suspense fallback={<LoadingState variant="dashboard" />}>
-      <Dashboard />
-    </Suspense>
-  );
+  const { shop, user } = session;
+  if (!shop) return <LoadingState variant="dashboard" />;
+
+  // /dashboard is the generic entry route. Hospital workspaces must never render
+  // the shop dashboard, even for one frame after login.
+  if (shop.business_type === "hospital") {
+    const homePath = getHomePath(user, shop);
+    return <Navigate to={homePath} replace />;
+  }
+
+  const Dashboard = shop.business_type === "gym" ? GymDashboard : shop.business_type === "school" ? SchoolDashboard : ShopDashboard;
+  return <Suspense fallback={<LoadingState variant="dashboard" />}><Dashboard /></Suspense>;
 }
