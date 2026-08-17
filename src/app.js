@@ -21,6 +21,7 @@ const errorHandler   = require("./middleware/errorHandler");
 const authenticate   = require("./middleware/authMiddleware");
 
 const app = express();
+const HOSPITAL_SYSTEM_ENABLED = process.env.HOSPITAL_SYSTEM_ENABLED === "true";
 
 const allowedOrigins = [
   'http://localhost:5173',
@@ -104,11 +105,16 @@ app.use("/gym",          authenticate, gymRoutes);
 app.use("/api/gym",      authenticate, gymRoutes);
 app.use("/school",       authenticate, schoolRoutes);
 app.use("/api/school",   authenticate, schoolRoutes);
-app.use("/hospital",    authenticate, hospitalRoutes);
-app.use("/api/hospital", authenticate, hospitalRoutes);
-app.use("/staff",        authenticate, staffRoutes);
-app.use("/api/staff",    authenticate, staffRoutes);
 
+// Hospital remains in the repository for future rebuilding, but its API is
+// disabled by default. Set HOSPITAL_SYSTEM_ENABLED=true only when the rebuilt
+// module is ready to be brought back online.
+if (HOSPITAL_SYSTEM_ENABLED) {
+  app.use("/hospital",    authenticate, hospitalRoutes);
+  app.use("/api/hospital", authenticate, hospitalRoutes);
+}
+
+app.use("/staff",        authenticate, staffRoutes);
 app.use(notFound);
 app.use(errorHandler);
 
