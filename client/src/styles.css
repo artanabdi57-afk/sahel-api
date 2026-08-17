@@ -25,6 +25,33 @@ html.dark .text-slate-950, html.dark .text-slate-900, html.dark .text-slate-800,
 html.dark .text-slate-600, html.dark .text-slate-500, html.dark .text-slate-400 { color: #94a3b8; }
 html.dark .border-slate-200, html.dark .border-slate-100 { border-color: #334155; }
 
+.school-mobile-shell { overflow-x: hidden; }
+.school-mobile-shell .school-dashboard-frame { width: 100%; overflow-x: hidden; }
+
+@media (max-width: 639px) {
+  .school-mobile-shell .school-dashboard-frame { padding-left: 10px; padding-right: 10px; padding-top: 12px; }
+  .school-mobile-shell .motion-card { width: 100%; gap: 12px; }
+  .school-mobile-shell .motion-card > div:first-child { border-radius: 22px; padding: 18px; }
+  .school-mobile-shell .motion-card > div:first-child h1 { font-size: 1.75rem; line-height: 1.1; }
+  .school-mobile-shell .motion-card > div:first-child p { font-size: .82rem; }
+
+  .school-mobile-shell .motion-card > .grid.gap-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .school-mobile-shell .motion-card > .grid.gap-4 > div { min-width: 0; border-radius: 16px; padding: 12px; }
+  .school-mobile-shell .motion-card > .grid.gap-4 > div > div:first-child { width: 34px; height: 34px; margin-bottom: 8px; border-radius: 10px; }
+  .school-mobile-shell .motion-card > .grid.gap-4 > div > div:first-child svg { width: 16px; height: 16px; }
+  .school-mobile-shell .motion-card > .grid.gap-4 > div > p:nth-child(2) { font-size: .72rem; line-height: 1.15; }
+  .school-mobile-shell .motion-card > .grid.gap-4 > div > p:nth-child(3) { margin-top: 2px; font-size: 1.35rem; line-height: 1.15; }
+  .school-mobile-shell .motion-card > .grid.gap-4 > div > p:nth-child(4) { margin-top: 3px; font-size: .62rem; line-height: 1.15; }
+  .school-mobile-shell .motion-card > .grid.gap-4 > div > div:last-child { width: 54px; height: 54px; right: -18px; top: -18px; }
+
+  .school-mobile-shell .motion-card > .grid.gap-5 > section { border-radius: 16px; padding: 14px; }
+  .school-mobile-shell .motion-card > .grid.gap-5 > section > div:first-child { margin-bottom: 8px; }
+  .school-mobile-shell .motion-card > .grid.gap-5 > section .h-72 { height: 210px; }
+  .school-mobile-shell .motion-card > .grid.gap-5 > section .h-64 { height: 190px; }
+  .school-mobile-shell .motion-card > .grid.gap-5 { gap: 10px; }
+  .school-mobile-shell .motion-card section { min-width: 0; overflow: hidden; }
+}
+
 @keyframes sahel-fade-up { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes sahel-pop { from { opacity: 0; transform: translateY(14px) scale(.97); } to { opacity: 1; transform: translateY(0) scale(1); } }
 @keyframes sahel-bar-grow { from { height: 0; opacity: .35; } to { height: var(--bar-height); opacity: 1; } }
