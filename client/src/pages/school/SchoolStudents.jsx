@@ -11,13 +11,13 @@ const guardianOptions = [
 ];
 
 const studentFields = (classes) => [
-  { key: "name", label: "Student full name", required: true },
-  { key: "class_id", label: "Class", type: "select", options: classes.map((c) => ({ value: c.id, label: `${c.name} · ${c.level === "secondary" ? "Dugsi Sare" : "Primary"}` })) },
-  { key: "guardian_type", label: "Guardian type", type: "select", required: true, options: guardianOptions },
-  { key: "guardian_name", label: "Guardian full name", required: true },
-  { key: "phone_number", label: "Guardian phone number", required: true },
+  { key: "name", label: "Student full name", aliases: ["student name", "full name", "name"], required: true },
+  { key: "class_id", label: "Class", aliases: ["class", "grade", "section"], type: "select", options: classes.map((c) => ({ value: c.id, label: `${c.name} · ${c.level === "secondary" ? "Dugsi Sare" : "Primary"}` })) },
+  { key: "guardian_type", label: "Guardian type", aliases: ["guardian", "guardian type"], type: "select", required: true, options: guardianOptions },
+  { key: "guardian_name", label: "Guardian full name", aliases: ["guardian name", "parent name", "father name", "mother name"], required: true },
+  { key: "phone_number", label: "Guardian phone number", aliases: ["phone", "phone number", "guardian phone", "parent phone"], required: true },
   { key: "age", label: "Age", type: "number" },
-  { key: "monthly_fee", label: "Monthly fee", type: "number" },
+  { key: "monthly_fee", label: "Monthly fee", aliases: ["fee", "monthly fee", "school fee"], type: "number" },
 ];
 
 const transformStudent = (form) => ({
@@ -39,6 +39,7 @@ const guardianForRow = (row) => {
 
 export default function SchoolStudents() {
   const [classes, setClasses] = useState([]);
+  const [importClassId, setImportClassId] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -51,6 +52,20 @@ export default function SchoolStudents() {
 
   if (loading) return <LoadingState />;
   if (error) return <ErrorState message={error} />;
+
+  const selectedClass = classes.find((c) => c.id === importClassId);
+  const bulkHeaderContent = (
+    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div>
+        <p className="font-black text-slate-900">Default class for this import</p>
+        <p className="text-sm text-slate-500">If the Excel file does not contain a Class column, every imported student will be placed in this class. A Class value in the file takes priority.</p>
+      </div>
+      <select className="field max-w-sm" value={importClassId} onChange={(e) => setImportClassId(e.target.value)}>
+        <option value="">Leave class unassigned</option>
+        {classes.map((c) => <option key={c.id} value={c.id}>{c.name} · {c.level === "secondary" ? "Dugsi Sare" : "Primary"}</option>)}
+      </select>
+    </div>
+  );
 
   return (
     <div className="school-students-official">
@@ -67,8 +82,10 @@ export default function SchoolStudents() {
         title="Register Student"
         entityLabel="students"
         transformSubmit={transformStudent}
+        bulkDefaults={{ class_id: importClassId || undefined }}
+        bulkHeaderContent={bulkHeaderContent}
         emptyTitle="No students registered"
-        emptyDescription="Register students individually, add many at once, or import your existing CSV list. Sahel assigns one official school ID across the entire school — IDs never restart for another class."
+        emptyDescription="Register students individually, add many at once, or import an Excel/CSV file. Sahel organizes the rows, maps common column names, lets you review them, and places them into the class you designate."
         fields={studentFields(classes)}
         columns={[
           { key: "registration_no", label: "School ID", render: (r) => <span className="inline-flex min-w-12 items-center justify-center rounded-xl bg-orange-50 px-3 py-1.5 text-sm font-black text-orange-700 ring-1 ring-orange-100">{r.registration_no || "—"}</span> },
@@ -82,7 +99,7 @@ export default function SchoolStudents() {
       />
       <div className="mt-4 flex items-center gap-3 rounded-2xl border border-orange-100 bg-gradient-to-r from-orange-50 to-white p-4 text-sm text-slate-600 shadow-sm">
         <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-orange-500 text-white shadow-lg shadow-orange-200"><ShieldCheck className="h-5 w-5" /></span>
-        <div><p className="font-black text-slate-900">Official school registry</p><p>Each student receives one school-wide ID. The ID follows the student even when they move between classes.</p></div>
+        <div><p className="font-black text-slate-900">Official school registry</p><p>Each student receives one school-wide ID. The ID follows the student even when they move between classes.</p>{selectedClass ? <p className="mt-1 text-xs font-bold text-orange-600">Current import default: {selectedClass.name}</p> : null}</div>
       </div>
     </div>
   );
