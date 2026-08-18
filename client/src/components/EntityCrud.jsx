@@ -1,10 +1,20 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Download, FileUp, Plus, Trash2, Upload, X } from "lucide-react";
+import * as XLSX from "xlsx";
 import { apiRequest } from "../lib/api";
 import { EmptyState, ErrorState, LoadingState } from "./AsyncState";
 
 function blankRow(fields) {
   return Object.fromEntries(fields.map((f) => [f.key, f.default ?? ""]));
+}
+
+function normalizeHeader(value) {
+  return String(value ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(/[\u2018\u2019]/g, "'")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
 }
 
 function escapeCsv(value) {
@@ -26,17 +36,54 @@ function parseCsv(text) {
     if ((ch === "\n" || ch === "\r") && !quoted) {
       if (ch === "\r" && next === "\n") i += 1;
       row.push(cell); cell = "";
-      if (row.some((v) => v.trim() !== "")) rows.push(row);
+      if (row.some((v) => String(v).trim() !== "")) rows.push(row);
       row = [];
       continue;
     }
     cell += ch;
   }
   row.push(cell);
-  if (row.some((v) => v.trim() !== "")) rows.push(row);
+  if (row.some((v) => String(v).trim() !== "")) rows.push(row);
   if (!rows.length) return [];
-  const headers = rows[0].map((h) => h.trim());
+  const headers = rows[0].map((h) => String(h).trim());
   return rows.slice(1).map((values) => Object.fromEntries(headers.map((h, i) => [h, values[i] ?? ""])));
+}
+
+function parseSpreadsheet(file) {
+  return file.arrayBuffer().then((buffer) => {
+    const workbook = XLSX.read(buffer, { type: "array", cellDates: true });
+    const sheet = workbook.Sheets[workbook.SheetNames[0]];
+    if (!sheet) return [];
+    return XLSX.utils.sheet_to_json(sheet, { defval: "", raw: false });
+  });
+}
+
+function mapImportedRows(imported, fields) {
+  const fieldByHeader = new Map();
+  fields.forEach((field) => {
+    fieldByHeader.set(normalizeHeader(field.key), field);
+    fieldByHeader.set(normalizeHeader(field.label), field);
+    (field.aliases || []).forEach((alias) => fieldByHeader.set(normalizeHeader(alias), field));
+    (field.options || []).forEach((option) => fieldByHeader.set(normalizeHeader(option.label), field));
+  });
+
+  return imported.map((source) => {
+    const clean = blankRow(fields);
+    Object.entries(source).forEach(([header, rawValue]) => {
+      const field = fieldByHeader.get(normalizeHeader(header));
+      if (!field) return;
+      let value = rawValue;
+      if (field.type === "select") {
+        const normalizedValue = normalizeHeader(value);
+        const option = (field.options || []).find(
+          (item) => normalizeHeader(item.value) === normalizedValue || normalizeHeader(item.label) === normalizedValue
+        );
+        value = option ? option.value : value;
+      }
+      clean[field.key] = value;
+    });
+    return clean;
+  });
 }
 
 function downloadCsv(filename, rows, fields) {
@@ -52,6 +99,15 @@ function downloadCsv(filename, rows, fields) {
   URL.revokeObjectURL(url);
 }
 
+function downloadExcel(filename, rows, fields) {
+  const output = rows.length ? rows : [Object.fromEntries(fields.map((field) => [field.label, ""]))];
+  const data = output.map((row) => Object.fromEntries(fields.map((field) => [field.label, row[field.key] ?? ""])));
+  const workbook = XLSX.utils.book_new();
+  const worksheet = XLSX.utils.json_to_sheet(data);
+  XLSX.utils.book_append_sheet(workbook, worksheet, "Students");
+  XLSX.writeFile(workbook, filename);
+}
+
 export default function EntityCrud({
   apiPath,
   title,
@@ -63,6 +119,8 @@ export default function EntityCrud({
   transformSubmit,
   extraColumnActions,
   entityLabel = "records",
+  bulkDefaults = {},
+  bulkHeaderContent = null,
 }) {
   const [rows, setRows] = useState([]);
   const [form, setForm] = useState(() => blankRow(fields));
@@ -107,7 +165,7 @@ export default function EntityCrud({
   }
 
   function addBulkRow() {
-    setBulkRows((current) => [...current, blankRow(fields)]);
+    setBulkRows((current) => [...current, { ...blankRow(fields), ...bulkDefaults }]);
   }
 
   function removeBulkRow(index) {
@@ -115,7 +173,9 @@ export default function EntityCrud({
   }
 
   async function saveBulk(records) {
-    const usable = records.filter((row) => Object.values(row).some((value) => String(value ?? "").trim() !== ""));
+    const usable = records
+      .map((row) => ({ ...bulkDefaults, ...row }))
+      .filter((row) => Object.values(row).some((value) => String(value ?? "").trim() !== ""));
     if (!usable.length) {
       setStatus((s) => ({ ...s, error: `Add at least one ${entityLabel.slice(0, -1) || "record"}.` }));
       return;
@@ -137,7 +197,7 @@ export default function EntityCrud({
     }
     setBulkSaving(false);
     setBulkOpen(false);
-    setBulkRows(Array.from({ length: 3 }, () => blankRow(fields)));
+    setBulkRows(Array.from({ length: 3 }, () => ({ ...blankRow(fields), ...bulkDefaults })));
     setStatus((s) => ({
       ...s,
       error: failed ? `${failed} ${entityLabel} could not be saved. ${errors[0] || "Please check the imported data."}` : "",
@@ -152,20 +212,15 @@ export default function EntityCrud({
     if (!file) return;
     setImporting(true);
     try {
-      const text = await file.text();
-      const imported = parseCsv(text);
-      if (!imported.length) throw new Error("The CSV file is empty or has no data rows.");
-      const allowed = new Set(fields.map((f) => f.key));
-      const normalized = imported.map((row) => {
-        const clean = blankRow(fields);
-        fields.forEach((f) => { if (allowed.has(f.key) && row[f.key] !== undefined) clean[f.key] = row[f.key]; });
-        return clean;
-      });
+      const extension = file.name.split(".").pop()?.toLowerCase();
+      const imported = extension === "csv" ? parseCsv(await file.text()) : await parseSpreadsheet(file);
+      if (!imported.length) throw new Error("The file is empty or has no data rows.");
+      const normalized = mapImportedRows(imported, fields);
       setBulkRows(normalized);
       setBulkOpen(true);
-      setStatus((s) => ({ ...s, error: "", success: `${normalized.length} rows loaded from ${file.name}. Review them, then save all.` }));
+      setStatus((s) => ({ ...s, error: "", success: `${normalized.length} rows loaded from ${file.name}. Review the organized data, choose a class if needed, then save all.` }));
     } catch (error) {
-      setStatus((s) => ({ ...s, error: error.message }));
+      setStatus((s) => ({ ...s, error: `Could not read ${file.name}. ${error.message}` }));
     } finally { setImporting(false); }
   }
 
@@ -194,9 +249,12 @@ export default function EntityCrud({
               <Download className="h-4 w-4" /> Export CSV
             </button>
             <button type="button" className="btn-secondary" onClick={() => fileRef.current?.click()} disabled={importing}>
-              <FileUp className="h-4 w-4" /> {importing ? "Reading…" : "Import CSV"}
+              <FileUp className="h-4 w-4" /> {importing ? "Reading…" : "Import Excel / CSV"}
             </button>
-            <input ref={fileRef} type="file" accept=".csv,text/csv" className="hidden" onChange={handleImport} />
+            <button type="button" className="btn-secondary" onClick={() => downloadExcel(`${entityLabel.replace(/\s+/g, "-")}-template.xlsx`, [], fields)} disabled={importing}>
+              <Download className="h-4 w-4" /> Excel template
+            </button>
+            <input ref={fileRef} type="file" accept=".csv,.xlsx,.xls,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" className="hidden" onChange={handleImport} />
             <button type="button" className="btn-primary" onClick={() => setBulkOpen(true)}>
               <Upload className="h-4 w-4" /> Add multiple
             </button>
@@ -234,9 +292,10 @@ export default function EntityCrud({
 
       {bulkOpen && <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-sm" onMouseDown={(e) => e.target === e.currentTarget && !bulkSaving && setBulkOpen(false)}>
         <div className="motion-pop max-h-[90vh] w-full max-w-6xl overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl">
-          <div className="flex items-center justify-between border-b border-slate-100 p-5"><div><p className="text-xs font-bold uppercase tracking-wider text-blue-600">Bulk registration</p><h3 className="text-xl font-black text-slate-950">Add multiple {entityLabel}</h3><p className="mt-1 text-sm text-slate-500">Fill several rows, or import a CSV file using the field names as column headers.</p></div><button className="rounded-full p-2 text-slate-500 hover:bg-slate-100" onClick={() => !bulkSaving && setBulkOpen(false)}><X className="h-5 w-5" /></button></div>
+          <div className="flex items-center justify-between border-b border-slate-100 p-5"><div><p className="text-xs font-bold uppercase tracking-wider text-blue-600">Bulk registration</p><h3 className="text-xl font-black text-slate-950">Import and organize {entityLabel}</h3><p className="mt-1 text-sm text-slate-500">Upload Excel/CSV, review the organized rows, assign classes, then save them all.</p></div><button className="rounded-full p-2 text-slate-500 hover:bg-slate-100" onClick={() => !bulkSaving && setBulkOpen(false)}><X className="h-5 w-5" /></button></div>
+          {bulkHeaderContent ? <div className="border-b border-slate-100 bg-blue-50/60 p-5">{bulkHeaderContent}</div> : null}
           <div className="max-h-[58vh] overflow-auto p-5"><div className="min-w-[900px]"><div className="grid gap-3" style={{ gridTemplateColumns: `repeat(${Math.min(fields.length, 4)}, minmax(180px, 1fr)) 48px` }}>{bulkRows.map((row, index) => <React.Fragment key={index}>{fields.map((f) => f.type === "select" ? <select key={f.key} className="field" value={row[f.key]} onChange={(e) => updateBulkRow(index, f.key, e.target.value)}><option value="">{f.label}</option>{f.options.map((opt) => <option key={opt.value} value={opt.value}>{opt.label}</option>)}</select> : <input key={f.key} className="field" type={f.type || "text"} step={f.type === "number" ? "0.01" : undefined} min={f.type === "number" ? "0" : undefined} placeholder={f.label} value={row[f.key]} onChange={(e) => updateBulkRow(index, f.key, e.target.value)} />)}<button type="button" className="inline-flex h-11 w-11 items-center justify-center rounded-lg border border-red-100 text-red-500 hover:bg-red-50" onClick={() => removeBulkRow(index)}><X className="h-4 w-4" /></button></React.Fragment>)}</div></div></div>
-          <div className="flex flex-col gap-3 border-t border-slate-100 bg-slate-50/70 p-5 sm:flex-row sm:items-center sm:justify-between"><div className="flex flex-wrap gap-2"><button type="button" className="btn-secondary" onClick={addBulkRow} disabled={bulkSaving}><Plus className="h-4 w-4" /> Add row</button><button type="button" className="btn-secondary" onClick={() => fileRef.current?.click()} disabled={bulkSaving}><FileUp className="h-4 w-4" /> Import CSV</button><button type="button" className="btn-secondary" onClick={() => downloadCsv(`${entityLabel.replace(/\s+/g, "-")}-template.csv`, [], fields)} disabled={bulkSaving}><Download className="h-4 w-4" /> Download template</button></div><button type="button" className="btn-primary sm:min-w-48" onClick={() => saveBulk(bulkRows)} disabled={bulkSaving}>{bulkSaving ? `Saving ${bulkProgress.done}/${bulkProgress.total}…` : `Save all ${bulkRows.filter((r) => Object.values(r).some((v) => String(v).trim())).length} rows`}</button></div>
+          <div className="flex flex-col gap-3 border-t border-slate-100 bg-slate-50/70 p-5 sm:flex-row sm:items-center sm:justify-between"><div className="flex flex-wrap gap-2"><button type="button" className="btn-secondary" onClick={addBulkRow} disabled={bulkSaving}><Plus className="h-4 w-4" /> Add row</button><button type="button" className="btn-secondary" onClick={() => fileRef.current?.click()} disabled={bulkSaving}><FileUp className="h-4 w-4" /> Import Excel / CSV</button><button type="button" className="btn-secondary" onClick={() => downloadExcel(`${entityLabel.replace(/\s+/g, "-")}-template.xlsx`, [], fields)} disabled={bulkSaving}><Download className="h-4 w-4" /> Excel template</button></div><button type="button" className="btn-primary sm:min-w-48" onClick={() => saveBulk(bulkRows)} disabled={bulkSaving}>{bulkSaving ? `Saving ${bulkProgress.done}/${bulkProgress.total}…` : `Save all ${bulkRows.filter((r) => Object.values({ ...bulkDefaults, ...r }).some((v) => String(v).trim())).length} rows`}</button></div>
         </div>
       </div>}
     </div>
