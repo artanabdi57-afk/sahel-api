@@ -13,21 +13,21 @@ const guardianOptions = [
 const studentFields = (classes, defaultClassId = "") => [
   { key: "name", label: "Student full name", aliases: ["student name", "full name", "name"], required: true },
   { key: "class_id", label: "Class", aliases: ["class", "grade", "section"], default: defaultClassId, type: "select", options: classes.map((c) => ({ value: c.id, label: c.name })) },
-  { key: "guardian_type", label: "Guardian type", aliases: ["guardian", "guardian type"], type: "select", required: true, options: guardianOptions },
+  { key: "guardian_type", label: "Guardian type", aliases: ["guardian", "guardian type", "parent type"], type: "select", required: true, options: guardianOptions },
   { key: "guardian_name", label: "Guardian full name", aliases: ["guardian name", "parent name", "father name", "mother name"], required: true },
-  { key: "phone_number", label: "Guardian phone number", aliases: ["phone", "phone number", "guardian phone", "parent phone"], required: true },
+  { key: "phone_number", label: "Guardian phone number", aliases: ["phone", "phone number", "guardian phone", "parent phone", "contact"], required: true },
   { key: "age", label: "Age", type: "number" },
   { key: "monthly_fee", label: "Monthly fee", aliases: ["fee", "monthly fee", "school fee"], type: "number" },
 ];
 
 const transformStudent = (form) => ({
-  name: form.name,
+  name: String(form.name ?? "").trim(),
   class_id: form.class_id || null,
-  guardian_type: form.guardian_type,
-  guardian_name: form.guardian_name,
-  phone_number: form.phone_number,
-  age: form.age === "" ? null : Number(form.age),
-  monthly_fee: form.monthly_fee === "" ? 0 : Number(form.monthly_fee),
+  guardian_type: String(form.guardian_type ?? "").trim().toLowerCase(),
+  guardian_name: String(form.guardian_name ?? "").trim(),
+  phone_number: String(form.phone_number ?? "").trim(),
+  age: form.age === "" || form.age === null || form.age === undefined ? null : Number(form.age),
+  monthly_fee: form.monthly_fee === "" || form.monthly_fee === null || form.monthly_fee === undefined ? 0 : Number(form.monthly_fee),
 });
 
 const guardianForRow = (row) => {
@@ -59,7 +59,7 @@ export default function SchoolStudents() {
     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
       <div>
         <p className="font-black text-slate-900">Class for this import</p>
-        <p className="text-sm text-slate-500">Choose the class where these imported students must be saved. This selection takes priority over any Class or Grade value in the Excel file.</p>
+        <p className="text-sm text-slate-500">Choose the exact class where these students must be saved. This selection is authoritative and overrides Class/Grade values from Excel.</p>
       </div>
       <select className="field max-w-sm" value={importClassId} onChange={(e) => setImportClassId(e.target.value)}>
         <option value="">Use class from Excel / leave unassigned</option>
@@ -68,12 +68,14 @@ export default function SchoolStudents() {
     </div>
   );
 
-  const submitStudent = (form) => transformStudent({
-    ...form,
-    // When a class is selected in the import controls, it is authoritative.
-    // This prevents values such as "Grade 5" in Excel from overriding the
-    // actual school_classes UUID selected by the user.
-    class_id: importClassId || form.class_id,
+  const submitStudent = (form) => transformStudent({ ...form, class_id: importClassId || form.class_id });
+  const submitBulkStudents = (records) => ({
+    class_id: importClassId || null,
+    students: records.map((record) => transformStudent({
+      ...record,
+      // The import selector always wins. Never let Excel's text such as "Grade 5" replace the UUID.
+      class_id: importClassId || record.class_id,
+    })),
   });
 
   return (
@@ -88,9 +90,11 @@ export default function SchoolStudents() {
       `}</style>
       <EntityCrud
         apiPath="/school/students"
+        bulkApiPath="/school/students/bulk"
         title="Register Student"
         entityLabel="students"
         transformSubmit={submitStudent}
+        transformBulkSubmit={submitBulkStudents}
         bulkHeaderContent={bulkHeaderContent}
         emptyTitle="No students registered"
         emptyDescription="Register students individually, add many at once, or import an Excel/CSV file. Sahel organizes the rows, maps common column names, lets you review them, and places them into the class you designate."
