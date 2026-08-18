@@ -6,6 +6,7 @@ const {
   getFeePayments, getUnpaidFees, createFeePayment,
   getSalaryPayments, getUnpaidSalaries, createSalaryPayment,
 } = require("../controllers/schoolController");
+const { createBulkStudents } = require("../controllers/schoolBulkStudentController");
 const { getExams, createExam, deleteExam, getExamResults, saveExamResults, getSubjects } = require("../controllers/schoolExamController");
 const { getStudentExamHistory } = require("../controllers/studentExamHistoryController");
 const { getAttendance, saveAttendance, getAttendanceHistory } = require("../controllers/schoolAttendanceController");
@@ -15,6 +16,7 @@ router.get("/classes", getClasses);
 router.post("/classes", createClass);
 router.delete("/classes/:id", deleteClass);
 router.get("/students", getStudents);
+router.post("/students/bulk", createBulkStudents);
 router.post("/students", createStudent);
 router.put("/students/:id", updateStudent);
 router.delete("/students/:id", deleteStudent);
