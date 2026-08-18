@@ -58,15 +58,23 @@ export default function SchoolStudents() {
   const bulkHeaderContent = (
     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
       <div>
-        <p className="font-black text-slate-900">Default class for this import</p>
-        <p className="text-sm text-slate-500">If the Excel file does not contain a Class column, every imported student will be placed in this class. A Class value in the file takes priority.</p>
+        <p className="font-black text-slate-900">Class for this import</p>
+        <p className="text-sm text-slate-500">Choose the class where these imported students must be saved. This selection takes priority over any Class or Grade value in the Excel file.</p>
       </div>
       <select className="field max-w-sm" value={importClassId} onChange={(e) => setImportClassId(e.target.value)}>
-        <option value="">Leave class unassigned</option>
+        <option value="">Use class from Excel / leave unassigned</option>
         {classes.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
       </select>
     </div>
   );
+
+  const submitStudent = (form) => transformStudent({
+    ...form,
+    // When a class is selected in the import controls, it is authoritative.
+    // This prevents values such as "Grade 5" in Excel from overriding the
+    // actual school_classes UUID selected by the user.
+    class_id: importClassId || form.class_id,
+  });
 
   return (
     <div className="school-students-official">
@@ -82,7 +90,7 @@ export default function SchoolStudents() {
         apiPath="/school/students"
         title="Register Student"
         entityLabel="students"
-        transformSubmit={transformStudent}
+        transformSubmit={submitStudent}
         bulkHeaderContent={bulkHeaderContent}
         emptyTitle="No students registered"
         emptyDescription="Register students individually, add many at once, or import an Excel/CSV file. Sahel organizes the rows, maps common column names, lets you review them, and places them into the class you designate."
@@ -99,7 +107,7 @@ export default function SchoolStudents() {
       />
       <div className="mt-4 flex items-center gap-3 rounded-2xl border border-orange-100 bg-gradient-to-r from-orange-50 to-white p-4 text-sm text-slate-600 shadow-sm">
         <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-orange-500 text-white shadow-lg shadow-orange-200"><ShieldCheck className="h-5 w-5" /></span>
-        <div><p className="font-black text-slate-900">Official school registry</p><p>Each student receives one school-wide ID. The ID follows the student even when they move between classes.</p>{selectedClass ? <p className="mt-1 text-xs font-bold text-orange-600">Current import default: {selectedClass.name}</p> : null}</div>
+        <div><p className="font-black text-slate-900">Official school registry</p><p>Each student receives one school-wide ID. The ID follows the student even when they move between classes.</p>{selectedClass ? <p className="mt-1 text-xs font-bold text-orange-600">Current import class: {selectedClass.name}</p> : null}</div>
       </div>
     </div>
   );
