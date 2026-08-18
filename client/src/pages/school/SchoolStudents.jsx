@@ -10,9 +10,9 @@ const guardianOptions = [
   { value: "other", label: "Other guardian / relative" },
 ];
 
-const studentFields = (classes) => [
+const studentFields = (classes, defaultClassId = "") => [
   { key: "name", label: "Student full name", aliases: ["student name", "full name", "name"], required: true },
-  { key: "class_id", label: "Class", aliases: ["class", "grade", "section"], type: "select", options: classes.map((c) => ({ value: c.id, label: `${c.name} · ${c.level === "secondary" ? "Dugsi Sare" : "Primary"}` })) },
+  { key: "class_id", label: "Class", aliases: ["class", "grade", "section"], default: defaultClassId, type: "select", options: classes.map((c) => ({ value: c.id, label: `${c.name} · ${c.level === "secondary" ? "Dugsi Sare" : "Primary"}` })) },
   { key: "guardian_type", label: "Guardian type", aliases: ["guardian", "guardian type"], type: "select", required: true, options: guardianOptions },
   { key: "guardian_name", label: "Guardian full name", aliases: ["guardian name", "parent name", "father name", "mother name"], required: true },
   { key: "phone_number", label: "Guardian phone number", aliases: ["phone", "phone number", "guardian phone", "parent phone"], required: true },
@@ -54,6 +54,7 @@ export default function SchoolStudents() {
   if (error) return <ErrorState message={error} />;
 
   const selectedClass = classes.find((c) => c.id === importClassId);
+  const fields = studentFields(classes, importClassId);
   const bulkHeaderContent = (
     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
       <div>
@@ -82,11 +83,10 @@ export default function SchoolStudents() {
         title="Register Student"
         entityLabel="students"
         transformSubmit={transformStudent}
-        bulkDefaults={{ class_id: importClassId || undefined }}
         bulkHeaderContent={bulkHeaderContent}
         emptyTitle="No students registered"
         emptyDescription="Register students individually, add many at once, or import an Excel/CSV file. Sahel organizes the rows, maps common column names, lets you review them, and places them into the class you designate."
-        fields={studentFields(classes)}
+        fields={fields}
         columns={[
           { key: "registration_no", label: "School ID", render: (r) => <span className="inline-flex min-w-12 items-center justify-center rounded-xl bg-orange-50 px-3 py-1.5 text-sm font-black text-orange-700 ring-1 ring-orange-100">{r.registration_no || "—"}</span> },
           { key: "name", label: "Student", render: (r) => <div><div className="flex items-center gap-2"><span className="flex h-8 w-8 items-center justify-center rounded-full bg-orange-100 text-orange-700"><UserRound className="h-4 w-4" /></span><p className="font-black text-slate-900">{r.name}</p></div><p className="ml-10 text-xs text-slate-400">Age {r.age ?? "-"}</p></div> },
