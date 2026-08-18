@@ -415,7 +415,7 @@ export default function LandingMotion() {
         </section>
 
         {/* ================= SOLUTIONS ================= */}
-        <section id="solutions" className="px-4 py-24 sm:px-10 lg:px-16 lg:py-32">
+        <section id="solutions" className="px-4 py-16 sm:px-10 lg:px-16 lg:py-20">
           <div className="max-w-2xl">
             <p className="text-sm font-black uppercase tracking-[.18em] text-blue-600">Solutions</p>
             <h2 className="mt-3 text-4xl font-black leading-tight text-[#0f172a] sm:text-5xl">
@@ -427,16 +427,18 @@ export default function LandingMotion() {
             </p>
           </div>
 
-          <div className="mt-14 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {solutions.map(({ icon: Icon, name, title, text, eta }, i) => (
-              <Reveal key={name} delay={i * 120} className="group rounded-3xl border border-black/5 bg-white p-7 shadow-[0_1px_0_rgba(255,255,255,0.9)_inset,0_14px_30px_-18px_rgba(15,23,42,0.25)] transition-all hover:-translate-y-1 hover:shadow-[0_24px_44px_-18px_rgba(15,23,42,0.3)]">
-                <span className="flex h-12 w-12 items-center justify-center rounded-2xl border border-black/5 bg-[#eef1f6] text-blue-600">
-                  <Icon className="h-5 w-5" strokeWidth={1.75} />
-                </span>
-                <p className="mt-5 text-xs font-black uppercase tracking-wider text-blue-600">{name}</p>
-                <h3 className="mt-1.5 text-lg font-black">{title}</h3>
-                <p className="mt-2 text-base leading-relaxed text-slate-500">{text}</p>
-                <p className="mt-5 inline-flex items-center gap-1.5 rounded-full bg-[#eef1f6] px-3 py-1.5 text-xs font-bold text-slate-500">
+              <Reveal key={name} delay={i * 120} className="group rounded-3xl border border-black/5 bg-white p-6 shadow-[0_1px_0_rgba(255,255,255,0.9)_inset,0_14px_30px_-18px_rgba(15,23,42,0.25)] transition-all hover:-translate-y-1 hover:shadow-[0_24px_44px_-18px_rgba(15,23,42,0.3)]">
+                <div className="flex items-center gap-3">
+                  <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-black/5 bg-[#eef1f6] text-blue-600">
+                    <Icon className="h-5 w-5" strokeWidth={1.75} />
+                  </span>
+                  <p className="text-xs font-black uppercase tracking-wider text-blue-600">{name}</p>
+                </div>
+                <h3 className="mt-4 text-lg font-black">{title}</h3>
+                <p className="mt-1.5 text-base leading-relaxed text-slate-500">{text}</p>
+                <p className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-[#eef1f6] px-3 py-1.5 text-xs font-bold text-slate-500">
                   <Sparkles className="h-3.5 w-3.5" strokeWidth={1.75} />
                   {eta}
                 </p>
@@ -446,38 +448,38 @@ export default function LandingMotion() {
         </section>
 
         {/* ================= PROOF STRIP ================= */}
-        <section className="px-4 pb-24 sm:px-10 lg:px-16 lg:pb-32">
-          <div className="relative rounded-[32px] border border-white bg-[#f6f8fb] p-8 shadow-[0_1px_0_rgba(255,255,255,0.9)_inset,0_20px_50px_-30px_rgba(15,23,42,0.3)] sm:p-12">
-            <div className="flex flex-col items-stretch gap-4 lg:flex-row lg:items-center lg:-space-x-6">
-              {proof.map((p, i) => (
-                <Reveal key={p.accent} delay={i * 150} className={`flex-1 rounded-full border border-black/5 bg-white px-8 py-7 text-center shadow-[0_14px_30px_-16px_rgba(15,23,42,0.3)] ${i === 0 ? "lg:rotate-[-1deg]" : i === 1 ? "lg:z-10 lg:scale-105" : "lg:rotate-[1deg]"}`}>
-                  <p className="text-4xl font-black text-[#0f172a] sm:text-5xl">
-                    {p.n} <span className="text-blue-600">{p.accent}</span>
-                  </p>
-                  <p className="mt-1.5 text-base text-slate-500">{p.label}</p>
-                </Reveal>
-              ))}
-            </div>
+        <section className="px-4 pb-16 sm:px-10 lg:px-16 lg:pb-20">
+          <div className="grid gap-px overflow-hidden rounded-[24px] border border-black/5 bg-black/5 sm:grid-cols-3">
+            {proof.map((p, i) => (
+              <Reveal key={p.accent} delay={i * 120} className="bg-white px-6 py-6">
+                <p className="text-3xl font-black text-[#0f172a] sm:text-4xl">
+                  {p.n} <span className="text-blue-600">{p.accent}</span>
+                </p>
+                <p className="mt-1 text-sm text-slate-500">{p.label}</p>
+              </Reveal>
+            ))}
           </div>
         </section>
 
         {/* ================= FEATURES (dark bento) ================= */}
-        <section id="features" className="px-4 pb-24 sm:px-10 lg:px-16 lg:pb-32">
+        <section id="features" className="px-4 pb-16 sm:px-10 lg:px-16 lg:pb-20">
           <div className="max-w-2xl">
             <p className="text-sm font-black uppercase tracking-[.18em] text-blue-600">Everything in one place</p>
             <h2 className="mt-3 text-4xl font-black leading-tight text-[#0f172a] sm:text-5xl">
               Less busywork. More control.
             </h2>
           </div>
-          <div className="mt-14 rounded-[36px] bg-[#0f172a] p-4 shadow-[0_1px_0_rgba(255,255,255,0.08)_inset,0_30px_60px_-30px_rgba(15,23,42,0.8)] sm:p-5">
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="mt-10 rounded-[28px] bg-[#0f172a] p-3 shadow-[0_1px_0_rgba(255,255,255,0.08)_inset,0_30px_60px_-30px_rgba(15,23,42,0.8)] sm:p-4">
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {features.map(([Icon, title, text], i) => (
-                <Reveal key={title} delay={i * 90} className="rounded-[28px] border border-white/5 bg-[#161f33] p-7">
-                  <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-white/5 text-blue-400">
-                    <Icon className="h-5 w-5" strokeWidth={1.75} />
+                <Reveal key={title} delay={i * 90} className="flex items-start gap-4 rounded-[20px] border border-white/5 bg-[#161f33] p-5">
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/5 text-blue-400">
+                    <Icon className="h-4.5 w-4.5" strokeWidth={1.75} />
                   </span>
-                  <h3 className="mt-5 font-black text-white">{title}</h3>
-                  <p className="mt-2 text-sm leading-relaxed text-white/50">{text}</p>
+                  <div>
+                    <h3 className="font-black text-white">{title}</h3>
+                    <p className="mt-1 text-sm leading-relaxed text-white/50">{text}</p>
+                  </div>
                 </Reveal>
               ))}
             </div>
@@ -485,19 +487,19 @@ export default function LandingMotion() {
         </section>
 
         {/* ================= STEPS ================= */}
-        <section className="px-4 pb-24 sm:px-10 lg:px-16 lg:pb-32">
+        <section className="px-4 pb-16 sm:px-10 lg:px-16 lg:pb-20">
           <div className="max-w-2xl">
             <p className="text-sm font-black uppercase tracking-[.18em] text-blue-600">Getting started</p>
             <h2 className="mt-3 text-4xl font-black leading-tight text-[#0f172a] sm:text-5xl">
               Up and running in three steps.
             </h2>
           </div>
-          <div className="mt-14 grid gap-5 lg:grid-cols-3">
+          <div className="mt-10 grid gap-4 lg:grid-cols-3">
             {steps.map((s, i) => (
-              <Reveal key={s.n} delay={i * 130} className="relative rounded-[28px] border border-black/5 bg-white p-8 shadow-[0_16px_36px_-20px_rgba(15,23,42,0.25)]">
+              <Reveal key={s.n} delay={i * 130} className="relative rounded-[24px] border border-black/5 bg-white p-6 shadow-[0_16px_36px_-20px_rgba(15,23,42,0.25)]">
                 <span className="text-sm font-black text-blue-200">{s.n}</span>
-                <h3 className="mt-3 text-xl font-black text-[#0f172a]">{s.title}</h3>
-                <p className="mt-2 text-base leading-relaxed text-slate-500">{s.text}</p>
+                <h3 className="mt-2 text-xl font-black text-[#0f172a]">{s.title}</h3>
+                <p className="mt-1.5 text-base leading-relaxed text-slate-500">{s.text}</p>
                 {i < steps.length - 1 && (
                   <ArrowRight className="absolute -right-3.5 top-1/2 hidden h-7 w-7 -translate-y-1/2 text-blue-200 lg:block" strokeWidth={1.75} />
                 )}
@@ -507,53 +509,49 @@ export default function LandingMotion() {
         </section>
 
         {/* ================= ABOUT / INSTALL ================= */}
-        <section id="about" className="px-4 pb-24 sm:px-10 lg:px-16 lg:pb-32">
-          <div className="mx-auto grid max-w-5xl gap-5 md:grid-cols-3">
-            <Reveal className="relative flex min-h-[380px] flex-col justify-between overflow-hidden rounded-[26px] bg-[#0f172a] p-6 shadow-[0_20px_44px_-24px_rgba(15,23,42,0.5)]">
-              <div className="flex items-start justify-between">
+        <section id="about" className="px-4 pb-16 sm:px-10 lg:px-16 lg:pb-20">
+          <div className="mx-auto grid max-w-5xl gap-4 md:grid-cols-3">
+            <Reveal className="rounded-[22px] bg-[#0f172a] p-6 shadow-[0_20px_44px_-24px_rgba(15,23,42,0.5)]">
+              <div className="flex items-center justify-between">
                 <div className="flex gap-2">
                   <span className="rounded-full border border-white/20 bg-white/10 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-white">Shops</span>
                   <span className="rounded-full border border-white/20 bg-white/10 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-white">Schools</span>
                 </div>
                 <ArrowUpRight className="h-4 w-4 text-white/60" strokeWidth={1.75} />
               </div>
-              <div>
-                <p className="text-sm leading-relaxed text-white/90">
-                  "We switched three shops to Sahel in one afternoon — no more
-                  end-of-day spreadsheet chaos."
-                </p>
-                <p className="mt-3 text-xs text-white/50">— Early Sahel merchant</p>
-              </div>
+              <p className="mt-6 text-sm leading-relaxed text-white/90">
+                "We switched three shops to Sahel in one afternoon — no more
+                end-of-day spreadsheet chaos."
+              </p>
+              <p className="mt-3 text-xs text-white/50">— Early Sahel merchant</p>
             </Reveal>
 
-            <Reveal delay={150} className="flex min-h-[380px] flex-col items-center justify-center rounded-[26px] border border-slate-200 bg-white p-8 text-center shadow-[0_20px_44px_-24px_rgba(15,23,42,0.2)]">
-              <img src={sahelLogo} alt="Sahel" className="h-9 w-auto" />
-              <p className="mt-4 text-sm leading-relaxed text-slate-500">
+            <Reveal delay={150} className="flex flex-col items-center justify-center rounded-[22px] border border-slate-200 bg-white p-6 text-center shadow-[0_20px_44px_-24px_rgba(15,23,42,0.2)]">
+              <img src={sahelLogo} alt="Sahel" className="h-8 w-auto" />
+              <p className="mt-3 text-sm leading-relaxed text-slate-500">
                 One workspace for shops, schools and gyms — built for growing
                 organizations across the region.
               </p>
-              <a href="#solutions" className="mt-6 rounded-full border border-slate-200 px-5 py-2 text-sm font-bold text-slate-700 transition hover:bg-slate-50">
+              <a href="#solutions" className="mt-4 rounded-full border border-slate-200 px-5 py-2 text-sm font-bold text-slate-700 transition hover:bg-slate-50">
                 See solutions
               </a>
             </Reveal>
 
-            <Reveal delay={300} className="flex min-h-[380px] flex-col justify-between rounded-[26px] bg-[#0f172a] p-6 shadow-[0_20px_44px_-24px_rgba(15,23,42,0.5)]">
-              <div>
-                <p className="text-[10px] font-bold uppercase tracking-widest text-white/50">Take it with you</p>
-                <h3 className="mt-4 text-2xl font-black text-white">Install Sahel.</h3>
-                <p className="mt-3 text-sm leading-relaxed text-white/70">
-                  Add Sahel to your phone or computer for a faster, focused
-                  experience — no browser tabs to hunt for.
-                </p>
-              </div>
-              <button onClick={install} className="mt-6 inline-flex items-center justify-center gap-2 rounded-full bg-white px-5 py-3 text-sm font-bold text-[#0f172a] transition hover:-translate-y-0.5">
+            <Reveal delay={300} className="rounded-[22px] bg-[#0f172a] p-6 shadow-[0_20px_44px_-24px_rgba(15,23,42,0.5)]">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-white/50">Take it with you</p>
+              <h3 className="mt-2 text-2xl font-black text-white">Install Sahel.</h3>
+              <p className="mt-2 text-sm leading-relaxed text-white/70">
+                Add Sahel to your phone or computer for a faster, focused
+                experience — no browser tabs to hunt for.
+              </p>
+              <button onClick={install} className="mt-5 inline-flex items-center justify-center gap-2 rounded-full bg-white px-5 py-3 text-sm font-bold text-[#0f172a] transition hover:-translate-y-0.5">
                 <Download className="h-4 w-4" strokeWidth={1.75} />
                 {installed ? "Installed" : "Install app"}
               </button>
             </Reveal>
           </div>
 
-          <div id="install-help" className={`mx-auto mt-6 max-w-5xl rounded-3xl border p-6 text-left transition ${installOpen ? "border-blue-200 bg-blue-50/60 shadow-lg" : "border-slate-100 bg-slate-50"}`}>
+          <div id="install-help" className={`mx-auto mt-4 max-w-5xl rounded-3xl border p-6 text-left transition ${installOpen ? "border-blue-200 bg-blue-50/60 shadow-lg" : "border-slate-100 bg-slate-50"}`}>
             <div className="flex items-start gap-4">
               <div className="rounded-2xl bg-white p-3 text-blue-600 shadow-sm"><Download className="h-5 w-5" strokeWidth={1.75} /></div>
               <div className="flex-1">
@@ -581,7 +579,7 @@ export default function LandingMotion() {
 
         {/* ================= FOOTER CTA ================= */}
         <footer className="px-2 pb-2 sm:px-0 sm:pb-4">
-          <div className="relative overflow-hidden rounded-[28px] bg-[#f6f8fb] px-6 py-20 shadow-[0_1px_0_rgba(255,255,255,0.9)_inset,0_20px_60px_-30px_rgba(15,23,42,0.25)] sm:rounded-[40px] sm:px-12 lg:py-28">
+          <div className="relative overflow-hidden rounded-[28px] bg-[#f6f8fb] px-6 py-14 shadow-[0_1px_0_rgba(255,255,255,0.9)_inset,0_20px_60px_-30px_rgba(15,23,42,0.25)] sm:rounded-[40px] sm:px-12 lg:py-20">
             <div className="pointer-events-none absolute -left-40 bottom-0 h-[520px] w-[520px] rounded-full opacity-60 blur-3xl" style={{ background: "radial-gradient(circle, rgba(37,99,235,0.3), transparent 70%)" }} />
             <div className="pointer-events-none absolute -right-40 -top-20 h-[420px] w-[420px] rounded-full opacity-40 blur-3xl" style={{ background: "radial-gradient(circle, rgba(15,23,42,0.25), transparent 70%)" }} />
 
@@ -606,7 +604,7 @@ export default function LandingMotion() {
               </div>
             </div>
 
-            <div className="relative mx-auto mt-16 flex max-w-5xl flex-col items-center justify-between gap-6 border-t border-black/5 pt-8 text-center sm:flex-row sm:text-left">
+            <div className="relative mx-auto mt-10 flex max-w-5xl flex-col items-center justify-between gap-6 border-t border-black/5 pt-8 text-center sm:flex-row sm:text-left">
               <img src={sahelLogo} alt="Sahel" className="h-8 w-auto" />
               <div className="flex flex-wrap items-center justify-center gap-6 text-sm font-semibold text-slate-500">
                 <a href="#solutions" className="hover:text-[#0f172a]">Solutions</a>
