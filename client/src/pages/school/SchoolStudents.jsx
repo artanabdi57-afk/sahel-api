@@ -12,7 +12,7 @@ const guardianOptions = [
 
 const studentFields = (classes, defaultClassId = "") => [
   { key: "name", label: "Student full name", aliases: ["student name", "full name", "name"], required: true },
-  { key: "class_id", label: "Class", aliases: ["class", "grade", "section"], default: defaultClassId, type: "select", options: classes.map((c) => ({ value: c.id, label: `${c.name} · ${c.level === "secondary" ? "Dugsi Sare" : "Primary"}` })) },
+  { key: "class_id", label: "Class", aliases: ["class", "grade", "section"], default: defaultClassId, type: "select", options: classes.map((c) => ({ value: c.id, label: c.name })) },
   { key: "guardian_type", label: "Guardian type", aliases: ["guardian", "guardian type"], type: "select", required: true, options: guardianOptions },
   { key: "guardian_name", label: "Guardian full name", aliases: ["guardian name", "parent name", "father name", "mother name"], required: true },
   { key: "phone_number", label: "Guardian phone number", aliases: ["phone", "phone number", "guardian phone", "parent phone"], required: true },
@@ -63,7 +63,7 @@ export default function SchoolStudents() {
       </div>
       <select className="field max-w-sm" value={importClassId} onChange={(e) => setImportClassId(e.target.value)}>
         <option value="">Leave class unassigned</option>
-        {classes.map((c) => <option key={c.id} value={c.id}>{c.name} · {c.level === "secondary" ? "Dugsi Sare" : "Primary"}</option>)}
+        {classes.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
       </select>
     </div>
   );
