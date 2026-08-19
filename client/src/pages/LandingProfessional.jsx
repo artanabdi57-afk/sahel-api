@@ -552,7 +552,7 @@ export default function LandingMotion() {
           <div className="sticky top-3 z-50 flex justify-center px-3 pt-4 sm:top-5 sm:pt-6">
             <nav className={`flex w-full max-w-[920px] items-center justify-between rounded-full border border-white/70 bg-white/80 py-2.5 pl-4 pr-2.5 backdrop-blur-xl transition-shadow duration-500 shadow-[0_1px_0_rgba(255,255,255,0.9)_inset,0_10px_30px_-14px_rgba(15,23,42,0.25)] ${navShadow ? "shadow-[0_1px_0_rgba(255,255,255,0.9)_inset,0_18px_44px_-14px_rgba(15,23,42,0.35)]" : ""}`}>
               <Link to="/welcome" className="flex shrink-0 items-center gap-2.5" aria-label="Sahel home">
-                <img src={sahelLogo} alt="Sahel" className="h-7 w-auto" />
+                <img src={sahelLogo} alt="Sahel" className="h-9 w-auto sm:h-10" />
               </Link>
               <div className="hidden items-center gap-1 text-sm font-semibold text-slate-500 md:flex">
                 <a href="#home" className="rounded-full px-3.5 py-2 transition hover:bg-black/5 hover:text-slate-950">{t.nav.home}</a>
@@ -614,9 +614,6 @@ export default function LandingMotion() {
               </DriftTile>
               <DriftTile className="absolute -right-24 top-16 hidden -rotate-6 lg:flex rtl:right-auto rtl:-left-24 rtl:rotate-6" bg="bg-emerald-500" delay={220}>
                 <GraduationCap className="h-5 w-5" strokeWidth={1.75} />
-              </DriftTile>
-              <DriftTile className="absolute -bottom-12 right-4 hidden rotate-3 md:flex rtl:right-auto rtl:left-4 rtl:-rotate-3" bg="bg-slate-900" delay={440}>
-                <Dumbbell className="h-5 w-5" strokeWidth={1.75} />
               </DriftTile>
             </div>
 
