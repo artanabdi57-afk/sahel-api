@@ -37,8 +37,8 @@ const translations = {
   en: {
     nav: { home: "Home", solutions: "Solutions", features: "Features", about: "About", login: "Log in", signup: "Sign up" },
     badge: "Built for growing organizations",
-    heroLines: ["Your business", "workspace,", "simplified."],
-    subtitle: "Boost productivity by keeping sales, people, inventory, payments and reports together in one simple Sahel workspace.",
+    heroLines: ["Run your business", "the simple", "way."],
+    subtitle: "Sales, people, inventory, payments and reports — all in one simple workspace for shops, schools and gyms.",
     ctaPrimary: "Get started free",
     ctaInstall: "Install app",
     ctaInstalled: "Sahel installed",
@@ -107,8 +107,8 @@ const translations = {
   so: {
     nav: { home: "Bogga hore", solutions: "Xalalka", features: "Astaamaha", about: "Ku saabsan", login: "Gal", signup: "Isdiiwaangeli" },
     badge: "U dhisan ururo koraya",
-    heroLines: ["Goobta shaqada", "ganacsigaaga,", "oo fudud."],
-    subtitle: "Kordhi wax-soo-saarka adigoo isku keenaya iibka, dadka, alaabta, lacag-bixinta iyo warbixinnada — dhammaantood hal goob shaqo oo fudud oo Sahel ah.",
+    heroLines: ["Ganacsigaaga", "si fudud", "u maamul."],
+    subtitle: "Iibka, macaamiisha, alaabta, lacag-bixinta iyo warbixinnada — dhammaantood hal goob shaqo oo fudud, oo u dhisan dukaanno, dugsiyo iyo jimicsiyo.",
     ctaPrimary: "Bilaw bilaash ah",
     ctaInstall: "Rakib app-ka",
     ctaInstalled: "Sahel waa la rakibay",
@@ -177,8 +177,8 @@ const translations = {
   ar: {
     nav: { home: "الرئيسية", solutions: "الحلول", features: "الميزات", about: "حول", login: "تسجيل الدخول", signup: "إنشاء حساب" },
     badge: "مصمم للمؤسسات النامية",
-    heroLines: ["مساحة عملك", "التجارية،", "أصبحت أسهل."],
-    subtitle: "عزّز إنتاجيتك من خلال تجميع المبيعات والأشخاص والمخزون والمدفوعات والتقارير في مساحة عمل واحدة بسيطة على سهل.",
+    heroLines: ["أدر عملك", "بطريقة", "بسيطة."],
+    subtitle: "المبيعات والعملاء والمخزون والمدفوعات والتقارير — كلها في مساحة عمل واحدة بسيطة، مصممة للمتاجر والمدارس والنوادي الرياضية.",
     ctaPrimary: "ابدأ مجانًا",
     ctaInstall: "تثبيت التطبيق",
     ctaInstalled: "تم تثبيت سهل",
@@ -355,96 +355,6 @@ function isStandalone() {
   return window.matchMedia?.("(display-mode: standalone)")?.matches || window.navigator.standalone === true;
 }
 
-let threePromise = null;
-function loadThree() {
-  if (window.THREE) return Promise.resolve(window.THREE);
-  if (threePromise) return threePromise;
-  threePromise = new Promise((resolve, reject) => {
-    const existing = document.querySelector('script[data-sahel-three]');
-    if (existing) {
-      existing.addEventListener("load", () => resolve(window.THREE));
-      return;
-    }
-    const script = document.createElement("script");
-    script.src = "https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js";
-    script.async = true;
-    script.dataset.sahelThree = "1";
-    script.onload = () => resolve(window.THREE);
-    script.onerror = reject;
-    document.head.appendChild(script);
-  });
-  return threePromise;
-}
-
-function HeroMesh() {
-  const canvasRef = useRef(null);
-
-  useEffect(() => {
-    if (window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches) return;
-    let renderer, raf, mesh, resizeHandler, cancelled = false;
-
-    loadThree().then((THREE) => {
-      if (cancelled || !canvasRef.current) return;
-      const canvas = canvasRef.current;
-      renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
-      const scene = new THREE.Scene();
-      const camera = new THREE.PerspectiveCamera(35, 1, 0.1, 100);
-      camera.position.z = 15;
-
-      const geometry = new THREE.IcosahedronGeometry(3, 0);
-      const material = new THREE.MeshStandardMaterial({
-        color: 0x2563eb,
-        emissive: 0x0b1a3d,
-        roughness: 0.3,
-        metalness: 0.6,
-        flatShading: true,
-      });
-      mesh = new THREE.Mesh(geometry, material);
-      scene.add(mesh);
-
-      scene.add(new THREE.AmbientLight(0xffffff, 0.5));
-      const mainLight = new THREE.DirectionalLight(0xffffff, 1.2);
-      mainLight.position.set(10, 10, 10);
-      scene.add(mainLight);
-      const fillLight = new THREE.DirectionalLight(0x3b82f6, 0.7);
-      fillLight.position.set(-10, -5, 5);
-      scene.add(fillLight);
-
-      resizeHandler = () => {
-        const w = canvas.clientWidth, h = canvas.clientHeight;
-        if (!w || !h) return;
-        renderer.setSize(w, h, false);
-        renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-        camera.aspect = w / h;
-        camera.updateProjectionMatrix();
-        mesh.position.x = w < 1024 ? 0 : 4.5;
-      };
-      window.addEventListener("resize", resizeHandler);
-      resizeHandler();
-
-      let t = 0;
-      const frame = () => {
-        t += 0.01;
-        mesh.rotation.x = t * 0.2;
-        mesh.rotation.y = t * 0.3;
-        mesh.position.y = 0.4 + Math.sin(t * 1.2) * 0.3;
-        renderer.render(scene, camera);
-        raf = requestAnimationFrame(frame);
-      };
-      frame();
-    });
-
-    return () => {
-      cancelled = true;
-      if (raf) cancelAnimationFrame(raf);
-      if (resizeHandler) window.removeEventListener("resize", resizeHandler);
-      if (renderer) renderer.dispose();
-    };
-  }, []);
-
-  return <canvas ref={canvasRef} className="pointer-events-none absolute inset-0 z-0 h-full w-full opacity-80" />;
-}
-
 // Compact language switcher — three pill buttons, works in nav and mobile sheet
 function LangSwitch({ lang, setLang, className = "" }) {
   return (
@@ -543,8 +453,10 @@ export default function LandingMotion() {
 
         {/* ================= HERO SHELL ================= */}
         <section className="relative flex min-h-[100svh] flex-col overflow-hidden rounded-[28px] bg-[#f6f8fb] shadow-[0_1px_0_rgba(255,255,255,0.9)_inset,0_20px_60px_-30px_rgba(15,23,42,0.25)] sm:rounded-[40px]">
-          <HeroMesh />
-          <div ref={bloomRef} className="pointer-events-none absolute -right-40 top-0 h-[720px] w-[720px] rounded-full opacity-70 blur-3xl transition-transform duration-700 ease-out rtl:-right-auto rtl:-left-40" style={{ background: "radial-gradient(circle at 55% 45%, rgba(37,99,235,0.45), rgba(56,143,255,0.22) 40%, rgba(246,248,251,0) 70%)" }} />
+          {/* Static gradient backdrop — replaces the old rotating 3D mesh, which
+              covered the screen on small viewports. No motion, works at every size. */}
+          <div className="pointer-events-none absolute inset-0 z-0" style={{ background: "linear-gradient(135deg, rgba(37,99,235,0.16) 0%, rgba(56,143,255,0.08) 35%, rgba(246,248,251,0) 65%)" }} />
+          <div ref={bloomRef} className="pointer-events-none absolute -right-40 top-0 h-[820px] w-[820px] rounded-full opacity-80 blur-3xl transition-transform duration-700 ease-out rtl:-right-auto rtl:-left-40" style={{ background: "radial-gradient(circle at 55% 45%, rgba(37,99,235,0.5), rgba(56,143,255,0.26) 40%, rgba(246,248,251,0) 70%)" }} />
           <div className="pointer-events-none absolute -left-52 top-24 h-[640px] w-[640px] rounded-full opacity-50 blur-3xl" style={{ background: "radial-gradient(circle at 50% 50%, rgba(15,23,42,0.25), rgba(100,116,139,0.12) 45%, rgba(246,248,251,0) 72%)" }} />
           <div className="pointer-events-none absolute -bottom-40 right-1/4 h-[420px] w-[560px] rounded-full opacity-40 blur-3xl" style={{ background: "radial-gradient(circle at 50% 50%, rgba(37,99,235,0.22), rgba(246,248,251,0) 70%)" }} />
 
